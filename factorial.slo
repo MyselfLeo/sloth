@@ -1,0 +1,40 @@
+# return the @0th value of the fibonacci sequence. Computed recursively
+# VERY SLOW
+define fibonacci_rec: num -> num {
+    if == @0 0 {
+        @return = 0;
+    };
+
+    if == @0 1 {
+        @return = 1;
+    };
+
+    if > @0 1 {
+        @return = + fibonacci_rec(- @0 1) fibonacci_rec(- @0 2);
+    };
+}
+
+
+
+
+# return the @0th value of the fibonacci suite
+define fibonacci: num -> num {
+    if == @0 0 {@return = 0;};
+    if == @0 1 {@return = 1;};
+
+    if > @0 1 {
+        n_1 = 1;
+        n_2 = 0;
+
+        i = 1;
+        while < i @0 {
+            buff = n_2;
+            n_2 = n_1;
+            n_1 = + n_2 buff;
+
+            i = + i 1;
+        };
+
+        @return = n_1;
+    };
+}
