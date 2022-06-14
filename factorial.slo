@@ -3,7 +3,6 @@
 define fibonacci_rec: num -> num {
     if == @0 0 {
         @return = 0;
-        | test |;
     };
 
     if == @0 1 {
