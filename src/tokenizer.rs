@@ -3,7 +3,7 @@ use crate::errors;
 
 const KEYWORDS: [&str; 11] = ["define", "num", "bool", "string", "list", "none", "->", "=", "if", "while", "use"];
 const OPERATORS: [&str; 12] = ["+", "-", "*", "/", "<", ">", "<=", ">=", "==", "&", "?", "!"];
-const SEPARATORS: [&str; 9] = ["(", ")", "{", "}", "[", "]", ";", ":", ","];
+const SEPARATORS: [&str; 10] = ["(", ")", "{", "}", "[", "]", ";", ":", ",", "|"]; // TODO: remove unused separator '|'
 
 // Unlike SEPARATORS, those do not have a semantic meaning (only used for separating tokens)
 const DEFAULT_SEPARATORS: [char; 2] = [' ', '"'];

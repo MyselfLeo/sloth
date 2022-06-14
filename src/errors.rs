@@ -1,6 +1,9 @@
 use crate::tokenizer::{ElementPosition};
 
 
+const CRATE_NAME: &str = env!("CARGO_PKG_NAME");
+const CRATE_VERSION: &str = env!("CARGO_PKG_VERSION");
+
 
 
 pub fn syntax_error(e: &str, position: &ElementPosition) {
@@ -11,7 +14,7 @@ pub fn syntax_error(e: &str, position: &ElementPosition) {
     let line_index_str_len = (position.line + 1).to_string().len();
 
     println!("\x1b[91mSYNTAX ERROR: {}\x1b[0m", e);
-    println!("\x1b[90m{}:{}\x1b[0m", position.filename, position.line + 1);
+    println!("\x1b[90m{}:{}  ({} v{})\x1b[0m", position.filename, position.line + 1, CRATE_NAME, CRATE_VERSION);
 
     println!("\x1b[31m|\x1b[0m");
     println!("\x1b[31m| {}\x1b[0m {}", position.line + 1, lines[position.line]);
