@@ -1,3 +1,7 @@
+// The tokenizer (TokenisedProgram) takes a .slo file and convert it into a list of tokens,
+// to be used by the Parser to generate a Program Tree
+
+
 use crate::errors;
 
 
