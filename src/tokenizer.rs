@@ -53,7 +53,7 @@ impl Token {
                 ";" => Ok(Token::Separator(Separator::SemiColon)),
                 ":" => Ok(Token::Separator(Separator::Colon)),
                 "," => Ok(Token::Separator(Separator::Comma)),
-                &_ => Err(format!("Unimplemented separator {}", string))
+                &_ => Err(format!("Unimplemented separator '{}'", string))
             }
         }
 

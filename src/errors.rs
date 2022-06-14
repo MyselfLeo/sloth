@@ -8,15 +8,17 @@ pub fn syntax_error(e: &str, position: &ElementPosition) {
     let file_string = std::fs::read_to_string(filepath).expect(format!("Unable to read file {:?}", filepath.as_os_str()).as_str());
     let lines: Vec<&str> = file_string.split('\n').collect();
 
-    println!("SYNTAX ERROR");
-    println!("{}", e);
-    println!();
-    println!("{}", lines[position.line]);
+    let line_index_str_len = (position.line + 1).to_string().len();
 
-    for i in 0..position.first_column {print!(" ")}
-    for i in 0..(position.last_column - position.first_column + 1) {print!("^")}
-    println!(" here");
-    println!("{}, line {}", position.filename, position.line);
+    println!("\x1b[91mSYNTAX ERROR: {}\x1b[0m", e);
+    println!("\x1b[90m{}:{}\x1b[0m", position.filename, position.line + 1);
+
+    println!("\x1b[31m|\x1b[0m");
+    println!("\x1b[31m| {}\x1b[0m {}", position.line + 1, lines[position.line]);
+    print!("\x1b[31m| \x1b[91m");
+    for _ in 0..position.first_column + line_index_str_len + 1 {print!(" ")}
+    for _ in 0..(position.last_column - position.first_column + 1) {print!("^")}
+    println!("\x1b[0m");
 
     std::process::exit(1)
 }
