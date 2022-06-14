@@ -3,7 +3,7 @@ use crate::errors;
 
 const KEYWORDS: [&str; 11] = ["define", "num", "bool", "string", "list", "none", "->", "=", "if", "while", "use"];
 const OPERATORS: [&str; 12] = ["+", "-", "*", "/", "<", ">", "<=", ">=", "==", "&", "?", "!"];
-const SEPARATORS: [&str; 10] = ["(", ")", "{", "}", "[", "]", ";", ":", ",", "|"]; // TODO: remove unused separator '|'
+const SEPARATORS: [&str; 9] = ["(", ")", "{", "}", "[", "]", ";", ":", ","];
 
 // Unlike SEPARATORS, those do not have a semantic meaning (only used for separating tokens)
 const DEFAULT_SEPARATORS: [char; 2] = [' ', '"'];
@@ -154,7 +154,7 @@ impl TokenizedProgram {
                             token_list.push(s);
                             position_list.push(position);
                         },
-                        Err(e) => errors::syntax_error(&e, &position),
+                        Err(e) => errors::error(&e, &position),
                     }
 
                     string_buffer.clear();
@@ -178,7 +178,7 @@ impl TokenizedProgram {
                                 token_list.push(s);
                                 position_list.push(position);
                             },
-                            Err(e) => errors::syntax_error(&e, &position),
+                            Err(e) => errors::error(&e, &position),
                         }
 
                         token_buffer.clear();
@@ -214,7 +214,7 @@ impl TokenizedProgram {
                                 token_list.push(s);
                                 position_list.push(position);
                             },
-                            Err(e) => errors::syntax_error(&e, &position),
+                            Err(e) => errors::error(&e, &position),
                         };
 
                         token_buffer.clear();
@@ -234,7 +234,7 @@ impl TokenizedProgram {
                                 token_list.push(s);
                                 position_list.push(position);
                             },
-                            Err(e) => errors::syntax_error(&e, &position),
+                            Err(e) => errors::error(&e, &position),
                         };
 
                         token_buffer.clear();
@@ -271,7 +271,7 @@ impl TokenizedProgram {
                         token_list.push(s);
                         position_list.push(position);
                     },
-                    Err(e) => errors::syntax_error(&e, &position),
+                    Err(e) => errors::error(&e, &position),
                 }
 
                 token_buffer.clear();
