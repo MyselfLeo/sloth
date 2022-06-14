@@ -297,15 +297,13 @@ impl TokenizedProgram {
 
         Ok(TokenizedProgram{tokens: token_list, positions: position_list})
     }
-}
 
 
-impl std::fmt::Display for TokenizedProgram {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+
+    /// Print to the console the list of tokens
+    pub fn print_tokens(&self) {
         for i in 0..self.tokens.len() {
-            write!(f, "{:30}{:30}\n", self.tokens[i].to_string(), self.positions[i].to_string());
+            println!("{:30}{:30}", self.tokens[i].to_string(), self.positions[i].to_string());
         }
-
-        write!(f, "")
     }
 }
