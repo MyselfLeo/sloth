@@ -4,5 +4,8 @@ mod tokenizer;
 mod errors;
 
 fn main() {
-    println!("Hello, world!");
+
+    let program = tokenizer::TokenizedProgram::from_file("factorial.slo").unwrap();
+
+    println!("{}", program);
 }
