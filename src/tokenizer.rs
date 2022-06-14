@@ -65,7 +65,14 @@ impl Token {
             Ok(Token::Identifier(string.to_string()))
         }
     }
+
+
+    pub fn to_string(&self) -> String {
+        format!("{:?}", self)
+    }
 }
+
+
 
 
 
@@ -87,6 +94,11 @@ impl std::fmt::Display for ElementPosition {
     }
 }
 
+impl ElementPosition {
+    pub fn to_string(&self) -> String {
+        format!("{}", self)
+    }
+}
 
 
 
@@ -291,7 +303,7 @@ impl TokenizedProgram {
 impl std::fmt::Display for TokenizedProgram {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for i in 0..self.tokens.len() {
-            write!(f, "{:?} {}\n", self.tokens[i], self.positions[i]);
+            write!(f, "{:30}{:30}\n", self.tokens[i].to_string(), self.positions[i].to_string());
         }
 
         write!(f, "")
