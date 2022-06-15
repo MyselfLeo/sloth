@@ -2,6 +2,8 @@
 mod tokenizer;
 #[allow(dead_code)]
 mod errors;
+#[allow(dead_code)]
+mod sloth;
 
 
 use clap::Parser;

@@ -61,7 +61,7 @@ impl Token {
             }
         }
 
-        else if string.starts_with('"') || string.parse::<f64>().is_ok() {
+        else if string.starts_with('"') || string.parse::<f64>().is_ok() || string == "true" || string == "false" {
             Ok(Token::Literal(string.to_string()))
         }
 
