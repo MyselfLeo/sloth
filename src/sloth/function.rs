@@ -1,6 +1,6 @@
 use super::{value::Value, types::Type};
 
-trait SlothFunction {
+pub trait SlothFunction {
     /// Call the function with the given arguments
     /// TODO: This will need a scope input
     fn call(&self, args: Vec<Box<dyn Value>>) -> Result<Option<Box<dyn Value>>, String>;

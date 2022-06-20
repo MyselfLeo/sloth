@@ -7,7 +7,7 @@ pub trait Value {
 }
 
 
-
+#[derive(Clone)]
 struct NumberValue {
     value: f64
 }
@@ -18,7 +18,7 @@ impl Value for NumberValue {
 }
 
 
-
+#[derive(Clone)]
 struct BooleanValue {
     value: bool
 }
@@ -30,7 +30,7 @@ impl Value for BooleanValue {
 
 
 
-
+#[derive(Clone)]
 struct StringValue {
     value: String
 }
@@ -39,7 +39,6 @@ impl Value for StringValue {
         Type::String
     }
 }
-
 
 
 struct ListValue {
@@ -51,7 +50,6 @@ impl Value for ListValue {
         Type::List(Box::new(self.value_type.clone()))
     }
 }
-
 
 
 
