@@ -1,6 +1,7 @@
-trait Value {
+trait Typed {
     /// Compare the types of 2 Primitives
     fn is_same_type(&self, other: &Self) -> bool;
+    fn get_type(&self) -> Primitive;
 }
 
 
@@ -47,18 +48,40 @@ impl std::fmt::Display for List {
 
 
 
-
-
-
-impl Value for Primitive {
+impl Typed for Primitive {
     fn is_same_type(&self, other: &Primitive) -> bool {
         std::mem::discriminant(self) == std::mem::discriminant(other)
+    }
+
+    fn get_type(&self) -> Primitive {
+        return self.clone()
     }
 }
 
 
-impl Value for List {
+impl Typed for List {
     fn is_same_type(&self, other: &List) -> bool {
         std::mem::discriminant(&self.value_type) == std::mem::discriminant(&other.value_type)
     }
+
+    fn get_type(&self) -> Primitive {
+        return self.value_type.clone()
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+struct Class {
+    name: String,
+    fields_name: Vec<String>,
+    fields_types: Vec<Typed>
 }
