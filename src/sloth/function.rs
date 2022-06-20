@@ -1,9 +1,10 @@
 use super::{value::Value, types::Type};
+use super::scope::{Scope, ScopeID};
 
 pub trait SlothFunction {
     /// Call the function with the given arguments
     /// TODO: This will need a scope input
-    fn call(&self, args: Vec<Box<dyn Value>>) -> Result<Option<Box<dyn Value>>, String>;
+    fn call(&self, args: Vec<Box<dyn Value>>, scope: &Scope) -> Result<Option<Box<dyn Value>>, String>;
 }
 
 /// Function defined in the code, written in Sloth
@@ -16,7 +17,7 @@ struct CustomFunction {
 }
 
 impl SlothFunction for CustomFunction {
-    fn call(&self, args: Vec<Box<dyn Value>>) -> Result<Option<Box<dyn Value>>, String> {
+    fn call(&self, args: Vec<Box<dyn Value>>, scope: &Scope) -> Result<Option<Box<dyn Value>>, String> {
 
         // Check that the number of inputs given matches the number required
         if args.len() != self.input_types.len() {
