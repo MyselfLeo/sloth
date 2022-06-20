@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use super::program::SlothProgram;
+
 use super::value::Value;
 
 
@@ -19,7 +21,7 @@ impl ScopeID {
 /// A scope is an environment in which variables lives.
 pub struct Scope {
     variables: HashMap<String, Box<dyn Value>>,
-    parent: ScopeID
+    parent: Option<ScopeID>
 }
 
 impl Clone for Scope {
@@ -35,13 +37,22 @@ impl Clone for Scope {
 }
 
 impl Scope {
-    /// Return the value contained in the given variable
-    pub fn get_variable(&self, name: String) -> Result<Box<dyn Value>, String> {
+    /// Return the value contained in the given variable. Prefer variable in this scope,
+    /// but can also query parent scope for variable
+    pub fn get_variable(&self, name: String, program: &SlothProgram) -> Result<Box<dyn Value>, String> {
         match self.variables.get(&name) {
             Some(v) => Ok(v.box_clone()),
             None => {
-                let error_msg = format!("Called uninitialised variable '{}'", name);
-                Err(error_msg.to_string())
+                if self.parent.is_some() {
+                    let parent_scope = program.get_scope(self.parent.unwrap());
+
+                    if parent_scope.is_err() {return Err("Parent scope ID is not valid when querying inherited variable".to_string())}
+                    parent_scope.unwrap().get_variable(name, program)
+                }
+                else {
+                    let error_msg = format!("Called uninitialised variable '{}'", name);
+                    Err(error_msg.to_string())
+                }
             }
         }
     }

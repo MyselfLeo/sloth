@@ -11,7 +11,7 @@ use super::structure::StructDefinition;
 
 /// Main structure of a Sloth program. Stores global definitions (function definition, structs definition, scopes)
 /// Note: Variables are stored in the scopes
-struct SlothProgram {
+pub struct SlothProgram {
     functions: HashMap<String, Box<dyn SlothFunction>>,
     structures: HashMap<String, StructDefinition>,
     scopes: HashMap<ScopeID, Scope>,

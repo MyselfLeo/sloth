@@ -4,6 +4,8 @@ mod tokenizer;
 mod errors;
 #[allow(dead_code)]
 mod sloth;
+#[allow(dead_code)]
+mod built_in;
 
 
 use clap::Parser;
@@ -22,6 +24,8 @@ struct Args {
     #[clap(long, value_parser)]
     tokens: bool
 }
+
+
 
 
 

@@ -1,3 +1,5 @@
+use std::string;
+
 use super::types::Type;
 use super::structure::StructDefinition;
 
@@ -5,6 +7,7 @@ use super::structure::StructDefinition;
 pub trait Value {
     fn get_type(&self) -> Type;
     fn box_clone(&self) -> Box<dyn Value>;
+    fn to_string(&self) -> String;
 }
 
 
@@ -18,6 +21,9 @@ impl Value for NumberValue {
     }
     fn box_clone(&self) -> Box<dyn Value> {
         Box::new(self.clone())
+    }
+    fn to_string(&self) -> String {
+        format!("{}", self.value).to_string()
     }
 }
 
@@ -33,6 +39,10 @@ impl Value for BooleanValue {
     fn box_clone(&self) -> Box<dyn Value> {
         Box::new(self.clone())
     }
+    fn to_string(&self) -> String {
+        if self.value {"true".to_string()}
+        else {"false".to_string()}
+    }
 }
 
 
@@ -47,6 +57,9 @@ impl Value for StringValue {
     }
     fn box_clone(&self) -> Box<dyn Value> {
         Box::new(self.clone())
+    }
+    fn to_string(&self) -> String {
+        self.value.clone()
     }
 }
 
@@ -70,6 +83,12 @@ impl Value for ListValue {
             }
         )
     }
+    fn to_string(&self) -> String {
+        let mut string_vec: Vec<String> = Vec::new();
+        for v in &self.value {string_vec.push(v.to_string())}
+        
+        format!("[{}]", string_vec.join(", ")).to_string()
+    }
 }
 
 
@@ -92,5 +111,8 @@ impl Value for StructValue {
                 fields_values: vec_clone,
             }
         )
+    }
+    fn to_string(&self) -> String {
+        format!("'{}' object", self.struct_def.name).to_string()
     }
 }

@@ -1,5 +1,5 @@
 use super::{value::Value, types::Type};
-use super::scope::{Scope, ScopeID};
+use super::scope::{Scope};
 
 pub trait SlothFunction {
     /// Call the function with the given arguments
@@ -15,6 +15,7 @@ struct CustomFunction {
 
     // instructions            TODO: sequence of statements here
 }
+
 
 impl SlothFunction for CustomFunction {
     fn call(&self, args: Vec<Box<dyn Value>>, scope: &Scope) -> Result<Option<Box<dyn Value>>, String> {
@@ -40,3 +41,6 @@ impl SlothFunction for CustomFunction {
         todo!();
     }
 }
+
+
+
