@@ -2,7 +2,7 @@ use super::types::Type;
 use super::structure::StructDefinition;
 
 
-trait Value {
+pub trait Value {
     fn get_type(&self) -> Type;
 }
 
