@@ -1,8 +1,8 @@
 // The tokenizer (TokenisedProgram) takes a .slo file and convert it into a list of tokens,
 // to be used by the Parser to generate a Program Tree
 
-
 use crate::errors;
+use regex::Regex;
 
 
 const KEYWORDS: [&str; 11] = ["define", "num", "bool", "string", "list", "none", "->", "=", "if", "while", "use"];
@@ -44,6 +44,8 @@ pub enum Separator {
 impl Token {
     /// Return the token corresponding to the given text. Will test for keyword, operator and separator.
     pub fn from_str(string: &str) -> Result<Token, String> {
+        let identifier_re = Regex::new(r"^@?[a-zA-Z_][a-zA-Z0-9_]*$").unwrap();
+
         if KEYWORDS.contains(&string) {Ok(Token::Keyword(string.to_string()))}
         else if OPERATORS.contains(&string) {Ok(Token::Operator(string.to_string()))}
         else if SEPARATORS.contains(&string) {
@@ -61,12 +63,19 @@ impl Token {
             }
         }
 
+        // literals (strings, numbers or booleans)
         else if string.starts_with('"') || string.parse::<f64>().is_ok() || string == "true" || string == "false" {
             Ok(Token::Literal(string.to_string()))
         }
 
-        else {
+        // Identifiers can only have letters, numbers (not at the start) and _
+        else if identifier_re.is_match(string) {
             Ok(Token::Identifier(string.to_string()))
+        }
+
+        // raise error as the token is not identified
+        else {
+            Err(format!("Unexpected token '{}'. Note: identifiers can only be made of letters, numbers (not at the start) and '_'", string))
         }
     }
 

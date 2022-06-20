@@ -1,0 +1,6 @@
+# return the @0th value of the fibonacci suite
+define fibonacci: num -> num {
+    tes = 0;
+
+    @return = 0;
+}
