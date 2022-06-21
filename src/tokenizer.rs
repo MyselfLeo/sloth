@@ -88,7 +88,7 @@ impl Token {
 
 
 
-
+#[derive(Clone, Debug)]
 /// Represents the position of an element (token, expression, etc.) in a file.
 /// An element can't be on 2 line at the same time
 pub struct ElementPosition {

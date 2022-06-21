@@ -73,12 +73,12 @@ impl SlothProgram {
         scope_id
     }
 
-    /// Return a mutable reference to the scope with the given ScopeID
-    pub fn get_scope(&mut self, id: ScopeID) -> Result<&mut Scope, String> {
-        match self.scopes.get_mut(&id) {
+    /// Return a reference to the scope with the given ScopeID
+    pub fn get_scope(&mut self, id: ScopeID) -> Result<&Scope, String>{
+        match self.scopes.get(&id) {
             Some(v) => Ok(v),
             None => Err("Tried to access a scope with a wrong scope ID".to_string())
-        }
+        } 
     }
 
     /// Add an expression to the Expression stack and return its ID
