@@ -1,6 +1,6 @@
 use crate::sloth::types::Type;
 
-#[derive(Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct StructDefinition {
     pub name: String,
     pub fields_names: Vec<String>,

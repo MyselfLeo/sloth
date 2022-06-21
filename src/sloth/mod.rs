@@ -4,3 +4,6 @@ pub mod structure;
 pub mod function;
 pub mod scope;
 pub mod program;
+pub mod statement;
+pub mod expression;
+pub mod operator;
