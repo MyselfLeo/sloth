@@ -21,8 +21,8 @@ impl ScopeID {
 /// A scope is an environment in which variables lives.
 pub struct Scope {
     pub id: ScopeID,
-    variables: HashMap<String, Value>,
-    parent: Option<ScopeID>
+    pub variables: HashMap<String, Value>,
+    pub parent: Option<ScopeID>
 }
 
 

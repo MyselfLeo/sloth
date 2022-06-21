@@ -80,8 +80,6 @@ impl Expression {
                 func_scope.set_variable("@return".to_string(), default_value);
                 
 
-                // Execute the function in the scope
-                function.call(&mut func_scope, program)?;
 
                 // return the value in the '@return' variable
                 Ok(func_scope.get_variable("@return".to_string(), program)?)
