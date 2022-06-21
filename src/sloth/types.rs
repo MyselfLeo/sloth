@@ -1,3 +1,5 @@
+use super::value::Value;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Type {
     Boolean,
@@ -5,6 +7,19 @@ pub enum Type {
     String,
     List(Box<Type>),     // type of the list elements
     Struct(String)   // name of the string
+}
+
+impl Type {
+    /// Return the default value for this type
+    pub fn default(&self) -> Value {
+        match &self {
+            Type::Boolean => Value::Boolean(false),
+            Type::Number => Value::Number(0.0),
+            Type::String => Value::String("".to_string()),
+            Type::List(x) => unimplemented!(),
+            Type::Struct(s) => unimplemented!()
+        }
+    }
 }
 
 

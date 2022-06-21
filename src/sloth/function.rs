@@ -1,11 +1,18 @@
+use super::program::SlothProgram;
+use super::statement::Statement;
 use super::{value::Value, types::Type};
 use super::scope::{Scope};
 
 pub trait SlothFunction {
     /// Return the name of the function
     fn get_name(&self) -> String;
-    /// Call the function with the given arguments
-    fn call(&self, args: Vec<Value>, scope: &Scope) -> Result<Option<Value>, String>;
+
+    /// Call the function, like a procedure, in the given scope.
+    /// The FunctionCall statement must create a new scope for this function. The 'scope' given to this method
+    /// IS NOT the Scope in which the function is called, but the scope INSIDE of the function
+    fn call(&self,  scope: &mut Scope, program: &mut SlothProgram) -> Result<(), String>;
+
+    fn get_output_type(&self) -> Type;
 }
 
 /// Function defined in the code, written in Sloth
@@ -14,7 +21,7 @@ struct CustomFunction {
     input_types: Vec<Type>,
     output_type: Type,
 
-    // instructions            TODO: sequence of statements here
+    instructions: Vec<Statement>,
 }
 
 
@@ -22,10 +29,14 @@ impl SlothFunction for CustomFunction {
     fn get_name(&self) -> String {
         self.name.clone()
     }
+
+    fn get_output_type(&self) -> Type {
+        return self.output_type.clone()
+    }
     
 
-    fn call(&self, args: Vec<Value>, scope: &Scope) -> Result<Option<Value>, String> {
-        // Check that the number of inputs given matches the number required
+    fn call(&self, scope: &mut Scope, program: &mut SlothProgram) -> Result<(), String> {
+        /*// Check that the number of inputs given matches the number required
         if args.len() != self.input_types.len() {
             let err_msg = format!("Called function {} with {} argument(s), but the function requires {} argument(s)", self.name, args.len(), self.input_types.len());
             return Err(err_msg.to_string());
@@ -40,10 +51,14 @@ impl SlothFunction for CustomFunction {
                 return Err(err_msg.to_string());
             }
             i += 1;
-        }
+        }*/
 
-        // TODO: Implement function execution
-        todo!();
+        // Call each statement of the function
+        for statement in &self.instructions {
+            statement.apply(scope, program)?;
+        };
+
+        return Ok(())
     }
 }
 

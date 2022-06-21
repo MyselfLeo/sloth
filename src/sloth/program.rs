@@ -57,18 +57,25 @@ impl SlothProgram {
     }
 
 
-    /// Add a scope to the Scope stack and return its ID
-    pub fn push_scope(&mut self, scope: Scope) -> ScopeID {
+    /// Create a scope to the Scope stack and return its ID
+    pub fn new_scope(&mut self, parent: Option<ScopeID>) -> ScopeID {
         let scope_id = ScopeID::new(self.scope_nb);
-        self.scopes.insert(scope_id.clone(), scope.clone());
+
+        let new_scope = Scope {
+            id: scope_id.clone(),
+            variables: HashMap::new(),
+            parent: parent.clone()
+        };
+
+        self.scopes.insert(scope_id.clone(), new_scope);
         self.scope_nb += 1;
 
         scope_id
     }
 
-    /// Return a reference to the scope with the given ScopeID
-    pub fn get_scope(&self, id: ScopeID) -> Result<&Scope, String> {
-        match self.scopes.get(&id) {
+    /// Return a mutable reference to the scope with the given ScopeID
+    pub fn get_scope(&mut self, id: ScopeID) -> Result<&mut Scope, String> {
+        match self.scopes.get_mut(&id) {
             Some(v) => Ok(v),
             None => Err("Tried to access a scope with a wrong scope ID".to_string())
         }

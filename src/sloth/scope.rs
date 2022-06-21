@@ -20,9 +20,11 @@ impl ScopeID {
 
 /// A scope is an environment in which variables lives.
 pub struct Scope {
+    pub id: ScopeID,
     variables: HashMap<String, Value>,
     parent: Option<ScopeID>
 }
+
 
 impl Clone for Scope {
     fn clone(&self) -> Self {
@@ -30,6 +32,7 @@ impl Clone for Scope {
         for v in &self.variables {variable_clones.insert(v.0.clone(), v.1.clone());}
 
         Self {
+            id: self.id.clone(),
             variables: variable_clones,
             parent: self.parent.clone()
         }
@@ -39,15 +42,14 @@ impl Clone for Scope {
 impl Scope {
     /// Return the value contained in the given variable. Prefer variable in this scope,
     /// but can also query parent scope for variable
-    pub fn get_variable(&self, name: String, program: &SlothProgram) -> Result<Value, String> {
+    pub fn get_variable(&self, name: String, program: &mut SlothProgram) -> Result<Value, String> {
         match self.variables.get(&name) {
             Some(v) => Ok(v.clone()),
             None => {
                 if self.parent.is_some() {
-                    let parent_scope = program.get_scope(self.parent.unwrap());
+                    let parent_scope = program.get_scope(self.parent.unwrap())?;
 
-                    if parent_scope.is_err() {return Err("Parent scope ID is not valid when querying inherited variable".to_string())}
-                    parent_scope.unwrap().get_variable(name, program)
+                    parent_scope.clone().get_variable(name, program)
                 }
                 else {
                     let error_msg = format!("Called uninitialised variable '{}'", name);
@@ -61,5 +63,25 @@ impl Scope {
     /// Set value of a given variable
     pub fn set_variable(&mut self, name: String, value: Value) {
         self.variables.insert(name, value);
+    }
+
+
+    /// Useful feature to get a list of each input values (@0, @1, @2, etc.), in order
+    pub fn get_inputs(&self) -> Vec<Value> {
+        let mut i = 0;
+        let mut res: Vec<Value> = Vec::new();
+
+        loop {
+            let name = format!("@{}", i);
+            match self.variables.get(&name) {
+                Some(v) => {
+                    res.push(v.clone());
+                    i += 1;
+                }
+                None => break
+            }
+        }
+
+        res
     }
 }

@@ -67,8 +67,32 @@ impl Expression {
             }
 
             // return the result of the function call
-            Expression::FunctionCall(name, param) => {
-                todo!()
+            Expression::FunctionCall(f_name, param) => {
+                // Create a new scope for the execution of the function
+                let func_scope_id = program.new_scope(Some(scope.id));
+                let func_scope = program.get_scope(func_scope_id)?;
+
+                // Get the function
+                let function = program.get_function(f_name.clone())?;
+
+
+
+                // Evaluate each given expression in the scope, and create an input variable (@0, @1, etc.) with the set value
+                for (i, param_expr_id) in param.iter().enumerate() {
+                    let value = program.get_expr(*param_expr_id)?.evaluate(scope, program)?;
+                    func_scope.set_variable(format!("@{}", i), value);
+                }
+
+                // Create the @return variable, with default value
+                let default_value = function.get_output_type().default();
+                func_scope.set_variable("@return".to_string(), default_value);
+                
+
+                // Execute the function in the scope
+                function.call(func_scope, program)?;
+
+                // return the value in the '@return' variable
+                Ok(func_scope.get_variable("@return".to_string(), program)?)
             }
         }
     }

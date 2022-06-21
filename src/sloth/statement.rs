@@ -8,7 +8,6 @@ use super::value::Value;
 pub enum Statement {
     Assignment(String, ExpressionID),      // Assignment of an expression evaluation to a variable
     ExpressionCall(ExpressionID),          // Evaluation of an expression, not storing it
-    Block(Vec<Statement>),                 // a list of statements
     If(ExpressionID, Vec<Statement>),      // If block. Condition expr index and list of statements
     While(ExpressionID, Vec<Statement>),   // while look. same specs as if
 }
@@ -32,14 +31,6 @@ impl Statement {
 
             Statement::ExpressionCall(expr_id) => {
                 program.get_expr(*expr_id)?.evaluate(scope, program)?;
-
-                Ok(())
-            },
-
-            Statement::Block(statements) => {
-                for statement in statements {
-                    statement.apply(scope, program)?
-                }
 
                 Ok(())
             },

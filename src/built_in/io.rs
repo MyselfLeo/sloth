@@ -1,6 +1,8 @@
 use crate::sloth::function::SlothFunction;
+use crate::sloth::program::SlothProgram;
 use crate::sloth::scope::Scope;
 use crate::sloth::value::Value;
+use crate::sloth::types::Type;
 
 
 
@@ -22,10 +24,14 @@ impl SlothFunction for BuiltinIoPrint {
     fn get_name(&self) -> String {
         "print".to_string()
     }
-    fn call(&self, args: Vec<Value>, _: &Scope) -> Result<Option<Value>, String> {
+    fn get_output_type(&self) -> Type {
+        Type::Number
+    }
+    fn call(&self, scope: &mut Scope, _: &mut SlothProgram) -> Result<(), String> {
+        let args = scope.get_inputs();
         for v in args {
             print!("{}", v.to_string())
         };
-        Ok(None)
+        Ok(())
     }
 }
