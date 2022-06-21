@@ -6,14 +6,31 @@ const CRATE_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 
 
-pub fn error(e: &str, position: &ElementPosition) {
+pub enum Error {
+    SyntaxError(String),
+    NoEntryPoint(String)
+}
+
+impl std::fmt::Display for Error {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Error::SyntaxError(e) => write!(f, "SYNTAX ERROR: {}", e),
+            Error::NoEntryPoint(e) => write!(f, "NO ENTRY POINT: {}", e)
+        }
+    }
+}
+
+
+
+
+pub fn abort(e: Error, position: &ElementPosition) {
     let filepath = std::path::Path::new(&position.filename);
     let file_string = std::fs::read_to_string(filepath).expect(format!("Unable to read file {:?}", filepath.as_os_str()).as_str());
     let lines: Vec<&str> = file_string.split('\n').collect();
 
     let line_index_str_len = (position.line + 1).to_string().len();
 
-    println!("\x1b[91mSYNTAX ERROR: {}\x1b[0m", e);
+    println!("\x1b[91m{}\x1b[0m", e);
     println!("\x1b[90m{}:{}  ({} v{})\x1b[0m", position.filename, position.line + 1, CRATE_NAME, CRATE_VERSION);
 
     println!("\x1b[31m|\x1b[0m");

@@ -1,7 +1,7 @@
 // The tokenizer (TokenisedProgram) takes a .slo file and convert it into a list of tokens,
 // to be used by the Parser to generate a Program Tree
 
-use crate::errors;
+use crate::errors::{Error, abort};
 use regex::Regex;
 
 
@@ -179,7 +179,7 @@ impl TokenizedProgram {
                             token_list.push(s);
                             position_list.push(position);
                         },
-                        Err(e) => errors::error(&e, &position),
+                        Err(e) => abort(Error::SyntaxError(e), &position),
                     }
 
                     string_buffer.clear();
@@ -203,7 +203,7 @@ impl TokenizedProgram {
                                 token_list.push(s);
                                 position_list.push(position);
                             },
-                            Err(e) => errors::error(&e, &position),
+                            Err(e) => abort(Error::SyntaxError(e), &position),
                         }
 
                         token_buffer.clear();
@@ -239,7 +239,7 @@ impl TokenizedProgram {
                                 token_list.push(s);
                                 position_list.push(position);
                             },
-                            Err(e) => errors::error(&e, &position),
+                            Err(e) => abort(Error::SyntaxError(e), &position),
                         };
 
                         token_buffer.clear();
@@ -259,7 +259,7 @@ impl TokenizedProgram {
                                 token_list.push(s);
                                 position_list.push(position);
                             },
-                            Err(e) => errors::error(&e, &position),
+                            Err(e) => abort(Error::SyntaxError(e), &position),
                         };
 
                         token_buffer.clear();
@@ -296,7 +296,7 @@ impl TokenizedProgram {
                         token_list.push(s);
                         position_list.push(position);
                     },
-                    Err(e) => errors::error(&e, &position),
+                    Err(e) => abort(Error::SyntaxError(e), &position),
                 }
 
                 token_buffer.clear();

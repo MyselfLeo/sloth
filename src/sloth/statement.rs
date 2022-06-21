@@ -18,7 +18,7 @@ pub enum Statement {
 
 impl Statement {
 
-    pub fn apply(&self, scope: &mut Scope, program: &mut SlothProgram) -> Result<(), String> {
+    pub unsafe fn apply(&self, scope: &mut Scope, program: &mut SlothProgram) -> Result<(), String> {
         match self {
             Statement::Assignment(name, expr_id) => {
                 let expr = program.get_expr(*expr_id)?;

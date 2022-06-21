@@ -10,7 +10,7 @@ pub trait SlothFunction {
     /// Call the function, like a procedure, in the given scope.
     /// The FunctionCall statement must create a new scope for this function. The 'scope' given to this method
     /// IS NOT the Scope in which the function is called, but the scope INSIDE of the function
-    fn call(&self,  scope: &mut Scope, program: &mut SlothProgram) -> Result<(), String>;
+    unsafe fn call(&self,  scope: &mut Scope, program: &mut SlothProgram) -> Result<(), String>;
 
     fn get_output_type(&self) -> Type;
 }
@@ -35,8 +35,11 @@ impl SlothFunction for CustomFunction {
     }
     
 
-    fn call(&self, scope: &mut Scope, program: &mut SlothProgram) -> Result<(), String> {
-        /*// Check that the number of inputs given matches the number required
+    unsafe fn call(&self, scope: &mut Scope, program: &mut SlothProgram) -> Result<(), String> {
+        // get the given arguments
+        let args = scope.get_inputs();
+
+        // Check that the number of inputs given matches the number required
         if args.len() != self.input_types.len() {
             let err_msg = format!("Called function {} with {} argument(s), but the function requires {} argument(s)", self.name, args.len(), self.input_types.len());
             return Err(err_msg.to_string());
@@ -51,7 +54,7 @@ impl SlothFunction for CustomFunction {
                 return Err(err_msg.to_string());
             }
             i += 1;
-        }*/
+        }
 
         // Call each statement of the function
         for statement in &self.instructions {

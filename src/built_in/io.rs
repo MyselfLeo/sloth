@@ -27,7 +27,7 @@ impl SlothFunction for BuiltinIoPrint {
     fn get_output_type(&self) -> Type {
         Type::Number
     }
-    fn call(&self, scope: &mut Scope, _: &mut SlothProgram) -> Result<(), String> {
+    unsafe fn call(&self, scope: &mut Scope, _: &mut SlothProgram) -> Result<(), String> {
         let args = scope.get_inputs();
         for v in args {
             print!("{}", v.to_string())

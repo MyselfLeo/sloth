@@ -97,4 +97,10 @@ impl SlothProgram {
             None => Err("Tried to access an expression with a wrong expression ID".to_string())
         }
     }
+
+
+    /// Find the 'main' function and execute it
+    pub fn run(&self) {
+        let main_func = self.get_function("main".to_string());
+    }
 }

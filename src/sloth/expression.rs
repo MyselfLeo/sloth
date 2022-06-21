@@ -33,24 +33,24 @@ pub enum Expression {
 
 impl Expression {
     /// Evaluate the expression in the given context (scope and program) and return its value
-    pub fn evaluate(&self, scope: &Scope, program: &mut SlothProgram) -> Result<Value, String> {
+    pub unsafe fn evaluate(&self, scope: &Scope, program: *mut SlothProgram) -> Result<Value, String> {
         match self {
             // return this literal value
             Expression::Literal(v, p) => Ok(v.clone()),
 
             // return the value stored in this variable
-            Expression::VariableCall(name, p) => scope.get_variable(name.clone(), program),
+            Expression::VariableCall(name, p) => scope.get_variable(name.clone(), program.as_mut().unwrap()),
 
             // process the operation and return the result
             Expression::Operation(op, lhs, rhs, p) => {
                 // Get the value of both lhs and rhs
                 let lhs = match lhs {
                     None => None,
-                    Some(i) => {Some(program.get_expr(*i)?.evaluate(scope, program))}
+                    Some(i) => {Some(program.as_ref().unwrap().get_expr(*i)?.evaluate(scope, program))}
                 };
                 let rhs = match rhs {
                     None => None,
-                    Some(i) => {Some(program.get_expr(*i)?.evaluate(scope, program))}
+                    Some(i) => {Some(program.as_ref().unwrap().get_expr(*i)?.evaluate(scope, program))}
                 };
                 
                 // apply op
@@ -62,27 +62,28 @@ impl Expression {
             // return the result of the function call
             Expression::FunctionCall(f_name, param, p) => {
                 // Create a new scope for the execution of the function
-                let func_scope_id = program.new_scope(Some(scope.id));
-                let mut func_scope = program.get_scope(func_scope_id)?.clone();
+                let func_scope_id = program.as_mut().unwrap().new_scope(Some(scope.id));
+                let mut func_scope = program.as_mut().unwrap().get_scope(func_scope_id)?.clone();
 
                 // Evaluate each given expression in the scope, and create an input variable (@0, @1, etc.) with the set value
                 for (i, param_expr_id) in param.iter().enumerate() {
-                    let value = program.get_expr(*param_expr_id)?.evaluate(scope, program)?;
+                    let value = program.as_ref().unwrap().get_expr(*param_expr_id)?.evaluate(scope, program)?;
                     func_scope.set_variable(format!("@{}", i), value);
                 }
 
                 // Get the function
-                let function = program.get_function(f_name.clone())?;
+                let function = program.as_ref().unwrap().get_function(f_name.clone())?;
 
 
                 // Create the @return variable, with default value
                 let default_value = function.get_output_type().default();
                 func_scope.set_variable("@return".to_string(), default_value);
                 
-
+                // run the function in the given scope
+                function.call(&mut func_scope, program.as_mut().unwrap());
 
                 // return the value in the '@return' variable
-                Ok(func_scope.get_variable("@return".to_string(), program)?)
+                Ok(func_scope.get_variable("@return".to_string(), program.as_mut().unwrap())?)
             }
         }
     }
