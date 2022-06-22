@@ -1,3 +1,4 @@
+use crate::errors::Error;
 use crate::sloth::function::SlothFunction;
 use crate::sloth::program::SlothProgram;
 use crate::sloth::scope::Scope;
@@ -27,7 +28,7 @@ impl SlothFunction for BuiltinIoPrint {
     fn get_output_type(&self) -> Type {
         Type::Number
     }
-    unsafe fn call(&self, scope: &mut Scope, _: &mut SlothProgram) -> Result<(), String> {
+    unsafe fn call(&self, scope: &mut Scope, _: &mut SlothProgram) -> Result<(), Error> {
         let args = scope.get_inputs();
         for v in args {
             print!("{}", v.to_string())
