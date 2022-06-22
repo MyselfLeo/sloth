@@ -35,7 +35,14 @@ fn main() {
     let args = Args::parse();
 
     let filename = args.file;
-    let program = tokenizer::TokenizedProgram::from_file(&filename).unwrap();
+    let program = tokenizer::TokenizedProgram::from_file(&filename);
 
-    if args.tokens {program.print_tokens()}
+    match program {
+        Err(e) => e.abort(),
+        Ok(p) => {
+
+            if args.tokens {p.print_tokens()}
+
+        }
+    }
 }

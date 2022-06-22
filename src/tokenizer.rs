@@ -1,7 +1,7 @@
 // The tokenizer (TokenisedProgram) takes a .slo file and convert it into a list of tokens,
 // to be used by the Parser to generate a Program Tree
 
-use crate::errors::{Error, abort};
+use crate::errors::{Error, ErrorMessage};
 use regex::Regex;
 
 
@@ -125,9 +125,12 @@ pub struct TokenizedProgram {
 
 impl TokenizedProgram {
 
-    pub fn from_file(filename: &str) -> Result<TokenizedProgram, String> {
+    pub fn from_file(filename: &str) -> Result<TokenizedProgram, Error> {
         let filepath = std::path::Path::new(filename);
-        if !filepath.exists() {return Err(format!("File {:?} does not exists", filepath.as_os_str()));}
+        if !filepath.exists() {
+            let err_msg = format!("File {:?} does not exists", filepath.as_os_str());
+            return Err(Error::new(ErrorMessage::FileNotFound(err_msg), None));
+        }
 
         let mut token_list: Vec<Token> = Vec::new();
         let mut position_list: Vec<ElementPosition> = Vec::new();
@@ -179,7 +182,9 @@ impl TokenizedProgram {
                             token_list.push(s);
                             position_list.push(position);
                         },
-                        Err(e) => abort(Error::SyntaxError(e), &position),
+                        Err(e) => {
+                            return Err(Error::new(ErrorMessage::SyntaxError(e), Some(position)));
+                        },
                     }
 
                     string_buffer.clear();
@@ -203,7 +208,9 @@ impl TokenizedProgram {
                                 token_list.push(s);
                                 position_list.push(position);
                             },
-                            Err(e) => abort(Error::SyntaxError(e), &position),
+                            Err(e) => {
+                                return Err(Error::new(ErrorMessage::SyntaxError(e), Some(position)));
+                            },
                         }
 
                         token_buffer.clear();
@@ -239,7 +246,9 @@ impl TokenizedProgram {
                                 token_list.push(s);
                                 position_list.push(position);
                             },
-                            Err(e) => abort(Error::SyntaxError(e), &position),
+                            Err(e) => {
+                                return Err(Error::new(ErrorMessage::SyntaxError(e), Some(position)));
+                            },
                         };
 
                         token_buffer.clear();
@@ -259,7 +268,9 @@ impl TokenizedProgram {
                                 token_list.push(s);
                                 position_list.push(position);
                             },
-                            Err(e) => abort(Error::SyntaxError(e), &position),
+                            Err(e) => {
+                                return Err(Error::new(ErrorMessage::SyntaxError(e), Some(position)));
+                            },
                         };
 
                         token_buffer.clear();
@@ -296,7 +307,9 @@ impl TokenizedProgram {
                         token_list.push(s);
                         position_list.push(position);
                     },
-                    Err(e) => abort(Error::SyntaxError(e), &position),
+                    Err(e) => {
+                        return Err(Error::new(ErrorMessage::SyntaxError(e), Some(position)));
+                    },
                 }
 
                 token_buffer.clear();
