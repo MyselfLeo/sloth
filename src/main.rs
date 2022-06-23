@@ -25,7 +25,7 @@ struct Args {
     #[clap(long, value_parser)]
     tokens: bool,
 
-    /// Program arguments
+    /// Arguments for the Sloth program
     #[clap(value_parser)]
     arguments: Vec<String>
 }
