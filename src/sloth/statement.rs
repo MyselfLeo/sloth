@@ -20,6 +20,7 @@ pub enum Statement {
 
 impl Statement {
 
+    // Apply the statement to the given scope
     pub unsafe fn apply(&self, scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
         match self {
             Statement::Assignment(name, expr_id, p) => {

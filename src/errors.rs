@@ -9,6 +9,7 @@ const CRATE_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub enum ErrorMessage {
     SyntaxError(String),
     NoEntryPoint(String),
+    InvalidEntryPoint(String),
     FileNotFound(String),
     InvalidArguments(String),
     UnexpectedExpression(String),
@@ -19,10 +20,11 @@ impl std::fmt::Display for ErrorMessage {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             ErrorMessage::SyntaxError(e) => write!(f, "SYNTAX ERROR: {}", e),
-            ErrorMessage::NoEntryPoint(e) => write!(f, "NO ENTRY POINT ERROR: {}", e),
-            ErrorMessage::FileNotFound(e) => write!(f, "FILE NOT FOUND ERROR: {}", e),
-            ErrorMessage::InvalidArguments(e) => write!(f, "INVALID ARGUMENTS ERROR: {}", e),
-            ErrorMessage::UnexpectedExpression(e) => write!(f, "UNEXPECTED EXPRESSION ERROR: {}", e),
+            ErrorMessage::NoEntryPoint(e) => write!(f, "NO ENTRY POINT: {}", e),
+            ErrorMessage::InvalidEntryPoint(e) => write!(f, "INVALID ENTRY POINT: {}", e),
+            ErrorMessage::FileNotFound(e) => write!(f, "FILE NOT FOUND: {}", e),
+            ErrorMessage::InvalidArguments(e) => write!(f, "INVALID ARGUMENTS: {}", e),
+            ErrorMessage::UnexpectedExpression(e) => write!(f, "UNEXPECTED EXPRESSION: {}", e),
             ErrorMessage::RuntimeError(e) => write!(f, "RUNTIME ERROR: {} (this is most likely not caused by your code)", e),
         }
     }

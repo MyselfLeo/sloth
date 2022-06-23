@@ -1,8 +1,12 @@
 use std::collections::HashMap;
+use crate::errors::{Error, ErrorMessage};
+use crate::tokenizer::ElementPosition;
 use super::function::SlothFunction;
 use super::scope::{Scope, ScopeID};
 use super::expression::{Expression, ExpressionID};
 use super::structure::StructDefinition;
+use super::types::Type;
+use super::value::Value;
 
 
 
@@ -18,19 +22,27 @@ pub struct SlothProgram {
     scopes: HashMap<ScopeID, Scope>,
     expressions: HashMap<ExpressionID, Expression>,
     scope_nb: u64,
-    expressions_nb: u64
+    expressions_nb: u64,
+
+    main_scope: Option<ScopeID>
 }
 
 impl SlothProgram {
     pub fn new() -> SlothProgram {
-        SlothProgram {
+        let mut program = SlothProgram {
             functions: HashMap::new(),
             structures: HashMap::new(),
             scopes: HashMap::new(),
             expressions: HashMap::new(),
             scope_nb: 0,
             expressions_nb: 0,
-        }
+            main_scope: None
+        };
+
+        let s_id = program.new_scope(None);
+        program.main_scope = Some(s_id.clone());
+
+        program
     }
 
     /// Add a function to the Function Hashmap.
@@ -99,8 +111,31 @@ impl SlothProgram {
     }
 
 
-    /// Find the 'main' function and execute it
-    pub fn run(&self) {
-        let main_func = self.get_function("main".to_string());
+    /// Find the 'main' function, check its validity, execute it with the given arguments and return what the main function returned
+    pub unsafe fn run(&mut self, s_args: Vec<String>) -> Result<Value, Error> {
+        let main_func = match self.get_function("main".to_string()) {
+            Ok(v) => v,
+            Err(_) => {return Err(Error::new(ErrorMessage::NoEntryPoint("Your program needs a 'main' function, returning a 'num' value, as an entry point.".to_string()), None))}
+        };
+
+        // the 'main' function must return a Number value, which will be rounded and returned as exit code
+        if main_func.get_output_type() != Type::Number {
+            return Err(Error::new(ErrorMessage::InvalidEntryPoint("The 'main' function must return a Number, that will be the exit code of your program".to_string()), None))
+        }
+
+        // Convert given arguments to Values, push them to the Expression Stack and store its Expression ids
+        let mut args_id: Vec<ExpressionID> = Vec::new();
+
+        let dummy_pos = ElementPosition {filename: "".to_string(), line: 0, first_column: 0, last_column: 0};
+
+        for arg in s_args {
+            let expr = Expression::Literal(Value::from_string(arg), dummy_pos.clone());
+            args_id.push(self.push_expr(expr))
+        }
+
+        // Call the main function
+        let f_call = Expression::FunctionCall("main".to_string(), args_id, dummy_pos.clone());
+        let scope = self.get_scope(self.main_scope.unwrap()).unwrap().clone();
+        f_call.evaluate(&scope, self)
     }
 }

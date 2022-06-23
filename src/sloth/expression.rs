@@ -1,7 +1,5 @@
-use std::ops::Deref;
-
 use super::value::Value;
-use super::operator::Operator;
+use super::operator::{Operator, apply_op};
 use super::scope::Scope;
 use super::program::SlothProgram;
 use crate::errors::{Error, ErrorMessage};
@@ -73,10 +71,11 @@ impl Expression {
                     }
                 };
                 
-                // apply op
-                //op::apply_op(op, lhs, rhs)
-
-                todo!()
+                //apply op
+                match apply_op(op, lhs, rhs) {
+                    Ok(v) => Ok(v),
+                    Err(s) => Err(Error::new(ErrorMessage::InvalidArguments(s), Some(p.clone())))
+                }
             }
 
             // return the result of the function call

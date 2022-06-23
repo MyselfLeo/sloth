@@ -1,3 +1,4 @@
+use crate::errors::Error;
 use super::value::Value;
 
 #[derive(Clone, Debug)]
@@ -39,7 +40,7 @@ impl std::fmt::Display for Operator {
 }
 
 
-pub fn apply_op(op: &Operator, lhs: Option<Value>, rhs: Option<Value>) -> Value {
+pub fn apply_op(op: &Operator, lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String> {
     match op {
         Operator::Add => add(lhs, rhs),
         Operator::Sub => sub(lhs, rhs),
@@ -58,19 +59,19 @@ pub fn apply_op(op: &Operator, lhs: Option<Value>, rhs: Option<Value>) -> Value 
 
 
 
-fn add(lhs: Option<Value>, rhs: Option<Value>) -> Value {
-    if rhs.is_none() {panic!("Tried to add with no right hand side value")}
+fn add(lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String> {
+    if rhs.is_none() {return Err("Tried to add with no right hand side value".to_string())}
 
     let rhs = rhs.unwrap();
     let lhs = lhs.unwrap_or(Value::Number(0.0));
 
     match (lhs, rhs) {
-        (Value::Number(x), Value::Number(y)) => Value::Number(x + y),
-        (Value::String(x), Value::String(y)) => Value::String(x + &y),
-        (Value::String(x), Value::Number(y)) => Value::String(x + &y.to_string()),
-        (Value::Number(x), Value::String(y)) => Value::String(x.to_string() + &y),
-        (Value::String(x), Value::Boolean(y)) => Value::String(x + &y.to_string()),
-        (Value::Boolean(x), Value::String(y)) => Value::String(x.to_string() + &y),
+        (Value::Number(x), Value::Number(y)) => Ok(Value::Number(x + y)),
+        (Value::String(x), Value::String(y)) => Ok(Value::String(x + &y)),
+        (Value::String(x), Value::Number(y)) => Ok(Value::String(x + &y.to_string())),
+        (Value::Number(x), Value::String(y)) => Ok(Value::String(x.to_string() + &y)),
+        (Value::String(x), Value::Boolean(y)) => Ok(Value::String(x + &y.to_string())),
+        (Value::Boolean(x), Value::String(y)) => Ok(Value::String(x.to_string() + &y)),
 
         /*
         // list operations
@@ -96,151 +97,151 @@ fn add(lhs: Option<Value>, rhs: Option<Value>) -> Value {
 
 
 
-        (_, Value::Number(_)) => panic!("Tried to add a non-number value to a number"),
-        (Value::Number(_), _) => panic!("Tried to add a number to a non-number value"),
-        (_, _) => panic!("Tried to add two non-number values")
+        (_, Value::Number(_)) => Err("Tried to add a non-number value to a number".to_string()),
+        (Value::Number(_), _) => Err("Tried to add a number to a non-number value".to_string()),
+        (_, _) => Err("Tried to add two non-number values".to_string())
     }
 }
 
-fn sub(lhs: Option<Value>, rhs: Option<Value>) -> Value {
-    if rhs.is_none() {panic!("Tried to sub with no right hand side value")}
+fn sub(lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String> {
+    if rhs.is_none() {return Err("Tried to sub with no right hand side value".to_string())}
 
     let rhs = rhs.unwrap();
     let lhs = lhs.unwrap_or(Value::Number(0.0));
 
     match (lhs, rhs) {
-        (Value::Number(x), Value::Number(y)) => Value::Number(x - y),
-        (_, Value::Number(_)) => panic!("Tried to sub a non-number value to a number"),
-        (Value::Number(_), _) => panic!("Tried to sub a number to a non-number value"),
-        (_, _) => panic!("Tried to sub two non-number values")
+        (Value::Number(x), Value::Number(y)) => Ok(Value::Number(x - y)),
+        (_, Value::Number(_)) => Err("Tried to sub a non-number value to a number".to_string()),
+        (Value::Number(_), _) => Err("Tried to sub a number to a non-number value".to_string()),
+        (_, _) => Err("Tried to sub two non-number values".to_string())
     }
 }
 
-fn mul(lhs: Option<Value>, rhs: Option<Value>) -> Value {
-    if rhs.is_none() {panic!("Tried to mul with no right hand side value")}
-    if lhs.is_none() {panic!("Tried to mul with no left hand side value")}
+fn mul(lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String> {
+    if rhs.is_none() {return Err("Tried to mul with no right hand side value".to_string())}
+    if lhs.is_none() {return Err("Tried to mul with no left hand side value".to_string())}
 
     let rhs = rhs.unwrap();
     let lhs = lhs.unwrap();
 
     match (lhs, rhs) {
-        (Value::Number(x), Value::Number(y)) => Value::Number(x * y),
-        (_, Value::Number(_)) => panic!("Tried to mul a non-number value to a number"),
-        (Value::Number(_), _) => panic!("Tried to mul a number to a non-number value"),
-        (_, _) => panic!("Tried to mul two non-number values")
+        (Value::Number(x), Value::Number(y)) => Ok(Value::Number(x * y)),
+        (_, Value::Number(_)) => Err("Tried to mul a non-number value to a number".to_string()),
+        (Value::Number(_), _) => Err("Tried to mul a number to a non-number value".to_string()),
+        (_, _) => Err("Tried to mul two non-number values".to_string())
     }
 }
 
-fn div(lhs: Option<Value>, rhs: Option<Value>) -> Value {
-    if rhs.is_none() {panic!("Tried to div with no right hand side value")}
-    if lhs.is_none() {panic!("Tried to div with no left hand side value")}
+fn div(lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String> {
+    if rhs.is_none() {return Err("Tried to div with no right hand side value".to_string())}
+    if lhs.is_none() {return Err("Tried to div with no left hand side value".to_string())}
 
     let rhs = rhs.unwrap();
     let lhs = lhs.unwrap();
 
     match (lhs, rhs) {
-        (Value::Number(x), Value::Number(y)) => Value::Number(x / y),
-        (_, Value::Number(_)) => panic!("Tried to div a non-number value to a number"),
-        (Value::Number(_), _) => panic!("Tried to div a number to a non-number value"),
-        (_, _) => panic!("Tried to div two non-number values")
+        (Value::Number(x), Value::Number(y)) => Ok(Value::Number(x / y)),
+        (_, Value::Number(_)) => Err("Tried to div a non-number value to a number".to_string()),
+        (Value::Number(_), _) => Err("Tried to div a number to a non-number value".to_string()),
+        (_, _) => Err("Tried to div two non-number values".to_string())
     }
 }
 
 
 
-fn equal(lhs: Option<Value>, rhs: Option<Value>) -> Value {
-    if rhs.is_none() || lhs.is_none() {panic!()}
+fn equal(lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String> {
+    if rhs.is_none() || lhs.is_none() {return Err("Expected two values to compare".to_string())}
 
     let rhs = rhs.unwrap();
     let lhs = lhs.unwrap();
 
     match (lhs, rhs) {
-        (Value::Number(x), Value::Number(y)) => Value::Boolean(x == y),
-        (Value::Boolean(x), Value::Boolean(y)) => Value::Boolean(x == y),
-        _ => Value::Boolean(false)
+        (Value::Number(x), Value::Number(y)) => Ok(Value::Boolean(x == y)),
+        (Value::Boolean(x), Value::Boolean(y)) => Ok(Value::Boolean(x == y)),
+        _ =>Ok(Value::Boolean(false))
     }
 }
 
-fn greater(lhs: Option<Value>, rhs: Option<Value>) -> Value {
-    if rhs.is_none() || lhs.is_none() {panic!()}
+fn greater(lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String> {
+    if rhs.is_none() || lhs.is_none() {return Err("Expected two values to compare".to_string())}
 
     let rhs = rhs.unwrap();
     let lhs = lhs.unwrap();
 
     match (lhs, rhs) {
-        (Value::Number(x), Value::Number(y)) => Value::Boolean(x > y),
-        (x, y) => panic!("Can't compare {} and {}", x, y)
+        (Value::Number(x), Value::Number(y)) => Ok(Value::Boolean(x > y)),
+        (x, y) => Err(format!("Can't compare {} and {}", x, y).to_string())
     }
 }
 
-fn lower(lhs: Option<Value>, rhs: Option<Value>) -> Value {
-    if rhs.is_none() || lhs.is_none() {panic!()}
+fn lower(lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String> {
+    if rhs.is_none() || lhs.is_none() {return Err("Expected two values to compare".to_string())}
 
     let rhs = rhs.unwrap();
     let lhs = lhs.unwrap();
 
     match (lhs, rhs) {
-        (Value::Number(x), Value::Number(y)) => Value::Boolean(x < y),
-        _ => panic!("Can't compare Values other than numbers")
+        (Value::Number(x), Value::Number(y)) => Ok(Value::Boolean(x < y)),
+        _ => Err("Can't compare Values other than numbers".to_string())
     }
 }
 
-fn greater_equal(lhs: Option<Value>, rhs: Option<Value>) -> Value {
-    if rhs.is_none() || lhs.is_none() {panic!()}
+fn greater_equal(lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String> {
+    if rhs.is_none() || lhs.is_none() {return Err("Expected two values to compare".to_string())}
 
     let rhs = rhs.unwrap();
     let lhs = lhs.unwrap();
 
     match (lhs, rhs) {
-        (Value::Number(x), Value::Number(y)) => Value::Boolean(x >= y),
-        (x, y) => panic!("Can't compare {} and {}", x, y)
+        (Value::Number(x), Value::Number(y)) => Ok(Value::Boolean(x >= y)),
+        (x, y) => Err(format!("Can't compare {} and {}", x, y).to_string())
     }
 }
 
-fn lower_equal(lhs: Option<Value>, rhs: Option<Value>) -> Value {
-    if rhs.is_none() || lhs.is_none() {panic!()}
+fn lower_equal(lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String> {
+    if rhs.is_none() || lhs.is_none() {return Err("Expected two values to compare".to_string())}
 
     let rhs = rhs.unwrap();
     let lhs = lhs.unwrap();
 
     match (lhs, rhs) {
-        (Value::Number(x), Value::Number(y)) => Value::Boolean(x <= y),
-        (x, y) => panic!("Can't compare {} and {}", x, y)
+        (Value::Number(x), Value::Number(y)) => Ok(Value::Boolean(x <= y)),
+        (x, y) => Err(format!("Can't compare {} and {}", x, y).to_string())
     }
 }
 
-fn and(lhs: Option<Value>, rhs: Option<Value>) -> Value {
-    if rhs.is_none() || lhs.is_none() {panic!()}
+fn and(lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String> {
+    if rhs.is_none() || lhs.is_none() {return Err("Expected two values to compare".to_string())}
 
     let rhs = rhs.unwrap();
     let lhs = lhs.unwrap();
 
     match (lhs, rhs) {
-        (Value::Boolean(x), Value::Boolean(y)) => Value::Boolean(x && y),
-        _ => panic!("Can't 'and' values other than booleans")
+        (Value::Boolean(x), Value::Boolean(y)) => Ok(Value::Boolean(x && y)),
+        _ => Err("Can't 'and' values other than booleans".to_string())
     }
 }
 
-fn or(lhs: Option<Value>, rhs: Option<Value>) -> Value {
-    if rhs.is_none() || lhs.is_none() {panic!()}
+fn or(lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String> {
+    if rhs.is_none() || lhs.is_none() {return Err("Expected two values to compare".to_string())}
 
     let rhs = rhs.unwrap();
     let lhs = lhs.unwrap();
 
     match (lhs, rhs) {
-        (Value::Boolean(x), Value::Boolean(y)) => Value::Boolean(x || y),
-        _ => panic!("Can't 'or' values other than booleans")
+        (Value::Boolean(x), Value::Boolean(y)) => Ok(Value::Boolean(x || y)),
+        _ => Err("Can't 'or' values other than booleans".to_string())
     }
 }
 
-fn inverse(lhs: Option<Value>, rhs: Option<Value>) -> Value {
-    if rhs.is_some() {panic!("Unexpected operand")}
-    if lhs.is_none() {panic!("Expected operand")}
+fn inverse(lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String> {
+    if rhs.is_some() {return Err("Unexpected operand".to_string())}
+    if lhs.is_none() {return Err("Expected operand".to_string())}
 
     let lhs = lhs.unwrap();
 
     match lhs {
-        Value::Boolean(x) => Value::Boolean(!x),
-        _ => panic!("Expected boolean")
+        Value::Boolean(x) => Ok(Value::Boolean(!x)),
+        _ => Err("Expected boolean".to_string())
     }
 }

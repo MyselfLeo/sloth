@@ -41,6 +41,15 @@ impl Value {
             Value::Struct(s, _) => format!("'{}' object", s.name).to_string()
         }
     }
+
+
+    // Try to convert the given string to a value
+    pub fn from_string(s: String) -> Value {
+        if s.parse::<f64>().is_ok() {Value::Number(s.parse::<f64>().unwrap())}
+        else if s == "true" {Value::Boolean(true)}
+        else if s == "false" {Value::Boolean(false)}
+        else {Value::String(s)}
+    }
 }
 
 
