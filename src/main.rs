@@ -9,6 +9,7 @@ mod built_in;
 
 
 use clap::Parser;
+use sloth::{program::SlothProgram, value::Value};
 
 
 
@@ -22,7 +23,11 @@ struct Args {
 
     /// Display the tokens of the file instead of running it$
     #[clap(long, value_parser)]
-    tokens: bool
+    tokens: bool,
+
+    /// Program arguments
+    #[clap(value_parser)]
+    arguments: Vec<String>
 }
 
 
@@ -35,13 +40,30 @@ fn main() {
     let args = Args::parse();
 
     let filename = args.file;
-    let program = tokenizer::TokenizedProgram::from_file(&filename);
+    let tokens = tokenizer::TokenizedProgram::from_file(&filename);
 
-    match program {
+    match tokens {
         Err(e) => e.abort(),
-        Ok(p) => {
+        Ok(tokens) => {
 
-            if args.tokens {p.print_tokens()}
+            if args.tokens {tokens.print_tokens()}
+            else {
+                let program: SlothProgram = unimplemented!(); // TODO: Generate program from TokenizedProgram
+
+                #[allow(unreachable_code)]
+                unsafe {
+                    let mut return_value = program.run(args.arguments);
+
+                    match return_value {
+                        Err(e) => e.abort(),
+                        Ok(v) => match v {
+                            Value::Number(x) => std::process::exit(x as i32),
+                            _ => panic!("The main function must return a Number value")
+                        }
+                    }
+                }
+
+            }
 
         }
     }

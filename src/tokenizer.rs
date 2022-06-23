@@ -44,7 +44,7 @@ pub enum Separator {
 impl Token {
     /// Return the token corresponding to the given text. Will test for keyword, operator and separator.
     pub fn from_str(string: &str) -> Result<Token, String> {
-        let identifier_re = Regex::new(r"^@?[a-zA-Z_][a-zA-Z0-9_]*$").unwrap();
+        let identifier_re = Regex::new(r"^(@[0-9]+|@[a-zA-Z]+|[a-zA-Z_][a-zA-Z0-9_]*)$").unwrap();
 
         if KEYWORDS.contains(&string) {Ok(Token::Keyword(string.to_string()))}
         else if OPERATORS.contains(&string) {Ok(Token::Operator(string.to_string()))}
@@ -329,7 +329,7 @@ impl TokenizedProgram {
     /// Print to the console the list of tokens
     pub fn print_tokens(&self) {
         for i in 0..self.tokens.len() {
-            println!("{:30}{:30}", self.tokens[i].to_string(), self.positions[i].to_string());
+            println!("{:<10}{:40}{:40}", i+1, self.tokens[i].to_string(), self.positions[i].to_string());
         }
     }
 }
