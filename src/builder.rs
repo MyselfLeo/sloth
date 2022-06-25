@@ -54,5 +54,40 @@ impl TokenIterator {
 
 
 pub fn build(tokens: TokenizedProgram) -> Result<SlothProgram, Error> {
-    todo!()
+    let mut iterator = TokenIterator::new(tokens);
+
+    let mut program = SlothProgram::new();
+
+
+    let define_token = Token::Keyword("define".to_string());
+    let structure_token = Token::Keyword("structure".to_string());
+
+
+    // main building loop, going over each tokens
+    loop {
+        let token = iterator.current();
+
+        match token {
+            None => break,
+            Some(v) => {
+
+
+                if v.0 == &define_token {
+                    unimplemented!()
+                }
+                else if v.0 == &structure_token  {
+                    unimplemented!()
+                }
+                else {
+                    let error_msg = format!("Expected function or structure definition, got unexpected token '{}'", v.0.original_string());
+                    return Err(Error::new(ErrorMessage::SyntaxError(error_msg), Some(v.1.clone())));
+                }
+
+            }
+        }
+    }
+
+
+
+    Ok(program)
 }

@@ -7,6 +7,7 @@ define fibonacci: num -> num {
         n_1 = 1;
         n_2 = 0;
 
+        # here
         i = 1;
         while < i @0 {
             buff = n_2;
@@ -16,6 +17,7 @@ define fibonacci: num -> num {
             i = + i 1;
         };
 
+        # test
         @return = n_1;
     };
 }

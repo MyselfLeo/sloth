@@ -40,6 +40,25 @@ pub enum Separator {
     Comma,
 }
 
+impl Separator {
+    pub fn to_string(&self) -> String {
+        match self {
+            Separator::OpenParenthesis => "(",
+            Separator::CloseParenthesis => ")",
+            Separator::OpenBracket => "{",
+            Separator::CloseBracket => "}",
+            Separator::OpenSquareBracket => "[",
+            Separator::CloseSquareBracket => "]",
+            Separator::SemiColon => ";",
+            Separator::Colon => ":",
+            Separator::Comma => ","
+        }.to_string()
+    }
+}
+
+
+
+
 
 impl Token {
     /// Return the token corresponding to the given text. Will test for keyword, operator and separator.
@@ -80,8 +99,18 @@ impl Token {
     }
 
 
-    pub fn to_string(&self) -> String {
+    pub fn to_string_formatted(&self) -> String {
         format!("{:?}", self)
+    }
+
+    pub fn original_string(&self) -> String {
+        match self {
+            Token::Keyword(x) => x.clone(),
+            Token::Identifier(x) => x.clone(),
+            Token::Literal(x) => x.clone(),
+            Token::Operator(x) => x.clone(),
+            Token::Separator(x) => x.to_string()
+        }
     }
 }
 
@@ -330,7 +359,7 @@ impl TokenizedProgram {
     /// Print to the console the list of tokens
     pub fn print_tokens(&self) {
         for i in 0..self.tokens.len() {
-            println!("{:<10}{:40}{:40}", i+1, self.tokens[i].to_string(), self.positions[i].to_string());
+            println!("{:<10}{:40}{:40}", i+1, self.tokens[i].to_string_formatted(), self.positions[i].to_string());
         }
     }
 }
