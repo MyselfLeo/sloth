@@ -94,7 +94,7 @@ impl Token {
 
         // raise error as the token is not identified
         else {
-            Err(format!("Unexpected token '{}'. Note: identifiers can only be made of letters, numbers (not at the start) and '_'", string))
+            Err(format!("Invalid token '{}'. Note: identifiers can only be made of letters, numbers (not at the start) and '_'", string))
         }
     }
 
