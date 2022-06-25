@@ -6,6 +6,8 @@ mod errors;
 mod sloth;
 #[allow(dead_code)]
 mod built_in;
+#[allow(dead_code)]
+mod builder;
 
 
 use clap::Parser;
@@ -48,11 +50,14 @@ fn main() {
 
             if args.tokens {tokens.print_tokens()}
             else {
-                let program: SlothProgram = unimplemented!(); // TODO: Generate program from TokenizedProgram
+                // build the program
+                let mut program: SlothProgram = match builder::build(tokens) {
+                    Err(e) => {e.abort(); return},
+                    Ok(p) => p,
+                };
 
-                #[allow(unreachable_code)]
                 unsafe {
-                    let mut return_value = program.run(args.arguments);
+                    let return_value = program.run(args.arguments);
 
                     match return_value {
                         Err(e) => e.abort(),
