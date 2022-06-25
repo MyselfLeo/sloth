@@ -17,7 +17,7 @@ const COMMENT_CHAR: char = '#';
 
 
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Token {
     // Each token has a (line, column) parameter
     Keyword(String),
@@ -27,7 +27,7 @@ pub enum Token {
     Literal(String),
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum Separator {
     OpenParenthesis,
     CloseParenthesis,
@@ -117,9 +117,10 @@ impl ElementPosition {
 
 
 /// list of tokens and their respective position generated from a program file (.slo)
+#[derive(Clone)]
 pub struct TokenizedProgram {
-    tokens: Vec<Token>,
-    positions: Vec<ElementPosition>
+    pub tokens: Vec<Token>,
+    pub positions: Vec<ElementPosition>
 }
 
 
