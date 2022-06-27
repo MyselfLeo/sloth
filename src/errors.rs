@@ -15,7 +15,8 @@ pub enum ErrorMessage {
     UnexpectedExpression(String),
     RuntimeError(String),
     UnexpectedEOF(String),
-    TypeError(String)
+    TypeError(String),
+    InvalidIdentifier(String),
 }
 
 impl std::fmt::Display for ErrorMessage {
@@ -29,7 +30,8 @@ impl std::fmt::Display for ErrorMessage {
             ErrorMessage::UnexpectedExpression(e) => write!(f, "UNEXPECTED EXPRESSION: {}", e),
             ErrorMessage::RuntimeError(e) => write!(f, "RUNTIME ERROR: {} (this is most likely not caused by your code)", e),
             ErrorMessage::UnexpectedEOF(e) => write!(f, "UNEXPECTED EOF: {}", e),
-            ErrorMessage::TypeError(e) => write!(f, "TYPE ERROR: {}", e)
+            ErrorMessage::TypeError(e) => write!(f, "TYPE ERROR: {}", e),
+            ErrorMessage::InvalidIdentifier(e) => write!(f, "INVALID IDENTIFIER: {}", e),
         }
     }
 }

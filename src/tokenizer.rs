@@ -140,6 +140,17 @@ impl ElementPosition {
     pub fn to_string(&self) -> String {
         format!("{}", self)
     }
+
+    /// Return a new ElementPosition starting from the start of self until the end of other.
+    /// They both needs to be on the same line
+    pub fn until(&self, other: ElementPosition) -> ElementPosition {
+        if self.filename != other.filename || self.line != other.line {panic!("wtf?")}
+        ElementPosition {
+            filename: self.filename.clone(),
+            line: self.line, first_column: self.first_column,
+            last_column: other.last_column
+        }
+    }
 }
 
 
