@@ -23,9 +23,13 @@ struct Args {
     #[clap(value_parser)]
     file: String,
 
-    /// Display the tokens of the file instead of running it$
+    /// Display the tokens of the file instead of running it
     #[clap(long, value_parser)]
     tokens: bool,
+
+    /// Print the return code after execution
+    #[clap(long, value_parser)]
+    code: bool,
 
     /// Arguments for the Sloth program
     #[clap(value_parser)]
@@ -55,21 +59,21 @@ fn main() {
                     Err(e) => {e.abort(); return},
                     Ok(p) => p,
                 };
-
                 unsafe {
                     let return_value = program.run(args.arguments);
 
                     match return_value {
                         Err(e) => e.abort(),
                         Ok(v) => match v {
-                            Value::Number(x) => std::process::exit(x as i32),
+                            Value::Number(x) => {
+                                if args.code {println!("Exited with return code {}", x)};
+                                std::process::exit(x as i32)
+                            },
                             _ => panic!("The main function must return a Number value")
                         }
                     }
                 }
-
             }
-
         }
     }
 }

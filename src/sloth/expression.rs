@@ -18,7 +18,7 @@ impl ExpressionID {
 }
 
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 /// Expressions are objects that can be evaluated into a value
 pub enum Expression {
     Literal(Value, ElementPosition),                                                     // value of the literal

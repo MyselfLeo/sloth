@@ -1,3 +1,4 @@
-test main: num -> num {
-    @return = 0;
+define main: num -> num {
+    test = + @0 1;
+    @return = "hello";
 }

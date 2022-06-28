@@ -1,7 +1,6 @@
-use std::iter;
-
 use crate::sloth::expression::{ExpressionID, Expression};
-use crate::sloth::function::SlothFunction;
+use crate::sloth::function::{CustomFunction};
+use crate::sloth::operator::{Operator};
 use crate::sloth::program::SlothProgram;
 use crate::sloth::statement::Statement;
 use crate::sloth::types::Type;
@@ -17,8 +16,8 @@ const UNEXPECTED_EOF_ERR_MSG: &str = "Unexpected End Of File";
 
 
 
-fn eof_error() -> Error {
-    Error::new(ErrorMessage::UnexpectedEOF(UNEXPECTED_EOF_ERR_MSG.to_string()), None)
+fn eof_error(i: u32) -> Error {
+    Error::new(ErrorMessage::UnexpectedEOF(format!("{} ({})", UNEXPECTED_EOF_ERR_MSG, i)), None)
 }
 
 
@@ -43,27 +42,28 @@ impl TokenIterator {
     }
 
     /// return the nth value of the iterator
-    pub fn nth(&self, index: usize) -> Option<(&Token, &ElementPosition)> {
+    pub fn nth(&self, index: usize) -> Option<(Token, ElementPosition)> {
         if index >= self.nb_tokens {None}
         else {
-            Some((&self.tokens.tokens[index], &self.tokens.positions[index]))
+            Some((self.tokens.tokens[index].clone(), self.tokens.positions[index].clone()))
         }
     }
 
     /// return current value of the iterator
-    pub fn current(&self) -> Option<(&Token, &ElementPosition)> {
+    pub fn current(&self) -> Option<(Token, ElementPosition)> {
         self.nth(self.current)
     }
 
     /// switch to the next value of the iterator and returns it
-    pub fn next(&mut self) -> Option<(&Token, &ElementPosition)> {
+    pub fn next(&mut self) -> Option<(Token, ElementPosition)> {
         self.current += 1;
         self.nth(self.current)
     }
 
     /// return the nth next value without switching to it
-    pub fn peek(&mut self, nth: usize) -> Option<(&Token, &ElementPosition)> {
-        self.nth(self.current + nth)
+    pub fn peek(&mut self, nth: isize) -> Option<(Token, ElementPosition)> {
+        if nth < 0 {self.nth(self.current - (-nth as usize))}
+        else {self.nth(self.current + nth as usize)}
     }
 }
 
@@ -90,7 +90,61 @@ impl TokenIterator {
 
 /// Parse a function call
 fn parse_functioncall(iterator: &mut TokenIterator, program: &mut SlothProgram) -> Result<Expression, Error> {
-    todo!()
+    let function_name;
+    let start_pos;
+
+    // Get the function's identifier
+    if let Some((Token::Identifier(s), pos)) = iterator.current() {
+        function_name = s;
+        start_pos = pos;
+    }
+    else {panic!("Function 'parse_functioncall' called but token iterator is not on a function call.")}
+
+
+    // Next token must be an open parenthesis
+    match iterator.next() {
+        Some((token, position)) => {
+            if token != Token::Separator(Separator::OpenParenthesis) {
+                let err_msg = format!("Expected '(', got unexpected token '{}'", token.original_string());
+                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(position.clone())));
+            }
+        }
+        None => return Err(eof_error(line!()))
+    };
+
+
+    // Now, we parse expressions until we reach a closed parenthesis
+    let mut inputs_expr_id: Vec<ExpressionID> = Vec::new();
+
+    while match iterator.peek(1) {
+        Some((Token::Separator(Separator::CloseParenthesis), _)) => false,
+        Some(_) => true,
+        None => return Err(eof_error(line!()))
+    } {
+        inputs_expr_id.push(parse_expression(iterator, program)?.0);
+    };
+
+
+    // Next token must be ')'
+    let last_pos;
+    match iterator.current() {
+        Some((token, position)) => {
+            last_pos = position.clone();
+            if token != Token::Separator(Separator::CloseParenthesis) {
+                let err_msg = format!("Expected ')', got unexpected token '{}'", token.original_string());
+                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(position.clone())));
+            }
+        }
+        None => return Err(eof_error(line!()))
+    };
+
+    let functioncall_pos = start_pos.until(last_pos);
+
+    iterator.next();
+    Ok(Expression::FunctionCall(function_name, inputs_expr_id, functioncall_pos))
+
+
+
 }
 
 
@@ -98,7 +152,60 @@ fn parse_functioncall(iterator: &mut TokenIterator, program: &mut SlothProgram) 
 
 /// Parse an operation
 fn parse_operation(iterator: &mut TokenIterator, program: &mut SlothProgram) -> Result<Expression, Error> {
-    todo!()
+
+    // The starting token must be an operator
+    let (operator, first_pos) = match iterator.current() {
+        Some((Token::Operator(s), p)) => (s, p),
+        _ => panic!("parse_operation called but iterator is not starting on an operator")
+    };
+
+
+    // determine the number of operands
+    let mut nb_operands = 2;
+
+    let operator = match operator.as_str() {
+        // 2 elements operators
+        "+" => Operator::Add,
+        "-" => Operator::Sub,
+        "*" => Operator::Mul,
+        "/" => Operator::Div,
+        "==" => Operator::Eq,
+        ">" => Operator::Gr,
+        "<" => Operator::Lw,
+        ">=" => Operator::Ge,
+        "<=" => Operator::Le,
+        "?" => Operator::Or,
+        "&" => Operator::And,
+
+        // 1 element operators
+        _ => {
+            nb_operands = 1;
+            match operator.as_str() {
+                "!" => Operator::Inv,
+                t => {
+                    let err_msg = format!("Unimplemented operator {}", t);
+                    return Err(Error::new(ErrorMessage::OperationErrror(err_msg), Some(first_pos)))
+                }
+            }
+        }
+    };
+
+    // get the first and potential second expression
+    iterator.next();
+    let (first_expr_id, mut last_pos) = parse_expression(iterator, program)?;
+
+    // Get second expression, if needed
+    let second_expr_id = match nb_operands > 1 {
+        true => {
+            let (expr_id, pos) = parse_expression(iterator, program)?;
+            last_pos = pos;
+            Some(expr_id)
+        }, 
+        false => None,
+    };
+
+    let op_pos = first_pos.until(last_pos);
+    Ok(Expression::Operation(operator, Some(first_expr_id), second_expr_id, op_pos))
 }
 
 
@@ -107,14 +214,14 @@ fn parse_operation(iterator: &mut TokenIterator, program: &mut SlothProgram) -> 
 
 
 /// Parse an expression, push it to the program's expression stack and return its id
-fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram) -> Result<ExpressionID, Error> {
-
+fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram) -> Result<(ExpressionID, ElementPosition), Error> {
     // we use the first token of the expression to find its type
-    let expr = match iterator.current() {
+    let (expr, expr_pos) = match iterator.current() {
 
         // The expression starts with a Literal, so it's only this literal
         Some((Token::Literal(s), first_position)) => {
-            Expression::Literal(Value::from_string(s.clone()), first_position.clone())
+            iterator.next();
+            (Expression::Literal(Value::from_string(s.clone()), first_position.clone()), first_position.clone())
         },
 
         // TODO: lists
@@ -122,24 +229,35 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram) ->
         // The token is an identifier. CHeck the next token to see if its a function call, a variable call or a list access (lists not implemented yet)
         Some((Token::Identifier(s), first_position)) =>  {
             match iterator.peek(1) {
-                Some((Token::Separator(Separator::OpenParenthesis), _)) => parse_functioncall(iterator, program)?,
-                _ => Expression::VariableCall(s.clone(), first_position.clone())
+                Some((Token::Separator(Separator::OpenParenthesis), _)) => {
+                    let func_call = parse_functioncall(iterator, program)?;
+                    if let Expression::FunctionCall(_, _, p) = func_call.clone() {(func_call, p)}
+                    else {panic!("parse_functioncall did not return an Expression::FunctionCall enum")}
+                },
+                _ => {
+                    iterator.next();
+                    (Expression::VariableCall(s.clone(), first_position.clone()), first_position.clone())
+                }
             }
         },
 
         // The token is an operator, so it's an operation
-        Some((Token::Operator(_), _)) => parse_operation(iterator, program)?,
+        Some((Token::Operator(_), _)) => {
+            let operation = parse_operation(iterator, program)?;
+            if let Expression::Operation(_, _, _, p) = operation.clone() {(operation, p)}
+            else {panic!("parse_operation did not return an Expression::Operation enum")}
+        },
 
         Some((t, p)) => {
             let err_msg = format!("Unexpected expression start '{}'", t.original_string());
-            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())))
+            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)))
         }
 
-        None => return Err(eof_error())
+        None => return Err(eof_error(line!()))
     };
 
 
-    Ok(program.push_expr(expr))
+    Ok((program.push_expr(expr), expr_pos))
 }
 
 
@@ -169,7 +287,7 @@ fn parse_assignment(iterator: &mut TokenIterator, program: &mut SlothProgram) ->
                 return Err(Error::new(ErrorMessage::InvalidIdentifier(err_msg), Some(position.clone())));
             };
         },
-        None => return Err(eof_error())
+        None => return Err(eof_error(line!()))
     };
     
 
@@ -181,21 +299,13 @@ fn parse_assignment(iterator: &mut TokenIterator, program: &mut SlothProgram) ->
                 return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(position.clone())));
             }
         }
-        None => return Err(eof_error())
+        None => return Err(eof_error(line!()))
     };
 
     // Rest of the assignment is an expression
-    let expression_id = parse_expression(iterator, program)?;
-
-    // last position
-    let last_pos = match iterator.current() {
-        Some((_, p)) => p.clone(),
-        None => return Err(eof_error())
-    };
-
-    let assignment_position = start_pos.until(last_pos);
-
-
+    iterator.next();
+    let (expression_id, expr_pos) = parse_expression(iterator, program)?;
+    let assignment_position = start_pos.until(expr_pos);
     Ok(Statement::Assignment(var_name, expression_id, assignment_position))
 }
 
@@ -217,10 +327,9 @@ fn parse_statement(iterator: &mut TokenIterator, program: &mut SlothProgram) -> 
 
     let statement = match iterator.current() {
         // Variable assignment or expression call. We'll need the next token to find out
-        Some((Token::Identifier(_), p)) => {
-
+        Some((Token::Identifier(_), _)) => {
             match iterator.peek(1) {
-                Some((next_token, p)) => {
+                Some((next_token, _)) => {
                     // This is a variable assignment (IDENTIFIER = EXPRESSION;)
                     if next_token.original_string() == "=".to_string() {
                         parse_assignment(iterator, program)?
@@ -228,13 +337,12 @@ fn parse_statement(iterator: &mut TokenIterator, program: &mut SlothProgram) -> 
 
                     // This must be an expression call
                     else {
-                        let expr_id = parse_expression(iterator, program)?;
-                        // TODO: parse_expression should return the ElementPosition of the Expression
-                        Statement::ExpressionCall(expr_id, p.clone())
+                        let (expr_id, pos) = parse_expression(iterator, program)?;
+                        Statement::ExpressionCall(expr_id, pos)
                     }
                 },
 
-                None => return Err(eof_error())
+                None => return Err(eof_error(line!()))
             }
         },
 
@@ -244,18 +352,32 @@ fn parse_statement(iterator: &mut TokenIterator, program: &mut SlothProgram) -> 
             "while" => todo!(),
             kw => {
                 let err_msg = format!("Unexpected keyword '{}'. Outside a function, you can only define structures or functions", kw);
-                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())))
+                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)))
             }
         }
 
         Some((t, p)) => {
             let err_msg = format!("Unexpected token '{}'. Outside a function, you can only define structures or functions", t.original_string());
-            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())))
+            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)))
         }
 
-        None => return Err(eof_error())
+        None => return Err(eof_error(line!()))
     };
 
+
+
+    // Check for the presence of a semicolon (;)
+    match iterator.current() {
+        Some((Token::Separator(Separator::SemiColon), _)) => {},
+        Some((_, p)) => {
+            let err_msg = "Expected semicolon at the end of a statement".to_string();
+            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)));
+        }
+        None => {
+            return Err(eof_error(line!()))
+        },
+    };
+    iterator.next();
 
     Ok(statement)
 }
@@ -310,10 +432,10 @@ fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram) -> R
         Some((t, p)) => {
             if t.original_string() != "define".to_string() {
                 let err_msg = format!("Expected 'define' keyword, got '{}'", t.original_string());
-                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())));
+                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)));
             }
         }
-        None => return Err(eof_error()),
+        None => return Err(eof_error(line!())),
     };
 
 
@@ -322,22 +444,22 @@ fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram) -> R
         Some((Token::Identifier(s), _)) => s.clone(),
         Some((t, p)) => {
             let err_msg = format!("Expected function name, got '{}'", t.original_string());
-            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())));
+            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)));
         }
-        None => return Err(eof_error()),
+        None => return Err(eof_error(line!())),
     };
 
 
     // Next token must be a colon
     match iterator.next() {
         Some(t) => {
-            if let (&Token::Separator(Separator::Colon), _) = t {}
+            if let (Token::Separator(Separator::Colon), _) = t {}
             else {
                 let err_msg = format!("Expected ':', got '{}'", t.0.original_string());
                 return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(t.1.clone())));
             }
         },
-        None => return Err(eof_error()),
+        None => return Err(eof_error(line!())),
     }
 
 
@@ -345,9 +467,9 @@ fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram) -> R
     let mut input_types: Vec<Type> = Vec::new();
 
     while match iterator.peek(1) {
-        Some((Token::Keyword(kw), _)) => {kw != &"->".to_string()},
+        Some((Token::Keyword(kw), _)) => {kw != "->".to_string()},
         Some(_) => true,
-        None => return Err(eof_error()),
+        None => return Err(eof_error(line!())),
     } {
         // Check the value of the keyword
         match iterator.next() {
@@ -362,7 +484,7 @@ fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram) -> R
             }
 
             // This should not happen as it's already checked with peek(). But just in case
-            None => return Err(eof_error())
+            None => return Err(eof_error(line!()))
         }
 
     }
@@ -373,10 +495,10 @@ fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram) -> R
         Some((t, p)) => {
             if t.original_string() != "->".to_string() {
                 let err_msg = format!("Expected '->', got '{}'", t.original_string());
-                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())));
+                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)));
             }
         },
-        None => return Err(eof_error()),
+        None => return Err(eof_error(line!())),
     }
 
 
@@ -391,21 +513,45 @@ fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram) -> R
                 return Err(Error::new(ErrorMessage::TypeError(err_msg), Some(e.1.clone())));
             }
         }
-        None => return Err(eof_error())
+        None => return Err(eof_error(line!()))
     };
 
 
     // next token must be an open bracket
     let next = iterator.next();
-    if let Some((&Token::Separator(Separator::OpenBracket), _)) = next {}
+    if let Some((Token::Separator(Separator::OpenBracket), _)) = next {}
     else if let Some((t, p)) = next {
         let err_msg = format!("Expected '{{', got unexpected token '{}'", t.original_string());
-        return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())));
+        return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)));
     }
 
 
-    // Now we need to parse each statements
-    unimplemented!()
+
+    // Now we need to parse each statements until we reach a closed bracket
+    let mut statements: Vec<Statement> = Vec::new();
+
+    iterator.next();
+    while match iterator.current() {
+        Some((Token::Separator(Separator::CloseBracket), _)) => false,
+        Some(_) => true,
+        None => return Err(eof_error(line!()))
+    } {
+        statements.push(parse_statement(iterator, program)?);
+    };
+
+
+    // Create the function and push it to the program
+    let function = CustomFunction {
+        name: f_name,
+        input_types: input_types,
+        output_type: output_type,
+        instructions: statements
+    };
+    program.push_function(Box::new(function));
+
+
+    iterator.next();
+    Ok(())
 }
 
 

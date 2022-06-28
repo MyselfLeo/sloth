@@ -17,12 +17,12 @@ pub trait SlothFunction {
 }
 
 /// Function defined in the code, written in Sloth
-struct CustomFunction {
-    name: String,
-    input_types: Vec<Type>,
-    output_type: Type,
+pub struct CustomFunction {
+    pub name: String,
+    pub input_types: Vec<Type>,
+    pub output_type: Type,
 
-    instructions: Vec<Statement>,
+    pub instructions: Vec<Statement>,
 }
 
 

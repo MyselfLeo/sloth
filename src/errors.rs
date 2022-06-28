@@ -17,6 +17,7 @@ pub enum ErrorMessage {
     UnexpectedEOF(String),
     TypeError(String),
     InvalidIdentifier(String),
+    OperationErrror(String)
 }
 
 impl std::fmt::Display for ErrorMessage {
@@ -32,6 +33,7 @@ impl std::fmt::Display for ErrorMessage {
             ErrorMessage::UnexpectedEOF(e) => write!(f, "UNEXPECTED EOF: {}", e),
             ErrorMessage::TypeError(e) => write!(f, "TYPE ERROR: {}", e),
             ErrorMessage::InvalidIdentifier(e) => write!(f, "INVALID IDENTIFIER: {}", e),
+            ErrorMessage::OperationErrror(e) => write!(f, "OPERATION ERROR: {}", e),
         }
     }
 }

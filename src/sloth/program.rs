@@ -95,7 +95,7 @@ impl SlothProgram {
 
     /// Add an expression to the Expression stack and return its ID
     pub fn push_expr(&mut self, expr: Expression) -> ExpressionID {
-        let expr_id = ExpressionID::new(self.scope_nb);
+        let expr_id = ExpressionID::new(self.expressions_nb);
         self.expressions.insert(expr_id.clone(), expr.clone());
         self.expressions_nb += 1;
 
