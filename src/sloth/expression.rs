@@ -114,9 +114,15 @@ impl Expression {
                 // run the function in the given scope
                 function.call(&mut func_scope, program.as_mut().unwrap())?;
 
-                // return the value in the '@return' variable
+                // return the value in the '@return' variable, but check its type first
                 match func_scope.get_variable("@return".to_string(), program.as_mut().unwrap()) {
-                    Ok(v) => Ok(v),
+                    Ok(v) => {
+                        if v.get_type() != function.get_output_type() {
+                            let err_msg = format!("Function {} should return a value of type {}, but it returned {} which is of type {}", function.get_name(), function.get_output_type(), v.to_string(), v.get_type());
+                            Err(Error::new(ErrorMessage::ReturnValueError(err_msg), Some(p.clone())))
+                        }
+                        else {Ok(v)}
+                    },
                     Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                 }
             }

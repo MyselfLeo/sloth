@@ -569,9 +569,10 @@ fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram) -> R
 
 
 pub fn build(tokens: TokenizedProgram) -> Result<SlothProgram, Error> {
+    let filename = tokens.filename.clone();
     let mut iterator = TokenIterator::new(tokens);
 
-    let mut program = SlothProgram::new();
+    let mut program = SlothProgram::new(filename);
 
 
     

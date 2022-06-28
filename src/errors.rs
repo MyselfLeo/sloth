@@ -17,7 +17,8 @@ pub enum ErrorMessage {
     UnexpectedEOF(String),
     TypeError(String),
     InvalidIdentifier(String),
-    OperationErrror(String)
+    OperationErrror(String),
+    ReturnValueError(String)
 }
 
 impl std::fmt::Display for ErrorMessage {
@@ -34,6 +35,7 @@ impl std::fmt::Display for ErrorMessage {
             ErrorMessage::TypeError(e) => write!(f, "TYPE ERROR: {}", e),
             ErrorMessage::InvalidIdentifier(e) => write!(f, "INVALID IDENTIFIER: {}", e),
             ErrorMessage::OperationErrror(e) => write!(f, "OPERATION ERROR: {}", e),
+            ErrorMessage::ReturnValueError(e) => write!(f, "RETURN VALUE ERROR: {}", e),
         }
     }
 }
@@ -42,8 +44,8 @@ impl std::fmt::Display for ErrorMessage {
 
 
 pub struct Error {
-    message: ErrorMessage,
-    position: Option<ElementPosition>
+    pub message: ErrorMessage,
+    pub position: Option<ElementPosition>
 }
 
 

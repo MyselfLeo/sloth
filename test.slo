@@ -1,4 +1,4 @@
 define main: num -> num {
     test = + @0 1;
-    @return = "hello";
+    @return = test;
 }

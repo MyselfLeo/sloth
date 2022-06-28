@@ -17,6 +17,7 @@ use super::value::Value;
 /// Main structure of a Sloth program. Stores global definitions (function definition, structs definition, scopes)
 /// Note: Variables are stored in the scopes
 pub struct SlothProgram {
+    filename: String,
     functions: HashMap<String, Box<dyn SlothFunction>>,
     structures: HashMap<String, StructDefinition>,
     scopes: HashMap<ScopeID, Scope>,
@@ -28,8 +29,9 @@ pub struct SlothProgram {
 }
 
 impl SlothProgram {
-    pub fn new() -> SlothProgram {
+    pub fn new(filename: String) -> SlothProgram {
         let mut program = SlothProgram {
+            filename: filename,
             functions: HashMap::new(),
             structures: HashMap::new(),
             scopes: HashMap::new(),
@@ -136,6 +138,11 @@ impl SlothProgram {
         // Call the main function
         let f_call = Expression::FunctionCall("main".to_string(), args_id, dummy_pos.clone());
         let scope = self.get_scope(self.main_scope.unwrap()).unwrap().clone();
-        f_call.evaluate(&scope, self)
+        let result = f_call.evaluate(&scope, self);
+
+        match result {
+            Ok(v) => Ok(v),
+            Err(e) => Err(Error::new(e.message, None))
+        }
     }
 }

@@ -159,6 +159,7 @@ impl ElementPosition {
 /// list of tokens and their respective position generated from a program file (.slo)
 #[derive(Clone)]
 pub struct TokenizedProgram {
+    pub filename: String,
     pub tokens: Vec<Token>,
     pub positions: Vec<ElementPosition>
 }
@@ -201,15 +202,16 @@ impl TokenizedProgram {
 
                 // start of a string
                 if string_buffer.is_empty() && c == '"' {
-                    string_buffer.push('=');
+                    string_buffer.push('"');
                     string_start = (line_index, c_index);
-                }
 
+                    continue 'chars;
+                }
 
 
                 // We reach the end of a string
                 if !string_buffer.is_empty() && c == '"' {
-                    string_buffer.push('=');
+                    string_buffer.push('"');
 
                     let position = ElementPosition {
                         filename: filename.to_string(),
@@ -362,7 +364,7 @@ impl TokenizedProgram {
         }
 
 
-        Ok(TokenizedProgram{tokens: token_list, positions: position_list})
+        Ok(TokenizedProgram{filename: filename.to_string(), tokens: token_list, positions: position_list})
     }
 
 
