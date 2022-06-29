@@ -1,6 +1,11 @@
 # Return the square of @0
 define square: num -> num {
-    @return = * @0 @0;
+    if == @0 1 {
+        @return = "hello";
+    };
+    if ! == @0 1 {
+        @return = * @0 @0;
+    };
 }
 
 define main: num -> num {

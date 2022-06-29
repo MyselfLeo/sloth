@@ -1,3 +1,5 @@
+use std::iter;
+
 use crate::sloth::expression::{ExpressionID, Expression};
 use crate::sloth::function::{CustomFunction};
 use crate::sloth::operator::{Operator};
@@ -345,8 +347,8 @@ fn parse_statement(iterator: &mut TokenIterator, program: &mut SlothProgram) -> 
 
 
         Some((Token::Keyword(s), p)) => match s.as_str() {
-            "if" => todo!(),
-            "while" => todo!(),
+            "if" => parse_if(iterator, program)?,
+            "while" => parse_while(iterator, program)?,
             kw => {
                 let err_msg = format!("Unexpected keyword '{}'. Outside a function, you can only define structures or functions", kw);
                 return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)))
@@ -406,7 +408,61 @@ fn parse_statement(iterator: &mut TokenIterator, program: &mut SlothProgram) -> 
 
 
 
+fn parse_if(iterator: &mut TokenIterator, program: &mut SlothProgram) -> Result<Statement, Error> {
+    let first_pos;
+    let last_pos;
 
+    // first token must be 'if'. parse_if should however only be called in a way so that it's true
+    if let Some((Token::Keyword(s), p)) = iterator.current() {
+        first_pos = p;
+        if s != "if".to_string() {panic!("Called parse_if but iterator is not a on if statement")}
+    } else {panic!("Called parse_if but iterator is not a on if statement")}
+
+    iterator.next();
+
+    let (cond_expr_id, _) = parse_expression(iterator, program)?;
+    let current = iterator.current();
+
+    // next token must be a '{'
+    if let Some((Token::Separator(Separator::OpenBracket), p)) = current {
+        last_pos = p;
+    }
+    else if let Some((t, p)) = current {
+        let err_msg = format!("Expected '{{', got unexpected token '{}'", t.original_string());
+        return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)));
+    }
+    else {return Err(eof_error(line!()))}
+
+    iterator.next();
+
+    // parse the succession of statements until a closed bracket is reached
+    let mut statements: Vec<Statement> = Vec::new();
+
+    while match iterator.current() {
+        Some((Token::Separator(Separator::CloseBracket), _)) => false,
+        Some(_) => true,
+        None => return Err(eof_error(line!()))
+    } {
+        statements.push(parse_statement(iterator, program)?);
+    };
+
+    iterator.next();
+
+
+    Ok(Statement::If(cond_expr_id, statements, first_pos.until(last_pos)))
+    
+}
+
+
+
+
+
+
+
+
+fn parse_while(iterator: &mut TokenIterator, program: &mut SlothProgram) -> Result<Statement, Error> {
+    todo!()
+}
 
 
 
@@ -534,6 +590,7 @@ fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram) -> R
         let err_msg = format!("Expected '{{', got unexpected token '{}'", t.original_string());
         return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)));
     }
+    else {return Err(eof_error(line!()))}
 
 
 
