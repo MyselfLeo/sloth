@@ -79,3 +79,43 @@ impl Error {
         std::process::exit(1)
     }
 }
+
+
+
+
+pub struct Warning {
+    pub text: String,
+    pub position: Option<ElementPosition>
+}
+
+impl Warning {
+    pub fn new(text: String, position: Option<ElementPosition>) -> Warning {
+        Warning {
+            text: text,
+            position: position
+        }
+    }
+
+    pub fn warn(&self) {
+        match &self.position {
+            None => println!("\x1b[93mWarning: {}\x1b[0m", self.text),
+            Some(p) => {
+                let filepath = std::path::Path::new(&p.filename);
+                let file_string = std::fs::read_to_string(filepath).expect(format!("Unable to read file {:?}", filepath.as_os_str()).as_str());
+                let lines: Vec<&str> = file_string.split('\n').collect();
+
+                let line_index_str_len = (p.line + 1).to_string().len();
+
+                println!("\x1b[93mWarning: {}\x1b[0m", self.text);
+                println!("\x1b[90m{}:{}  ({} v{})\x1b[0m", p.filename, p.line + 1, CRATE_NAME, CRATE_VERSION);
+
+                println!("\x1b[33m|\x1b[0m");
+                println!("\x1b[33m| {}\x1b[0m {}", p.line + 1, lines[p.line]);
+                print!("\x1b[33m| \x1b[93m");
+                for _ in 0..p.first_column + line_index_str_len + 1 {print!(" ")}
+                for _ in 0..(p.last_column - p.first_column + 1) {print!("^")}
+                println!("\x1b[0m");
+            }
+        }
+    }
+}

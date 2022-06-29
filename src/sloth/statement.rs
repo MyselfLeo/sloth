@@ -82,4 +82,14 @@ impl Statement {
             }
         }
     }
+
+
+    pub fn get_pos(&self) -> ElementPosition {
+        match self {
+            Statement::Assignment(_, _, p) => p.clone(),
+            Statement::ExpressionCall(_, p) => p.clone(),
+            Statement::If(_, _, p) => p.clone(),
+            Statement::While(_, _, p) => p.clone(),
+        }
+    }
 }

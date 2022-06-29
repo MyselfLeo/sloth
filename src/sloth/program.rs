@@ -8,6 +8,7 @@ use super::structure::StructDefinition;
 use super::types::Type;
 use super::value::Value;
 
+use crate::built_in;
 
 
 
@@ -43,6 +44,12 @@ impl SlothProgram {
 
         let s_id = program.new_scope(None);
         program.main_scope = Some(s_id.clone());
+
+        
+        let print_func = built_in::io::BuiltinIoPrint{};
+
+        program.push_function(Box::new(print_func));
+
 
         program
     }

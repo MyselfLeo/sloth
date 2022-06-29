@@ -4,5 +4,5 @@ define square: num -> num {
 }
 
 define main: num -> num {
-    @return = square(@0);
+    print(square(@0) "\n");
 }

@@ -6,7 +6,7 @@ use crate::sloth::statement::Statement;
 use crate::sloth::types::Type;
 use crate::sloth::value::Value;
 use crate::tokenizer::{TokenizedProgram, Token, ElementPosition, Separator};
-use crate::errors::{Error, ErrorMessage};
+use crate::errors::{Error, ErrorMessage, Warning};
 
 
 
@@ -365,16 +365,29 @@ fn parse_statement(iterator: &mut TokenIterator, program: &mut SlothProgram) -> 
 
     // Check for the presence of a semicolon (;)
     match iterator.current() {
-        Some((Token::Separator(Separator::SemiColon), _)) => {},
-        Some((_, p)) => {
-            let err_msg = "Expected semicolon at the end of a statement".to_string();
-            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)));
+        Some((Token::Separator(Separator::SemiColon), _)) => {
+            // semicolon is here, we can pass it
+            iterator.next();
+        },
+        Some((_, _)) => {
+
+            /*
+            // if the next token is a closed bracket, a semicolon is not required nor particulary recommended, so we just ignore it.
+            // if it is not, we write a warning msg
+            if t == Token::Separator(Separator::CloseBracket) {}
+            else {
+                let warning = Warning::new("Using semicolons at the end of statements is highly recommended".to_string(), Some(statement.get_pos()));
+                warning.warn();
+            }
+             */
+
+            let warning = Warning::new("Using semicolons at the end of statements is highly recommended".to_string(), Some(statement.get_pos()));
+            warning.warn();
         }
         None => {
             return Err(eof_error(line!()))
         },
     };
-    iterator.next();
 
     Ok(statement)
 }

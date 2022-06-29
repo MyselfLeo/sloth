@@ -32,7 +32,9 @@ impl Value {
                 if *b {"true".to_string()}
                 else {"false".to_string()}
             },
+
             Value::String(s) => s.clone(),
+            
             Value::List(_, values) => {
                 let mut string_vec: Vec<String> = Vec::new();
                 for v in values {string_vec.push(v.to_string())}
@@ -48,7 +50,11 @@ impl Value {
         if s.parse::<f64>().is_ok() {Value::Number(s.parse::<f64>().unwrap())}
         else if s == "true" {Value::Boolean(true)}
         else if s == "false" {Value::Boolean(false)}
-        else {Value::String(s)}
+        else if s.starts_with("\"") && s.ends_with("\"") {
+            let text = s.trim_start_matches("\"").trim_end_matches("\"").to_string();
+            Value::String(text)
+        }
+        else {panic!("Can't generate Value from string '{}'", s)}
     }
 }
 

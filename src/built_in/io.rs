@@ -19,7 +19,7 @@ const STRUCTS: [&str; 0] = [
 
 
 
-struct BuiltinIoPrint {}
+pub struct BuiltinIoPrint {}
 
 impl SlothFunction for BuiltinIoPrint {
     fn get_name(&self) -> String {
@@ -29,10 +29,15 @@ impl SlothFunction for BuiltinIoPrint {
         Type::Number
     }
     unsafe fn call(&self, scope: &mut Scope, _: &mut SlothProgram) -> Result<(), Error> {
-        let args = scope.get_inputs();
-        for v in args {
-            print!("{}", v.to_string())
-        };
+        let inputs = scope.get_inputs();
+        let mut text = String::new();
+
+        for (i, v) in inputs.iter().enumerate() {
+            text += &format!("{}", v).replace("\\n", "\n");
+            if i < inputs.len() - 1 {text += " "}
+        }
+        print!("{}", text);
+
         Ok(())
     }
 }
