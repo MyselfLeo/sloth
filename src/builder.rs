@@ -90,6 +90,7 @@ impl TokenIterator {
 
 /// Parse a function call
 fn parse_functioncall(iterator: &mut TokenIterator, program: &mut SlothProgram) -> Result<Expression, Error> {
+    println!("Parsing function call");
     let function_name;
     let start_pos;
 
@@ -111,12 +112,12 @@ fn parse_functioncall(iterator: &mut TokenIterator, program: &mut SlothProgram) 
         }
         None => return Err(eof_error(line!()))
     };
-
+    iterator.next();
 
     // Now, we parse expressions until we reach a closed parenthesis
     let mut inputs_expr_id: Vec<ExpressionID> = Vec::new();
 
-    while match iterator.peek(1) {
+    while match iterator.current() {
         Some((Token::Separator(Separator::CloseParenthesis), _)) => false,
         Some(_) => true,
         None => return Err(eof_error(line!()))
@@ -142,9 +143,6 @@ fn parse_functioncall(iterator: &mut TokenIterator, program: &mut SlothProgram) 
 
     iterator.next();
     Ok(Expression::FunctionCall(function_name, inputs_expr_id, functioncall_pos))
-
-
-
 }
 
 
