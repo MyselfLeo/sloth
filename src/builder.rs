@@ -90,7 +90,6 @@ impl TokenIterator {
 
 /// Parse a function call
 fn parse_functioncall(iterator: &mut TokenIterator, program: &mut SlothProgram) -> Result<Expression, Error> {
-    println!("Parsing function call");
     let function_name;
     let start_pos;
 

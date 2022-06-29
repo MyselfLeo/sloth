@@ -1,8 +1,8 @@
-define f1: num -> num {
+# Return the square of @0
+define square: num -> num {
     @return = * @0 @0;
 }
 
 define main: num -> num {
-    test = f1(@0);
-    @return = test;
+    @return = square(@0);
 }
