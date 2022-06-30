@@ -7,8 +7,7 @@ use super::expression::{Expression, ExpressionID};
 use super::structure::StructDefinition;
 use super::types::Type;
 use super::value::Value;
-
-use crate::get_builtin;
+use crate::built_in;
 
 use crate::built_in::io::*;
 
@@ -48,9 +47,11 @@ impl SlothProgram {
         program.main_scope = Some(s_id.clone());
 
         
-        let print_func = get_builtin!("io", "print");
+        let builtins_to_push = built_in::get_builtin("io", None).unwrap();
 
-        program.push_function(Box::new(print_func));
+        for bi in builtins_to_push {
+            program.push_function(bi);
+        }
 
 
         program

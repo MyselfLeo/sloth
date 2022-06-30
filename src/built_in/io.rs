@@ -3,15 +3,19 @@ use crate::sloth::function::SlothFunction;
 use crate::sloth::program::SlothProgram;
 use crate::sloth::scope::Scope;
 use crate::sloth::types::Type;
+use crate::sloth::value::Value;
+
+use text_io::read;
 
 
 
-const FUNCTIONS: [&str; 1] = [
+pub const FUNCTIONS: [&str; 2] = [
     "print",
+    "read",
 ];
 
 
-const STRUCTS: [&str; 0] = [
+pub const STRUCTS: [&str; 0] = [
 ];
 
 
@@ -37,6 +41,25 @@ impl SlothFunction for BuiltinIoPrint {
         }
         print!("{}", text);
 
+        Ok(())
+    }
+}
+
+
+
+
+pub struct BuiltinIoRead {}
+impl SlothFunction for BuiltinIoRead {
+    fn get_name(&self) -> String {
+        "read".to_string()
+    }
+    fn get_output_type(&self) -> Type {
+        Type::String
+    }
+    unsafe fn call(&self, scope: &mut Scope, _: &mut SlothProgram) -> Result<(), Error> {
+        let console_input: String = read!("{}\n");
+        let return_value = Value::String(console_input);
+        scope.set_variable("@return".to_string(), return_value);
         Ok(())
     }
 }

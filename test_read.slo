@@ -1,0 +1,4 @@
+define main: -> num {
+    value = read();
+    print(value "\n");
+}
