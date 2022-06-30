@@ -145,14 +145,15 @@ impl SlothProgram {
             args_id.push(self.push_expr(expr))
         }
 
-        // Call the main function
-        let f_call = Expression::FunctionCall("main".to_string(), args_id, dummy_pos.clone());
-        let scope = self.get_scope(self.main_scope.unwrap()).unwrap().clone();
-        let result = f_call.evaluate(&scope, self);
+        // Check that the main function exists
+        // technically, the FunctionCall we create below would be able to return an error if 'main' does not exists. HOWEVER it has a dummy_pos, so generating an error from it would
+        // panic as no file is named "".
+        if !self.functions.contains_key("main") {return Err(Error::new(ErrorMessage::NoEntryPoint("Your program needs a 'main' function".to_string()), None))}
 
-        match result {
-            Ok(v) => Ok(v),
-            Err(e) => Err(Error::new(e.message, None))
-        }
+        // Call the main function
+        let scope = self.get_scope(self.main_scope.unwrap()).unwrap().clone();
+        let f_call = Expression::FunctionCall("main".to_string(), args_id, dummy_pos.clone());
+
+        f_call.evaluate(&scope, self)
     }
 }

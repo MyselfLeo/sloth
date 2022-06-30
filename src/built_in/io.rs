@@ -5,6 +5,8 @@ use crate::sloth::scope::Scope;
 use crate::sloth::types::Type;
 use crate::sloth::value::Value;
 
+use std::io::{self, Write};
+
 use text_io::read;
 
 
@@ -41,6 +43,8 @@ impl SlothFunction for BuiltinIoPrint {
         }
         print!("{}", text);
 
+        std::io::stdout().flush().unwrap();
+        
         Ok(())
     }
 }
@@ -57,6 +61,17 @@ impl SlothFunction for BuiltinIoRead {
         Type::String
     }
     unsafe fn call(&self, scope: &mut Scope, _: &mut SlothProgram) -> Result<(), Error> {
+        let inputs = scope.get_inputs();
+        let mut text = String::new();
+
+        for (i, v) in inputs.iter().enumerate() {
+            text += &format!("{}", v).replace("\\n", "\n");
+            if i < inputs.len() - 1 {text += " "}
+        }
+        print!("{}", text);
+
+        io::stdout().flush().unwrap();
+
         let console_input: String = read!("{}\n");
         let return_value = Value::String(console_input);
         scope.set_variable("@return".to_string(), return_value);

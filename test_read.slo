@@ -1,4 +1,4 @@
 define main: -> num {
-    value = read();
+    value = read("Votre nom: ");
     print(value "\n");
 }

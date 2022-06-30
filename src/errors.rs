@@ -30,7 +30,7 @@ impl std::fmt::Display for ErrorMessage {
             ErrorMessage::FileNotFound(e) => write!(f, "FILE NOT FOUND: {}", e),
             ErrorMessage::InvalidArguments(e) => write!(f, "INVALID ARGUMENTS: {}", e),
             ErrorMessage::UnexpectedExpression(e) => write!(f, "UNEXPECTED EXPRESSION: {}", e),
-            ErrorMessage::RuntimeError(e) => write!(f, "RUNTIME ERROR: {} (this is most likely not caused by your code)", e),
+            ErrorMessage::RuntimeError(e) => write!(f, "RUNTIME ERROR: {}", e),
             ErrorMessage::UnexpectedEOF(e) => write!(f, "UNEXPECTED EOF: {}", e),
             ErrorMessage::TypeError(e) => write!(f, "TYPE ERROR: {}", e),
             ErrorMessage::InvalidIdentifier(e) => write!(f, "INVALID IDENTIFIER: {}", e),
@@ -56,6 +56,7 @@ impl Error {
 
 
     pub fn abort(&self) {
+        println!("{:?}", &self.position);
         match &self.position {
             None => println!("\x1b[91m{}\x1b[0m", self.message),
             Some(p) => {
