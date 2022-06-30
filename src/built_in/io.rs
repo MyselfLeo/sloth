@@ -2,7 +2,6 @@ use crate::errors::Error;
 use crate::sloth::function::SlothFunction;
 use crate::sloth::program::SlothProgram;
 use crate::sloth::scope::Scope;
-use crate::sloth::value::Value;
 use crate::sloth::types::Type;
 
 

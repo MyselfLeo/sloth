@@ -10,3 +10,4 @@ description = "A weird, slow and a bit moldy interpreted programming language"
 [dependencies]
 clap = { version = "3.2.3", features = ["derive"] }
 regex = "1.5.6"
+paste = "1.0.7"

@@ -1,29 +1,14 @@
-# return the @0th value of the fibonacci suite
-define fibonacci: num -> num {
-    if == @0 0 {@return = 0;};
-    if == @0 1 {@return = 1;};
+# Return the factorial of @0
+define factorial: num -> num {
+    @return = 1;
+    i = 2;
 
-    if > @0 1 {
-        n_1 = 1;
-        n_2 = 0;
-
-        # here
-        i = 1;
-        while < i @0 {
-            buff = n_2;
-            n_2 = n_1;
-            n_1 = + n_2 buff;
-
-            i = + i 1;
-        };
-
-        # test
-        @return = n_1;
+    while <= i @0 {
+        @return = * @return i;
+        i = + i 1;
     };
 }
 
-
 define main: num -> num {
-    print(fibonacci(@0));
-    @return = 0;
+    print(factorial(@0) "\n");
 }
