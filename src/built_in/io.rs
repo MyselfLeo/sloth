@@ -11,14 +11,12 @@ use text_io::read;
 
 
 
-pub const FUNCTIONS: [&str; 2] = [
+pub const BUILTINS: [&str; 2] = [
     "print",
     "read",
 ];
 
 
-pub const STRUCTS: [&str; 0] = [
-];
 
 
 

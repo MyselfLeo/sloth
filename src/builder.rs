@@ -1,5 +1,6 @@
 use std::iter;
 
+use crate::built_in;
 use crate::sloth::expression::{ExpressionID, Expression};
 use crate::sloth::function::{CustomFunction};
 use crate::sloth::operator::{Operator};
@@ -667,6 +668,65 @@ fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram) -> R
 
 
 
+/// Parse a "use" statement and add the requested import to the program's list of imports.
+fn parse_builtin(iterator: &mut TokenIterator, program: &mut SlothProgram) -> Result<(), Error> {
+    let first_pos;
+
+    // must start with the "builtin" keyword
+    match iterator.current() {
+        Some((t, p)) => {
+            first_pos = p;
+            if t.original_string() != "builtin".to_string() {
+                let err_msg = format!("Expected 'builtin' keyword, got '{}'", t.original_string());
+                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)));
+            }
+        }
+        None => return Err(eof_error(line!())),
+    };
+
+    let submodule: String;
+    let name: String;
+
+    //Next is the name of the submodule
+    match iterator.next() {
+        Some((Token::Identifier(s), _)) => {submodule = s},
+        Some((t, p)) => {
+            let err_msg = format!("Expected builtin submodule name, got unexpected token '{}'", t.original_string());
+            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())));
+        },
+        None => return Err(eof_error(line!()))
+    }
+
+
+    // At this point, there is 2 possible tokens: ':' if a name is specified, or ';' if the user import everything from the submodule
+    match iterator.next() {
+
+        Some((Token::Separator(Separator::SemiColon), p)) => {
+            unimplemented!()
+        },
+
+        Some((Token::Separator(Separator::Colon), p)) => {
+            unimplemented!()
+        },
+
+        Some((t, p)) => {
+            let err_msg = format!("Expected ':' or ';', got unexpected token '{}'", t.original_string());
+            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())));
+        },
+
+        None => return Err(eof_error(line!()))
+
+
+    }
+}
+
+
+
+
+
+
+
+
 
 
 
@@ -692,6 +752,10 @@ pub fn build(tokens: TokenizedProgram) -> Result<SlothProgram, Error> {
             Some(v) => {
                 if v.0.original_string() == "define".to_string() {
                     let function = parse_function(&mut iterator, &mut program)?;
+                }
+                else if v.0.original_string() == "builtin".to_string() {
+                    unimplemented!()
+                    //parse_builtin(&mut iterator, &mut program)?;
                 }
                 else if v.0.original_string() == "structure".to_string()  {
                     unimplemented!()

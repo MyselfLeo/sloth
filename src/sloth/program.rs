@@ -24,7 +24,7 @@ pub struct SlothProgram {
     scope_nb: u64,
     expressions_nb: u64,
 
-    builtin_idents: Vec<BuiltInIdent>,
+    imported_builtins: Vec<BuiltInIdent>,
 
     main_scope: Option<ScopeID>
 }
@@ -40,7 +40,7 @@ impl SlothProgram {
             scope_nb: 0,
             expressions_nb: 0,
 
-            builtin_idents: Vec::new(),
+            imported_builtins: Vec::new(),
 
             main_scope: None
         };
@@ -117,6 +117,16 @@ impl SlothProgram {
         }
     }
 
+
+    /// Import the requested builtin if not already imported
+    pub fn add_import(&mut self, import: BuiltInIdent) -> Result<(), String> {
+        if !self.imported_builtins.contains(&import) {
+            self.push_function(built_in::get_builtins_ident(&import)?);
+            self.imported_builtins.push(import);
+        }
+
+        Ok(())
+    }
 
     /// Find the 'main' function, check its validity, execute it with the given arguments and return what the main function returned
     pub unsafe fn run(&mut self, s_args: Vec<String>) -> Result<Value, Error> {

@@ -4,7 +4,9 @@ pub mod io;
 
 
 
+
 /// Struct representing a builtin. It can be a function or a structure
+#[derive(PartialEq, Clone)]
 pub struct BuiltInIdent {
     submodule: String,
     name: String
@@ -19,9 +21,23 @@ impl BuiltInIdent {
 
 
 
+/// Return a vec of each builtins from the given module
+pub fn get_sub_builtins(submodule: String) -> Result<Vec<String>, String> {
+    let list = match submodule.as_str() {
+        "io" => {io::BUILTINS},
+        n => return Err(format!("Built-in category '{}' does not exists", n))
+    };
+
+    let res: Vec<String> = Vec::new();
+    for bi in list {res.push(bi.to_string())};
+    Ok(res)
+}
+
+
+
 
 /// Takes a BuiltInIdent and return a Box to the given SlothFunction
-fn get_function_builtin(builtin: BuiltInIdent) -> Box::<dyn SlothFunction> {
+fn get_function_builtin(builtin: &BuiltInIdent) -> Box::<dyn SlothFunction> {
     let full_name = format!("{} {}", builtin.submodule, builtin.name);
     match full_name.as_str() {
         "io print" => Box::new(io::BuiltinIoPrint {}),
@@ -32,35 +48,15 @@ fn get_function_builtin(builtin: BuiltInIdent) -> Box::<dyn SlothFunction> {
 
 
 
-
-
-/// Return a list of BuiltInIdent from the given submodule and optional builtin name
-pub fn get_builtins_ident(sub: &str, name: Option<&str>) -> Result<Vec<BuiltInIdent> , String> {
-    let mut res: Vec<BuiltInIdent> = Vec::new();
-
-
-    let sub_builtins = match sub {
-        "io" => io::FUNCTIONS,
+/// Return a Boxed SlothFunction from the requested BuiltInIdent
+pub fn get_builtin_from_ident(bi: &BuiltInIdent) -> Result<Box::<dyn SlothFunction>, String> {
+    let sub_builtins = match bi.submodule.as_str() {
+        "io" => io::BUILTINS,
         n => {
             return Err(format!("Built-in category '{}' does not exists", n))
         }
     };
 
-
-    match name {
-        Some(n) => {
-            if sub_builtins.contains(&n) {
-                res.push(BuiltInIdent::new(sub.to_string(), n.to_string()))
-            }
-            else {return Err(format!("Built-in '{}' does not exists in category '{}'", sub, n))}
-        }
-        None => {
-            for n in sub_builtins {
-                res.push(BuiltInIdent::new(sub.to_string(), n.to_string()))
-            }
-        }
-    }
-
-
-    Ok(res)
+    if sub_builtins.contains(&bi.name.as_str()) {Ok(get_function_builtin(bi))}
+    else {Err(format!("Built-in '{}' does not exists in category '{}'", bi.submodule, bi.name))}
 }
