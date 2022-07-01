@@ -7,10 +7,7 @@ use super::expression::{Expression, ExpressionID};
 use super::structure::StructDefinition;
 use super::types::Type;
 use super::value::Value;
-use crate::built_in;
-
-use crate::built_in::io::*;
-
+use crate::built_in::{self, BuiltInIdent};
 
 
 
@@ -27,31 +24,29 @@ pub struct SlothProgram {
     scope_nb: u64,
     expressions_nb: u64,
 
+    builtin_idents: Vec<BuiltInIdent>,
+
     main_scope: Option<ScopeID>
 }
 
 impl SlothProgram {
     pub fn new(filename: String) -> SlothProgram {
         let mut program = SlothProgram {
-            filename: filename,
+            filename,
             functions: HashMap::new(),
             structures: HashMap::new(),
-            scopes: HashMap::new(),
+            scopes: HashMap::new(), 
             expressions: HashMap::new(),
             scope_nb: 0,
             expressions_nb: 0,
+
+            builtin_idents: Vec::new(),
+
             main_scope: None
         };
 
         let s_id = program.new_scope(None);
         program.main_scope = Some(s_id.clone());
-
-        
-        let builtins_to_push = built_in::get_builtin("io", None).unwrap();
-
-        for bi in builtins_to_push {
-            program.push_function(bi);
-        }
 
 
         program
