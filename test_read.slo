@@ -1,6 +1,0 @@
-builtin io:read;
-
-define main: -> num {
-    value = read("Votre nom: ");
-    print(value "\n");
-}
