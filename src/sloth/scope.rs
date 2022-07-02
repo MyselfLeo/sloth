@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use crate::errors::{Error, ErrorMessage};
 
 use super::program::SlothProgram;
 

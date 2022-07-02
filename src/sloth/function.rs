@@ -1,7 +1,7 @@
 use crate::errors::{Error, ErrorMessage};
 use super::program::SlothProgram;
 use super::statement::Statement;
-use super::{value::Value, types::Type};
+use super::{types::Type};
 use super::scope::{Scope};
 
 pub trait SlothFunction {

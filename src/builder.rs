@@ -1,7 +1,4 @@
-use std::f32::consts::E;
-use std::iter;
-
-use crate::built_in::{self, BuiltInImport};
+use crate::built_in::{BuiltInImport};
 use crate::sloth::expression::{ExpressionID, Expression};
 use crate::sloth::function::{CustomFunction};
 use crate::sloth::operator::{Operator};
@@ -756,7 +753,7 @@ fn parse_builtin(iterator: &mut TokenIterator, program: &mut SlothProgram, warni
             iterator.next();
             Ok(())
         },
-        Some((_, p)) => {
+        Some((_, _)) => {
             if warning {
                 let (_, last_token_pos) = iterator.peek(-1).unwrap();
                 let warning = Warning::new("Using semicolons at the end of statements is highly recommended".to_string(), Some(first_pos.until(last_token_pos)));
@@ -801,7 +798,7 @@ pub fn build(tokens: TokenizedProgram, warning: bool) -> Result<SlothProgram, Er
             None => break,
             Some(v) => {
                 if v.0.original_string() == "define".to_string() {
-                    let function = parse_function(&mut iterator, &mut program, warning)?;
+                    parse_function(&mut iterator, &mut program, warning)?;
                 }
                 else if v.0.original_string() == "builtin".to_string() {
                     parse_builtin(&mut iterator, &mut program, warning)?;
@@ -818,7 +815,8 @@ pub fn build(tokens: TokenizedProgram, warning: bool) -> Result<SlothProgram, Er
         }
     }
 
-    program.import_builtins();
-
-    Ok(program)
+    match program.import_builtins() {
+        Ok(()) => Ok(program),
+        Err(e) => Err(Error::new(ErrorMessage::ImportError(e), None))
+    }
 }

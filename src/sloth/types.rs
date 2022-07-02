@@ -16,8 +16,8 @@ impl Type {
             Type::Boolean => Value::Boolean(false),
             Type::Number => Value::Number(0.0),
             Type::String => Value::String("".to_string()),
-            Type::List(x) => unimplemented!(),
-            Type::Struct(s) => unimplemented!()
+            Type::List(_x) => unimplemented!(),
+            Type::Struct(_s) => unimplemented!()
         }
     }
 }
