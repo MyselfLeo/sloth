@@ -4,9 +4,7 @@ use crate::sloth::program::SlothProgram;
 use crate::sloth::scope::Scope;
 use crate::sloth::types::Type;
 use crate::sloth::value::Value;
-
 use std::io::{self, Write};
-
 use text_io::read;
 
 
@@ -17,6 +15,14 @@ pub const BUILTINS: [&str; 2] = [
 ];
 
 
+/// Return a reference to a new SlothFunction. Panics if the function does not exists
+pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
+    match f_name.as_str() {
+        "print" => Box::new(BuiltinIoPrint {}),
+        "read" => Box::new(BuiltinIoRead {}),
+        n => panic!("Requested unknown built-in '{}'", n)
+    }
+}
 
 
 

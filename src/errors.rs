@@ -18,7 +18,8 @@ pub enum ErrorMessage {
     TypeError(String),
     InvalidIdentifier(String),
     OperationErrror(String),
-    ReturnValueError(String)
+    ReturnValueError(String),
+    ImportError(String)
 }
 
 impl std::fmt::Display for ErrorMessage {
@@ -36,6 +37,7 @@ impl std::fmt::Display for ErrorMessage {
             ErrorMessage::InvalidIdentifier(e) => write!(f, "INVALID IDENTIFIER: {}", e),
             ErrorMessage::OperationErrror(e) => write!(f, "OPERATION ERROR: {}", e),
             ErrorMessage::ReturnValueError(e) => write!(f, "RETURN VALUE ERROR: {}", e),
+            ErrorMessage::ImportError(e) => write!(f, "IMPORT ERROR: {}", e),
         }
     }
 }
@@ -56,7 +58,6 @@ impl Error {
 
 
     pub fn abort(&self) {
-        println!("{:?}", &self.position);
         match &self.position {
             None => println!("\x1b[91m{}\x1b[0m", self.message),
             Some(p) => {

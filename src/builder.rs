@@ -1,6 +1,7 @@
+use std::f32::consts::E;
 use std::iter;
 
-use crate::built_in;
+use crate::built_in::{self, BuiltInImport};
 use crate::sloth::expression::{ExpressionID, Expression};
 use crate::sloth::function::{CustomFunction};
 use crate::sloth::operator::{Operator};
@@ -373,17 +374,6 @@ fn parse_statement(iterator: &mut TokenIterator, program: &mut SlothProgram) -> 
             iterator.next();
         },
         Some((_, _)) => {
-
-            /*
-            // if the next token is a closed bracket, a semicolon is not required nor particulary recommended, so we just ignore it.
-            // if it is not, we write a warning msg
-            if t == Token::Separator(Separator::CloseBracket) {}
-            else {
-                let warning = Warning::new("Using semicolons at the end of statements is highly recommended".to_string(), Some(statement.get_pos()));
-                warning.warn();
-            }
-             */
-
             let warning = Warning::new("Using semicolons at the end of statements is highly recommended".to_string(), Some(statement.get_pos()));
             warning.warn();
         }
@@ -675,17 +665,17 @@ fn parse_builtin(iterator: &mut TokenIterator, program: &mut SlothProgram) -> Re
     // must start with the "builtin" keyword
     match iterator.current() {
         Some((t, p)) => {
-            first_pos = p;
+            first_pos = p.clone();
             if t.original_string() != "builtin".to_string() {
                 let err_msg = format!("Expected 'builtin' keyword, got '{}'", t.original_string());
-                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)));
+                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())));
             }
         }
         None => return Err(eof_error(line!())),
     };
 
     let submodule: String;
-    let name: String;
+    let builtins: Vec<String> = Vec::new();
 
     //Next is the name of the submodule
     match iterator.next() {
@@ -698,25 +688,60 @@ fn parse_builtin(iterator: &mut TokenIterator, program: &mut SlothProgram) -> Re
     }
 
 
-    // At this point, there is 2 possible tokens: ':' if a name is specified, or ';' if the user import everything from the submodule
-    match iterator.next() {
-
+    // At this point, there is 2 possible tokens: ':' if one or more names are specified, or ';' if the user import everything from the submodule
+    let builtin_position = match iterator.next() {
         Some((Token::Separator(Separator::SemiColon), p)) => {
-            unimplemented!()
+            let pos = first_pos.until(p);
+            let import = BuiltInImport::new(submodule, None);
+
+            match import.is_valid() {
+                Ok(()) => {
+                    program.add_import(import);
+                },
+                Err(e) => {return Err(Error::new(ErrorMessage::ImportError(e), Some(pos)));}
+            };
+
+            pos
         },
 
         Some((Token::Separator(Separator::Colon), p)) => {
             unimplemented!()
         },
 
-        Some((t, p)) => {
-            let err_msg = format!("Expected ':' or ';', got unexpected token '{}'", t.original_string());
-            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())));
+        Some((_, _)) => {
+            let (_, last_token_pos) = iterator.peek(-1).unwrap();
+            let pos = first_pos.until(last_token_pos);
+            let import = BuiltInImport::new(submodule, None);
+
+            match import.is_valid() {
+                Ok(()) => {
+                    program.add_import(import);
+                },
+                Err(e) => {return Err(Error::new(ErrorMessage::ImportError(e), Some(pos)));}
+            };
+
+            pos
         },
 
         None => return Err(eof_error(line!()))
+    };
 
 
+    // Check for the presence of a semicolon (;)
+    match iterator.current() {
+        Some((Token::Separator(Separator::SemiColon), _)) => {
+            // semicolon is here, we can pass it
+            iterator.next();
+            Ok(())
+        },
+        Some((_, _)) => {
+            let warning = Warning::new("Using semicolons at the end of statements is highly recommended".to_string(), Some(builtin_position));
+            warning.warn();
+            Ok(())
+        }
+        None => {
+            Err(eof_error(line!()))
+        },
     }
 }
 
@@ -754,8 +779,7 @@ pub fn build(tokens: TokenizedProgram) -> Result<SlothProgram, Error> {
                     let function = parse_function(&mut iterator, &mut program)?;
                 }
                 else if v.0.original_string() == "builtin".to_string() {
-                    unimplemented!()
-                    //parse_builtin(&mut iterator, &mut program)?;
+                    parse_builtin(&mut iterator, &mut program)?;
                 }
                 else if v.0.original_string() == "structure".to_string()  {
                     unimplemented!()
@@ -769,7 +793,7 @@ pub fn build(tokens: TokenizedProgram) -> Result<SlothProgram, Error> {
         }
     }
 
-
+    program.import_builtins();
 
     Ok(program)
 }

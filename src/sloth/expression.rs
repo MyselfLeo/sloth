@@ -103,7 +103,7 @@ impl Expression {
                 // Get the function
                 let function = match program.as_ref().unwrap().get_function(f_name.clone()) {
                     Ok(f) => f,
-                    Err(e) => {println!("{:?}", p); return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
+                    Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                 };
 
 

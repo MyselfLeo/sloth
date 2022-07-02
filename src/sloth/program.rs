@@ -7,7 +7,7 @@ use super::expression::{Expression, ExpressionID};
 use super::structure::StructDefinition;
 use super::types::Type;
 use super::value::Value;
-use crate::built_in::{self, BuiltInIdent};
+use crate::built_in;
 
 
 
@@ -24,7 +24,7 @@ pub struct SlothProgram {
     scope_nb: u64,
     expressions_nb: u64,
 
-    imported_builtins: Vec<BuiltInIdent>,
+    builtins: Vec<built_in::BuiltInImport>,
 
     main_scope: Option<ScopeID>
 }
@@ -40,7 +40,7 @@ impl SlothProgram {
             scope_nb: 0,
             expressions_nb: 0,
 
-            imported_builtins: Vec::new(),
+            builtins: Vec::new(),
 
             main_scope: None
         };
@@ -117,16 +117,22 @@ impl SlothProgram {
         }
     }
 
-
-    /// Import the requested builtin if not already imported
-    pub fn add_import(&mut self, import: BuiltInIdent) -> Result<(), String> {
-        if !self.imported_builtins.contains(&import) {
-            self.push_function(built_in::get_builtins_ident(&import)?);
-            self.imported_builtins.push(import);
+    /// Add a new import to the program
+    pub fn add_import(&mut self, import: built_in::BuiltInImport) {
+        if !self.builtins.contains(&import) {
+            self.builtins.push(import)
         }
+    }
 
+
+
+    /// Import the requested builtins
+    pub fn import_builtins(&mut self) -> Result<(), String> {
+        let (f, ()) = built_in::collapse_imports(&self.builtins)?;
+        for function in f {self.push_function(function);}
         Ok(())
     }
+
 
     /// Find the 'main' function, check its validity, execute it with the given arguments and return what the main function returned
     pub unsafe fn run(&mut self, s_args: Vec<String>) -> Result<Value, Error> {
