@@ -2,8 +2,8 @@ builtin io;
 
 # return the @0th value of the fibonacci suite
 define fibonacci: num -> num {
-    if == @0 0 {@return = 0;}
-    if == @0 1 {@return = 1;}
+    if == @0 0 {@return = 0;};
+    if == @0 1 {@return = 1;};
 
     if > @0 1 {
         n_1 = 1;
