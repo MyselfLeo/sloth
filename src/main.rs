@@ -31,9 +31,13 @@ struct Args {
     #[clap(long, value_parser)]
     code: bool,
 
+    /// Disable the warnings
+    #[clap(long, value_parser)]
+    nowarn: bool,
+
     /// Arguments for the Sloth program
     #[clap(value_parser)]
-    arguments: Vec<String>
+    arguments: Vec<String>,
 }
 
 
@@ -55,7 +59,7 @@ fn main() {
             if args.tokens {tokens.print_tokens()}
             else {
                 // build the program
-                let mut program: SlothProgram = match builder::build(tokens) {
+                let mut program: SlothProgram = match builder::build(tokens, !args.nowarn) {
                     Err(e) => {e.abort(); return},
                     Ok(p) => p,
                 };

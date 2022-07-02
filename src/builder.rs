@@ -93,7 +93,7 @@ impl TokenIterator {
 
 
 /// Parse a function call
-fn parse_functioncall(iterator: &mut TokenIterator, program: &mut SlothProgram) -> Result<Expression, Error> {
+fn parse_functioncall(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<Expression, Error> {
     let function_name;
     let start_pos;
 
@@ -125,7 +125,7 @@ fn parse_functioncall(iterator: &mut TokenIterator, program: &mut SlothProgram) 
         Some(_) => true,
         None => return Err(eof_error(line!()))
     } {
-        inputs_expr_id.push(parse_expression(iterator, program)?.0);
+        inputs_expr_id.push(parse_expression(iterator, program, warning)?.0);
     };
 
 
@@ -152,7 +152,7 @@ fn parse_functioncall(iterator: &mut TokenIterator, program: &mut SlothProgram) 
 
 
 /// Parse an operation
-fn parse_operation(iterator: &mut TokenIterator, program: &mut SlothProgram) -> Result<Expression, Error> {
+fn parse_operation(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<Expression, Error> {
 
     // The starting token must be an operator
     let (operator, first_pos) = match iterator.current() {
@@ -193,12 +193,12 @@ fn parse_operation(iterator: &mut TokenIterator, program: &mut SlothProgram) -> 
 
     // get the first and potential second expression
     iterator.next();
-    let (first_expr_id, mut last_pos) = parse_expression(iterator, program)?;
+    let (first_expr_id, mut last_pos) = parse_expression(iterator, program, warning)?;
 
     // Get second expression, if needed
     let second_expr_id = match nb_operands > 1 {
         true => {
-            let (expr_id, pos) = parse_expression(iterator, program)?;
+            let (expr_id, pos) = parse_expression(iterator, program, warning)?;
             last_pos = pos;
             Some(expr_id)
         }, 
@@ -215,7 +215,7 @@ fn parse_operation(iterator: &mut TokenIterator, program: &mut SlothProgram) -> 
 
 
 /// Parse an expression, push it to the program's expression stack and return its id
-fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram) -> Result<(ExpressionID, ElementPosition), Error> {
+fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<(ExpressionID, ElementPosition), Error> {
     // we use the first token of the expression to find its type
     let (expr, expr_pos) = match iterator.current() {
 
@@ -231,7 +231,7 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram) ->
         Some((Token::Identifier(s), first_position)) =>  {
             match iterator.peek(1) {
                 Some((Token::Separator(Separator::OpenParenthesis), _)) => {
-                    let func_call = parse_functioncall(iterator, program)?;
+                    let func_call = parse_functioncall(iterator, program, warning)?;
                     if let Expression::FunctionCall(_, _, p) = func_call.clone() {(func_call, p)}
                     else {panic!("parse_functioncall did not return an Expression::FunctionCall enum")}
                 },
@@ -244,7 +244,7 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram) ->
 
         // The token is an operator, so it's an operation
         Some((Token::Operator(_), _)) => {
-            let operation = parse_operation(iterator, program)?;
+            let operation = parse_operation(iterator, program, warning)?;
             if let Expression::Operation(_, _, _, p) = operation.clone() {(operation, p)}
             else {panic!("parse_operation did not return an Expression::Operation enum")}
         },
@@ -271,7 +271,7 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram) ->
 
 
 /// Parse an assignment statement
-fn parse_assignment(iterator: &mut TokenIterator, program: &mut SlothProgram) -> Result<Statement, Error> {
+fn parse_assignment(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<Statement, Error> {
     let var_name: String;
     let start_pos: ElementPosition;
 
@@ -305,7 +305,7 @@ fn parse_assignment(iterator: &mut TokenIterator, program: &mut SlothProgram) ->
 
     // Rest of the assignment is an expression
     iterator.next();
-    let (expression_id, expr_pos) = parse_expression(iterator, program)?;
+    let (expression_id, expr_pos) = parse_expression(iterator, program, warning)?;
     let assignment_position = start_pos.until(expr_pos);
     Ok(Statement::Assignment(var_name, expression_id, assignment_position))
 }
@@ -324,7 +324,7 @@ fn parse_assignment(iterator: &mut TokenIterator, program: &mut SlothProgram) ->
 /// Parse and return a Statement from the iterator.
 /// Each statement SHOULD end with a semicolon. However the way the syntax works makes them unecessary, so not
 /// putting them will raise a warning
-fn parse_statement(iterator: &mut TokenIterator, program: &mut SlothProgram) -> Result<Statement, Error> {
+fn parse_statement(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<Statement, Error> {
 
     let statement = match iterator.current() {
         // Variable assignment or expression call. We'll need the next token to find out
@@ -333,12 +333,12 @@ fn parse_statement(iterator: &mut TokenIterator, program: &mut SlothProgram) -> 
                 Some((next_token, _)) => {
                     // This is a variable assignment (IDENTIFIER = EXPRESSION;)
                     if next_token.original_string() == "=".to_string() {
-                        parse_assignment(iterator, program)?
+                        parse_assignment(iterator, program, warning)?
                     }
 
                     // This must be an expression call
                     else {
-                        let (expr_id, pos) = parse_expression(iterator, program)?;
+                        let (expr_id, pos) = parse_expression(iterator, program, warning)?;
                         Statement::ExpressionCall(expr_id, pos)
                     }
                 },
@@ -349,8 +349,8 @@ fn parse_statement(iterator: &mut TokenIterator, program: &mut SlothProgram) -> 
 
 
         Some((Token::Keyword(s), p)) => match s.as_str() {
-            "if" => parse_if(iterator, program)?,
-            "while" => parse_while(iterator, program)?,
+            "if" => parse_if(iterator, program, warning)?,
+            "while" => parse_while(iterator, program, warning)?,
             kw => {
                 let err_msg = format!("Unexpected keyword '{}'. Outside a function, you can only define structures or functions", kw);
                 return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)))
@@ -374,8 +374,10 @@ fn parse_statement(iterator: &mut TokenIterator, program: &mut SlothProgram) -> 
             iterator.next();
         },
         Some((_, _)) => {
-            let warning = Warning::new("Using semicolons at the end of statements is highly recommended".to_string(), Some(statement.get_pos()));
-            warning.warn();
+            if warning {
+                let warning = Warning::new("Using semicolons at the end of statements is highly recommended".to_string(), Some(statement.get_pos()));
+                warning.warn();
+            }
         }
         None => {
             return Err(eof_error(line!()))
@@ -399,7 +401,7 @@ fn parse_statement(iterator: &mut TokenIterator, program: &mut SlothProgram) -> 
 
 
 
-fn parse_if(iterator: &mut TokenIterator, program: &mut SlothProgram) -> Result<Statement, Error> {
+fn parse_if(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<Statement, Error> {
     let first_pos;
     let last_pos;
 
@@ -411,7 +413,7 @@ fn parse_if(iterator: &mut TokenIterator, program: &mut SlothProgram) -> Result<
 
     iterator.next();
 
-    let (cond_expr_id, _) = parse_expression(iterator, program)?;
+    let (cond_expr_id, _) = parse_expression(iterator, program, warning)?;
     let current = iterator.current();
 
     // next token must be a '{'
@@ -434,7 +436,7 @@ fn parse_if(iterator: &mut TokenIterator, program: &mut SlothProgram) -> Result<
         Some(_) => true,
         None => return Err(eof_error(line!()))
     } {
-        statements.push(parse_statement(iterator, program)?);
+        statements.push(parse_statement(iterator, program, warning)?);
     };
 
     iterator.next();
@@ -450,7 +452,7 @@ fn parse_if(iterator: &mut TokenIterator, program: &mut SlothProgram) -> Result<
 
 
 
-fn parse_while(iterator: &mut TokenIterator, program: &mut SlothProgram) -> Result<Statement, Error> {
+fn parse_while(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<Statement, Error> {
     let first_pos;
     let last_pos;
 
@@ -462,7 +464,7 @@ fn parse_while(iterator: &mut TokenIterator, program: &mut SlothProgram) -> Resu
 
     iterator.next();
 
-    let (cond_expr_id, _) = parse_expression(iterator, program)?;
+    let (cond_expr_id, _) = parse_expression(iterator, program, warning)?;
     let current = iterator.current();
 
     // next token must be a '{'
@@ -485,7 +487,7 @@ fn parse_while(iterator: &mut TokenIterator, program: &mut SlothProgram) -> Resu
         Some(_) => true,
         None => return Err(eof_error(line!()))
     } {
-        statements.push(parse_statement(iterator, program)?);
+        statements.push(parse_statement(iterator, program, warning)?);
     };
 
     iterator.next();
@@ -521,7 +523,7 @@ fn parse_while(iterator: &mut TokenIterator, program: &mut SlothProgram) -> Resu
 
 
 /// Parse a function and add it to the program's function stack
-fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram) -> Result<(), Error> {
+fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<(), Error> {
     // must start with the "define" keyword
     match iterator.current() {
         Some((t, p)) => {
@@ -632,7 +634,7 @@ fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram) -> R
         Some(_) => true,
         None => return Err(eof_error(line!()))
     } {
-        statements.push(parse_statement(iterator, program)?);
+        statements.push(parse_statement(iterator, program, warning)?);
     };
 
 
@@ -659,7 +661,7 @@ fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram) -> R
 
 
 /// Parse a "use" statement and add the requested import to the program's list of imports.
-fn parse_builtin(iterator: &mut TokenIterator, program: &mut SlothProgram) -> Result<(), Error> {
+fn parse_builtin(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<(), Error> {
     let first_pos;
 
     // must start with the "builtin" keyword
@@ -675,7 +677,6 @@ fn parse_builtin(iterator: &mut TokenIterator, program: &mut SlothProgram) -> Re
     };
 
     let submodule: String;
-    let builtins: Vec<String> = Vec::new();
 
     //Next is the name of the submodule
     match iterator.next() {
@@ -689,7 +690,8 @@ fn parse_builtin(iterator: &mut TokenIterator, program: &mut SlothProgram) -> Re
 
 
     // At this point, there is 2 possible tokens: ':' if one or more names are specified, or ';' if the user import everything from the submodule
-    let builtin_position = match iterator.next() {
+    let next = iterator.next().clone();
+    match next {
         Some((Token::Separator(Separator::SemiColon), p)) => {
             let pos = first_pos.until(p);
             let import = BuiltInImport::new(submodule, None);
@@ -700,27 +702,47 @@ fn parse_builtin(iterator: &mut TokenIterator, program: &mut SlothProgram) -> Re
                 },
                 Err(e) => {return Err(Error::new(ErrorMessage::ImportError(e), Some(pos)));}
             };
-
-            pos
         },
 
-        Some((Token::Separator(Separator::Colon), p)) => {
-            unimplemented!()
+        Some((Token::Separator(Separator::Colon), _)) => {
+            let mut builtins: Vec<String> = Vec::new();
+
+            // Next token is the name of the built in to import
+            match iterator.next() {
+                Some((Token::Identifier(n), p)) => {
+                    builtins.push(n);
+
+                    let pos = first_pos.until(p);
+                    let import = BuiltInImport::new(submodule, Some(builtins));
+
+                    match import.is_valid() {
+                        Ok(()) => {
+                            program.add_import(import);
+                        },
+                        Err(e) => {return Err(Error::new(ErrorMessage::ImportError(e), Some(pos)));}
+                    };
+
+                    iterator.next();
+                },
+
+                Some((t, p)) => {
+                    let err_msg = format!("Expected built-in name, got unexpected token '{}'", t.original_string());
+                    return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)));
+                },
+
+                None => return Err(eof_error(line!()))
+            }
         },
 
-        Some((_, _)) => {
-            let (_, last_token_pos) = iterator.peek(-1).unwrap();
-            let pos = first_pos.until(last_token_pos);
+        Some((_, p)) => {
             let import = BuiltInImport::new(submodule, None);
 
             match import.is_valid() {
                 Ok(()) => {
                     program.add_import(import);
                 },
-                Err(e) => {return Err(Error::new(ErrorMessage::ImportError(e), Some(pos)));}
+                Err(e) => {return Err(Error::new(ErrorMessage::ImportError(e), Some(first_pos.until(p))));}
             };
-
-            pos
         },
 
         None => return Err(eof_error(line!()))
@@ -734,9 +756,12 @@ fn parse_builtin(iterator: &mut TokenIterator, program: &mut SlothProgram) -> Re
             iterator.next();
             Ok(())
         },
-        Some((_, _)) => {
-            let warning = Warning::new("Using semicolons at the end of statements is highly recommended".to_string(), Some(builtin_position));
-            warning.warn();
+        Some((_, p)) => {
+            if warning {
+                let (_, last_token_pos) = iterator.peek(-1).unwrap();
+                let warning = Warning::new("Using semicolons at the end of statements is highly recommended".to_string(), Some(first_pos.until(last_token_pos)));
+                warning.warn();
+            }
             Ok(())
         }
         None => {
@@ -758,7 +783,7 @@ fn parse_builtin(iterator: &mut TokenIterator, program: &mut SlothProgram) -> Re
 
 
 
-pub fn build(tokens: TokenizedProgram) -> Result<SlothProgram, Error> {
+pub fn build(tokens: TokenizedProgram, warning: bool) -> Result<SlothProgram, Error> {
     let filename = tokens.filename.clone();
     let mut iterator = TokenIterator::new(tokens);
 
@@ -776,10 +801,10 @@ pub fn build(tokens: TokenizedProgram) -> Result<SlothProgram, Error> {
             None => break,
             Some(v) => {
                 if v.0.original_string() == "define".to_string() {
-                    let function = parse_function(&mut iterator, &mut program)?;
+                    let function = parse_function(&mut iterator, &mut program, warning)?;
                 }
                 else if v.0.original_string() == "builtin".to_string() {
-                    parse_builtin(&mut iterator, &mut program)?;
+                    parse_builtin(&mut iterator, &mut program, warning)?;
                 }
                 else if v.0.original_string() == "structure".to_string()  {
                     unimplemented!()
