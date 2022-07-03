@@ -91,15 +91,55 @@ impl TokenIterator {
 
 /// Parse a function call
 fn parse_functioncall(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<Expression, Error> {
-    let function_name;
+    let mut module: Option<String> = None;
+    let mut function_name= String::new();
+
     let start_pos;
 
-    // Get the function's identifier
-    if let Some((Token::Identifier(s), pos)) = iterator.current() {
-        function_name = s;
+    // Get the first identifier. It can either be a module name (followed by a colon), or the name of the function (followed by a '(')
+    let current = iterator.current().clone();
+    if let Some((Token::Identifier(s), pos)) = current {
         start_pos = pos;
+
+        match iterator.peek(1) {
+            Some((Token::Separator(Separator::OpenParenthesis), _)) => function_name = s,
+            Some((Token::Separator(Separator::Colon), _)) => module = Some(s),
+            Some((t, p)) => {
+                let err_msg = format!("Expected '(' or ':', got unexpected token '{}'", t.original_string());
+                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)))
+            },
+            _ => return Err(eof_error(line!()))
+        };
+
     }
     else {panic!("Function 'parse_functioncall' called but token iterator is not on a function call.")}
+
+
+    // If we parsed the module, we still have to parse the function's name before the rest of the call
+    if module.is_some() {
+
+        // Next token must be ":"
+        match iterator.next() {
+            Some((token, position)) => {
+                if token != Token::Separator(Separator::Colon) {
+                    let err_msg = format!("Expected ':', got unexpected token '{}'", token.original_string());
+                    return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(position.clone())));
+                }
+            }
+            None => return Err(eof_error(line!()))
+        };
+
+
+        // Next token is the function's name
+        match iterator.next() {
+            Some((Token::Identifier(s), _)) => function_name = s,
+            Some((t, p)) => {
+                let err_msg = format!("Expected function name, got unexpected token '{}'", t.original_string());
+                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())));
+            },
+            None => return Err(eof_error(line!()))
+        };
+    }
 
 
     // Next token must be an open parenthesis
@@ -141,7 +181,7 @@ fn parse_functioncall(iterator: &mut TokenIterator, program: &mut SlothProgram, 
 
     let functioncall_pos = start_pos.until(last_pos);
 
-    let func_id = FunctionID::new(None, function_name, None);
+    let func_id = FunctionID::new(module, function_name, None);
 
     iterator.next();
     Ok(Expression::FunctionCall(func_id, inputs_expr_id, functioncall_pos))
@@ -229,7 +269,7 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
         // The token is an identifier. CHeck the next token to see if its a function call, a variable call or a list access (lists not implemented yet)
         Some((Token::Identifier(s), first_position)) =>  {
             match iterator.peek(1) {
-                Some((Token::Separator(Separator::OpenParenthesis), _)) => {
+                Some((Token::Separator(Separator::OpenParenthesis), _)) | Some((Token::Separator(Separator::Colon), _)) => {
                     let func_call = parse_functioncall(iterator, program, warning)?;
                     if let Expression::FunctionCall(_, _, p) = func_call.clone() {(func_call, p)}
                     else {panic!("parse_functioncall did not return an Expression::FunctionCall enum")}
