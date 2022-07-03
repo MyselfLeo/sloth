@@ -31,6 +31,8 @@ pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
 pub struct BuiltinIoPrint {}
 
 impl SlothFunction for BuiltinIoPrint {
+    fn get_owner_type(&self) -> Option<Type> {None}
+
     fn get_name(&self) -> String {
         "print".to_string()
     }
@@ -58,6 +60,8 @@ impl SlothFunction for BuiltinIoPrint {
 
 pub struct BuiltinIoRead {}
 impl SlothFunction for BuiltinIoRead {
+    fn get_owner_type(&self) -> Option<Type> {None}
+
     fn get_name(&self) -> String {
         "read".to_string()
     }

@@ -8,9 +8,9 @@ use super::scope::{Scope};
 
 
 pub struct FunctionID {
-    module: String,
-    name: String,
-    owner_type: Option<Type>
+    //module: Option<String>,     // In case of a function imported (from builtin for example)
+    name: String,               // name of the function
+    owner_type: Option<Type>    // in case the function is a method
 }
 
 
@@ -18,6 +18,9 @@ pub struct FunctionID {
 
 
 pub trait SlothFunction {
+    /// Return the type owning this function, or None if this is not a method
+    fn get_owner_type(&self) -> Option<Type>;
+
     /// Return the name of the function
     fn get_name(&self) -> String;
 
@@ -32,6 +35,9 @@ pub trait SlothFunction {
 /// Function defined in the code, written in Sloth
 pub struct CustomFunction {
     pub name: String,
+
+    pub owner_type: Option<Type>,
+
     pub input_types: Vec<Type>,
     pub output_type: Type,
 
@@ -40,6 +46,10 @@ pub struct CustomFunction {
 
 
 impl SlothFunction for CustomFunction {
+    fn get_owner_type(&self) -> Option<Type> {
+        Some(self.output_type.clone())
+    }
+
     fn get_name(&self) -> String {
         self.name.clone()
     }

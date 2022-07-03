@@ -637,6 +637,7 @@ fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram, warn
 
     // Create the function and push it to the program
     let function = CustomFunction {
+        owner_type: None,
         name: f_name,
         input_types: input_types,
         output_type: output_type,
