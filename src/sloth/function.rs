@@ -4,6 +4,19 @@ use super::statement::Statement;
 use super::{types::Type};
 use super::scope::{Scope};
 
+
+
+
+pub struct FunctionID {
+    module: String,
+    name: String,
+    owner_type: Option<Type>
+}
+
+
+
+
+
 pub trait SlothFunction {
     /// Return the name of the function
     fn get_name(&self) -> String;
