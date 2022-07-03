@@ -1,3 +1,4 @@
+use super::function::FunctionID;
 use super::value::Value;
 use super::operator::{Operator, apply_op};
 use super::scope::Scope;
@@ -24,7 +25,7 @@ pub enum Expression {
     Literal(Value, ElementPosition),                                                     // value of the literal
     VariableCall(String, ElementPosition),                                               // name of the variable
     Operation(Operator, Option<ExpressionID>, Option<ExpressionID>, ElementPosition),    // Operator to apply to one or 2 values from the Scope Expression stack (via index)
-    FunctionCall(String, Vec<ExpressionID>, ElementPosition),                            // name of the function and its list of expressions to be evaluated
+    FunctionCall(FunctionID, Vec<ExpressionID>, ElementPosition),                            // name of the function and its list of expressions to be evaluated
 }
 
 
@@ -79,7 +80,7 @@ impl Expression {
             }
 
             // return the result of the function call
-            Expression::FunctionCall(f_name, param, p) => {
+            Expression::FunctionCall(f_id, param, p) => {
                 // Create a new scope for the execution of the function
                 let func_scope_id = program.as_mut().unwrap().new_scope(Some(scope.id));
 
@@ -101,7 +102,7 @@ impl Expression {
                 }
 
                 // Get the function
-                let function = match program.as_ref().unwrap().get_function(f_name.clone()) {
+                let function = match program.as_ref().unwrap().get_function(f_id) {
                     Ok(f) => f,
                     Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                 };

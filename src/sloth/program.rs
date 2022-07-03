@@ -1,7 +1,7 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, BTreeMap};
 use crate::errors::{Error, ErrorMessage};
 use crate::tokenizer::ElementPosition;
-use super::function::SlothFunction;
+use super::function::{SlothFunction, FunctionID, self};
 use super::scope::{Scope, ScopeID};
 use super::expression::{Expression, ExpressionID};
 use super::structure::StructDefinition;
@@ -17,8 +17,8 @@ use crate::built_in;
 /// Note: Variables are stored in the scopes
 pub struct SlothProgram {
     filename: String,
-    functions: HashMap<String, Box<dyn SlothFunction>>,
-    structures: HashMap<String, StructDefinition>,
+    functions: BTreeMap<FunctionID, Box<dyn SlothFunction>>,
+    structures: BTreeMap<String, StructDefinition>,
     scopes: HashMap<ScopeID, Scope>,
     expressions: HashMap<ExpressionID, Expression>,
     scope_nb: u64,
@@ -33,8 +33,8 @@ impl SlothProgram {
     pub fn new(filename: String) -> SlothProgram {
         let mut program = SlothProgram {
             filename,
-            functions: HashMap::new(),
-            structures: HashMap::new(),
+            functions: BTreeMap::new(),
+            structures: BTreeMap::new(),
             scopes: HashMap::new(), 
             expressions: HashMap::new(),
             scope_nb: 0,
@@ -55,7 +55,7 @@ impl SlothProgram {
     /// Add a function to the Function Hashmap.
     /// Can return an optional warning message if a previously defined function was overwritten
     pub fn push_function(&mut self, function: Box<dyn SlothFunction>) -> Option<String> {
-        match self.functions.insert(function.get_name(), function) {
+        match self.functions.insert(function.get_function_id(), function) {
             Some(f) => {
                 let msg = format!("Redefinition of function {}. Previous definition was overwritten", f.get_name());
                 Some(msg)
@@ -64,14 +64,27 @@ impl SlothProgram {
         }
     }
 
-    /// Return a clone of the requested function definition, or an error if the function is not defined
-    pub fn get_function(&self, name: String) -> Result<&Box<dyn SlothFunction>, String> {
-        match self.functions.get(&name) {
-            None => {
-                let msg = format!("Called undefined function {}", name);
-                Err(msg)
-            }
-            Some(v) => Ok(v)
+    /// Return a clone of the requested function definition
+    pub fn get_function(&self, function_id: &FunctionID) -> Result<&Box<dyn SlothFunction>, String> {
+        match self.functions.get(&function_id) {
+            None => {}
+            Some(v) => {return Ok(v);}
+        };
+
+        if function_id.module.is_some() {
+            return Err(format!("No function named '{}' in the module '{}'", function_id.name, function_id.module.clone().unwrap()));
+        }
+
+        let mut fitting_function_id: Vec<FunctionID> = Vec::new();
+
+        for (f_id, _) in &self.functions {
+            if f_id.name == function_id.name && f_id.owner_type == function_id.owner_type {fitting_function_id.push(f_id.clone());}
+        }
+
+        match fitting_function_id.len() {
+            0 => Err(format!("No function named '{}'", function_id.name)),
+            1 => self.get_function(&fitting_function_id[0]),
+            _ => {Err(format!("Ambiguous function name: '{}' is found in multiple modules. Consider specifying the module", function_id.name))}
         }
     }
 
@@ -136,7 +149,9 @@ impl SlothProgram {
 
     /// Find the 'main' function, check its validity, execute it with the given arguments and return what the main function returned
     pub unsafe fn run(&mut self, s_args: Vec<String>) -> Result<Value, Error> {
-        let main_func = match self.get_function("main".to_string()) {
+        let main_func_id = FunctionID::new(None, "main".to_string(), None);
+
+        let main_func = match self.get_function(&main_func_id) {
             Ok(v) => v,
             Err(_) => {return Err(Error::new(ErrorMessage::NoEntryPoint("Your program needs a 'main' function, returning a 'num' value, as an entry point.".to_string()), None))}
         };
@@ -156,14 +171,9 @@ impl SlothProgram {
             args_id.push(self.push_expr(expr))
         }
 
-        // Check that the main function exists
-        // technically, the FunctionCall we create below would be able to return an error if 'main' does not exists. HOWEVER it has a dummy_pos, so generating an error from it would
-        // panic as no file is named "".
-        if !self.functions.contains_key("main") {return Err(Error::new(ErrorMessage::NoEntryPoint("Your program needs a 'main' function".to_string()), None))}
-
         // Call the main function
         let scope = self.get_scope(self.main_scope.unwrap()).unwrap().clone();
-        let f_call = Expression::FunctionCall("main".to_string(), args_id, dummy_pos.clone());
+        let f_call = Expression::FunctionCall(main_func_id, args_id, dummy_pos.clone());
 
         f_call.evaluate(&scope, self)
     }

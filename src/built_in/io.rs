@@ -1,4 +1,4 @@
-use crate::errors::Error;
+use crate::{errors::Error, sloth::function::FunctionID};
 use crate::sloth::function::SlothFunction;
 use crate::sloth::program::SlothProgram;
 use crate::sloth::scope::Scope;
@@ -31,11 +31,14 @@ pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
 pub struct BuiltinIoPrint {}
 
 impl SlothFunction for BuiltinIoPrint {
+    fn get_name(&self) -> String {"print".to_string()}
     fn get_owner_type(&self) -> Option<Type> {None}
+    fn get_module(&self) -> Option<String> {Some("io".to_string())}
 
-    fn get_name(&self) -> String {
-        "print".to_string()
+    fn get_function_id(&self) -> FunctionID {
+        FunctionID::new(self.get_module(), self.get_name(), self.get_owner_type())
     }
+
     fn get_output_type(&self) -> Type {
         Type::Number
     }
@@ -60,11 +63,14 @@ impl SlothFunction for BuiltinIoPrint {
 
 pub struct BuiltinIoRead {}
 impl SlothFunction for BuiltinIoRead {
+    fn get_name(&self) -> String {"read".to_string()}
     fn get_owner_type(&self) -> Option<Type> {None}
+    fn get_module(&self) -> Option<String> {Some("io".to_string())}
 
-    fn get_name(&self) -> String {
-        "read".to_string()
+    fn get_function_id(&self) -> FunctionID {
+        FunctionID::new(self.get_module(), self.get_name(), self.get_owner_type())
     }
+
     fn get_output_type(&self) -> Type {
         Type::String
     }

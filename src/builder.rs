@@ -1,6 +1,6 @@
 use crate::built_in::{BuiltInImport};
 use crate::sloth::expression::{ExpressionID, Expression};
-use crate::sloth::function::{CustomFunction};
+use crate::sloth::function::{CustomFunction, FunctionID};
 use crate::sloth::operator::{Operator};
 use crate::sloth::program::SlothProgram;
 use crate::sloth::statement::Statement;
@@ -141,8 +141,10 @@ fn parse_functioncall(iterator: &mut TokenIterator, program: &mut SlothProgram, 
 
     let functioncall_pos = start_pos.until(last_pos);
 
+    let func_id = FunctionID::new(None, function_name, None);
+
     iterator.next();
-    Ok(Expression::FunctionCall(function_name, inputs_expr_id, functioncall_pos))
+    Ok(Expression::FunctionCall(func_id, inputs_expr_id, functioncall_pos))
 }
 
 

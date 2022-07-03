@@ -5,12 +5,17 @@ use super::{types::Type};
 use super::scope::{Scope};
 
 
-
-
+#[derive(PartialEq, PartialOrd, Eq, Ord, Debug, Clone)]
 pub struct FunctionID {
-    //module: Option<String>,     // In case of a function imported (from builtin for example)
-    name: String,               // name of the function
-    owner_type: Option<Type>    // in case the function is a method
+    pub module: Option<String>,     // In case of a function imported (from builtin for example)
+    pub name: String,               // name of the function
+    pub owner_type: Option<Type>    // in case the function is a method
+}
+
+impl FunctionID {
+    pub fn new(module: Option<String>, name: String, owner_type: Option<Type>) -> FunctionID {
+        FunctionID {module, name, owner_type}
+    }
 }
 
 
@@ -21,6 +26,12 @@ pub trait SlothFunction {
     /// Return the type owning this function, or None if this is not a method
     fn get_owner_type(&self) -> Option<Type>;
 
+    /// Return a FunctionID representing this function
+    fn get_function_id(&self) -> FunctionID;
+
+    /// Return the module from which the function comes
+    fn get_module(&self) -> Option<String>;
+    
     /// Return the name of the function
     fn get_name(&self) -> String;
 
@@ -48,6 +59,14 @@ pub struct CustomFunction {
 impl SlothFunction for CustomFunction {
     fn get_owner_type(&self) -> Option<Type> {
         Some(self.output_type.clone())
+    }
+
+    fn get_function_id(&self) -> FunctionID {
+        FunctionID { module: None, name: self.name.clone(), owner_type: self.owner_type.clone() }
+    }
+
+    fn get_module(&self) -> Option<String> {
+        None
     }
 
     fn get_name(&self) -> String {

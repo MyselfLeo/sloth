@@ -1,6 +1,6 @@
 use super::value::Value;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub enum Type {
     Boolean,
     Number,
