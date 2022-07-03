@@ -1,12 +1,7 @@
 builtin io;
 
 
-define print: -> num {
-    @return = 4;
-}
-
-
 define main: -> num {
     input = read("Enter your name: ");
-    @return = print("Hello," + input "!\n");
+    @return = print(input "\n");
 }
