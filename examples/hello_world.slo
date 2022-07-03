@@ -3,6 +3,4 @@ builtin io;
 define main: -> num {
     input = read("Enter your name: ");
     print("Hello," + input "!\n");
-
-    @return = 12;
 }
