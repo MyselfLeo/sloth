@@ -1,7 +1,7 @@
 use std::collections::{HashMap, BTreeMap};
 use crate::errors::{Error, ErrorMessage};
 use crate::tokenizer::ElementPosition;
-use super::function::{SlothFunction, FunctionID, self};
+use super::function::{SlothFunction, FunctionID};
 use super::scope::{Scope, ScopeID};
 use super::expression::{Expression, ExpressionID};
 use super::structure::StructDefinition;
