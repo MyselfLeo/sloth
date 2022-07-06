@@ -106,6 +106,7 @@ pub fn collapse_imports(imports: &Vec<BuiltInImport>) -> Result<(Vec<Box<dyn Slo
                 // todo: add structure support
                 let f = match import.submodule.as_str() {
                     "io" => io::get_function(bi),
+                    "types" => types::get_function(bi),
                     _ => panic!()
                 };
                 funcs.push(f);

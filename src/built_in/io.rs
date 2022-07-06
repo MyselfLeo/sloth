@@ -48,7 +48,6 @@ impl SlothFunction for BuiltinIoPrint {
 
         for (i, v) in inputs.iter().enumerate() {
             text += &format!("{}", v).replace("\\n", "\n");
-            if i < inputs.len() - 1 {text += " "}
         }
         print!("{}", text);
 

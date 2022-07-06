@@ -1,0 +1,15 @@
+builtin types:to_string;
+builtin io:print;
+
+
+
+define main: num num -> num {
+    i = 0;
+    result = "";
+    while < i 10 {
+        result = + result + to_string(@0) to_string(@1);
+        i = + i 1;
+    };
+
+    print(result "\n");
+}

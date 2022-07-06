@@ -5,7 +5,7 @@ const CRATE_NAME: &str = env!("CARGO_PKG_NAME");
 const CRATE_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 
-
+#[derive(Debug)]
 pub enum ErrorMessage {
     SyntaxError(String),
     NoEntryPoint(String),
@@ -44,7 +44,7 @@ impl std::fmt::Display for ErrorMessage {
 
 
 
-
+#[derive(Debug)]
 pub struct Error {
     pub message: ErrorMessage,
     pub position: Option<ElementPosition>

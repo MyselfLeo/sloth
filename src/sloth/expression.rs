@@ -112,8 +112,15 @@ impl Expression {
                 let default_value = function.get_output_type().default();
                 func_scope.set_variable("@return".to_string(), default_value);
                 
-                // run the function in the given scope
-                function.call(&mut func_scope, program.as_mut().unwrap())?;
+                // run the function in the given scope.
+                // If the function call returned an error without position, set its position to this function call's
+                match function.call(&mut func_scope, program.as_mut().unwrap()) {
+                    Ok(()) => (),
+                    Err(mut e) => {
+                        if e.position.is_none() && p.filename != "" {e.position = Some(p.clone());}
+                        return Err(e)
+                    }
+                }
 
                 // return the value in the '@return' variable, but check its type first
                 match func_scope.get_variable("@return".to_string(), program.as_mut().unwrap()) {
