@@ -1,4 +1,4 @@
-use super::function::FunctionID;
+use super::function::FunctionSignature;
 use super::value::Value;
 use super::operator::{Operator, apply_op};
 use super::scope::Scope;
@@ -25,7 +25,7 @@ pub enum Expression {
     Literal(Value, ElementPosition),                                                     // value of the literal
     VariableCall(String, ElementPosition),                                               // name of the variable
     Operation(Operator, Option<ExpressionID>, Option<ExpressionID>, ElementPosition),    // Operator to apply to one or 2 values from the Scope Expression stack (via index)
-    FunctionCall(FunctionID, Vec<ExpressionID>, ElementPosition),                            // name of the function and its list of expressions to be evaluated
+    FunctionCall(FunctionSignature, Vec<ExpressionID>, ElementPosition),                 // name of the function and its list of expressions to be evaluated
 }
 
 

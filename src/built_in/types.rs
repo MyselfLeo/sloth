@@ -1,6 +1,6 @@
 use crate::errors::ErrorMessage;
-use crate::{errors::Error, sloth::function::FunctionID};
-use crate::sloth::function::SlothFunction;
+use crate::errors::Error;
+use crate::sloth::function::{SlothFunction, FunctionSignature};
 use crate::sloth::program::SlothProgram;
 use crate::sloth::scope::Scope;
 use crate::sloth::types::Type;
@@ -30,14 +30,12 @@ impl SlothFunction for BuiltinTypesToString {
     fn get_name(&self) -> String {"to_string".to_string()}
     fn get_owner_type(&self) -> Option<Type> {None}
     fn get_module(&self) -> Option<String> {Some("types".to_string())}
+    fn get_output_type(&self) -> Type {Type::String}
 
-    fn get_function_id(&self) -> FunctionID {
-        FunctionID::new(self.get_module(), self.get_name(), self.get_owner_type())
+    fn get_signature(&self) -> FunctionSignature {
+        FunctionSignature::new(self.get_module(), self.get_name(), self.get_owner_type(), None, Some(self.get_output_type()))
     }
 
-    fn get_output_type(&self) -> Type {
-        Type::String
-    }
     unsafe fn call(&self, scope: &mut Scope, _: &mut SlothProgram) -> Result<(), Error> {
         let inputs = scope.get_inputs();
         

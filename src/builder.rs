@@ -1,6 +1,6 @@
 use crate::built_in::{BuiltInImport};
 use crate::sloth::expression::{ExpressionID, Expression};
-use crate::sloth::function::{CustomFunction, FunctionID};
+use crate::sloth::function::{CustomFunction, FunctionSignature};
 use crate::sloth::operator::{Operator};
 use crate::sloth::program::SlothProgram;
 use crate::sloth::statement::Statement;
@@ -181,7 +181,7 @@ fn parse_functioncall(iterator: &mut TokenIterator, program: &mut SlothProgram, 
 
     let functioncall_pos = start_pos.until(last_pos);
 
-    let func_id = FunctionID::new(module, function_name, None);
+    let func_id = FunctionSignature::new(module, function_name, None, None, None);
 
     iterator.next();
     Ok(Expression::FunctionCall(func_id, inputs_expr_id, functioncall_pos))
@@ -679,10 +679,14 @@ fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram, warn
 
     // Create the function and push it to the program
     let function = CustomFunction {
-        owner_type: None,
-        name: f_name,
-        input_types: input_types,
-        output_type: output_type,
+        signature: FunctionSignature::new(
+            None,
+            f_name.clone(),
+            None,
+            Some(input_types),
+            Some(output_type)
+        ),
+
         instructions: statements
     };
     program.push_function(Box::new(function));

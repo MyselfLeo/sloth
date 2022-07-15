@@ -1,7 +1,7 @@
 use std::collections::{HashMap, BTreeMap};
 use crate::errors::{Error, ErrorMessage};
 use crate::tokenizer::ElementPosition;
-use super::function::{SlothFunction, FunctionID};
+use super::function::{SlothFunction, FunctionSignature};
 use super::scope::{Scope, ScopeID};
 use super::expression::{Expression, ExpressionID};
 use super::structure::StructDefinition;
@@ -17,7 +17,7 @@ use crate::built_in;
 /// Note: Variables are stored in the scopes
 pub struct SlothProgram {
     filename: String,
-    functions: BTreeMap<FunctionID, Box<dyn SlothFunction>>,
+    functions: BTreeMap<FunctionSignature, Box<dyn SlothFunction>>,
     structures: BTreeMap<String, StructDefinition>,
     scopes: HashMap<ScopeID, Scope>,
     expressions: HashMap<ExpressionID, Expression>,
@@ -55,7 +55,7 @@ impl SlothProgram {
     /// Add a function to the Function Hashmap.
     /// Can return an optional warning message if a previously defined function was overwritten
     pub fn push_function(&mut self, function: Box<dyn SlothFunction>) -> Option<String> {
-        match self.functions.insert(function.get_function_id(), function) {
+        match self.functions.insert(function.get_signature(), function) {
             Some(f) => {
                 let msg = format!("Redefinition of function {}. Previous definition was overwritten", f.get_name());
                 Some(msg)
@@ -65,28 +65,39 @@ impl SlothProgram {
     }
 
     /// Return a clone of the requested function definition
-    pub fn get_function(&self, function_id: &FunctionID) -> Result<&Box<dyn SlothFunction>, String> {
-        match self.functions.get(&function_id) {
+    pub fn get_function(&self, signature: &FunctionSignature) -> Result<&Box<dyn SlothFunction>, String> {
+        //println!("[DEBUG] Looking for {:?}", signature);
+
+        /*for (f, _) in &self.functions {
+            println!("[DEBUG]     I have {:?}", f)
+        }*/
+
+        match self.functions.get(&signature) {
             None => {}
             Some(v) => {return Ok(v);}
         };
 
-        if function_id.module.is_some() {
-            return Err(format!("No function named '{}' in the module '{}'", function_id.name, function_id.module.clone().unwrap()));
+        if signature.module.is_some() {
+            return Err(format!("No function named '{}' in the module '{}'", signature.name, signature.module.clone().unwrap()));
         }
 
-        let mut fitting_function_id: Vec<FunctionID> = Vec::new();
+        let mut fitting_functions: Vec<FunctionSignature> = Vec::new();
 
-        for (f_id, _) in &self.functions {
-            if f_id.name == function_id.name && f_id.owner_type == function_id.owner_type {fitting_function_id.push(f_id.clone());}
+        for (sign, _) in &self.functions {
+            if sign.name == signature.name
+            && sign.owner_type == signature.owner_type
+            && (sign.input_types == signature.input_types || sign.input_types.is_none() || signature.input_types.is_none())
+            && (sign.output_type == signature.output_type || signature.output_type.is_none()) {fitting_functions.push(sign.clone());}
         }
-
-        match fitting_function_id.len() {
-            0 => Err(format!("No function named '{}'", function_id.name)),
-            1 => self.get_function(&fitting_function_id[0]),
-            _ => {Err(format!("Ambiguous function name: '{}' is found in multiple modules. Consider specifying the module", function_id.name))}
+;
+        match fitting_functions.len() {
+            0 => Err(format!("No function named '{}' with the given inputs", signature.name)),
+            1 => self.get_function(&fitting_functions[0]),
+            _ => {Err(format!("Ambiguous function name: '{}' is found in multiple modules. Consider specifying the module ( module:{}(input1 input2 ...) )", signature.name, signature.name))}
         }
     }
+
+
 
 
     /// Create a scope to the Scope stack and return its ID
@@ -149,17 +160,15 @@ impl SlothProgram {
 
     /// Find the 'main' function, check its validity, execute it with the given arguments and return what the main function returned
     pub unsafe fn run(&mut self, s_args: Vec<String>) -> Result<Value, Error> {
-        let main_func_id = FunctionID::new(None, "main".to_string(), None);
+        let main_func_id = FunctionSignature::new(None, "main".to_string(), None, None, Some(Type::Number));
 
+
+        // Check if the main function exists and is well defined
         let main_func = match self.get_function(&main_func_id) {
             Ok(v) => v,
-            Err(_) => {return Err(Error::new(ErrorMessage::NoEntryPoint("Your program needs a 'main' function, returning a 'num' value, as an entry point.".to_string()), None))}
+            Err(_) => {return Err(Error::new(ErrorMessage::NoEntryPoint("Your program needs a 'main' function, returning a Number (the return code of your program), as an entry point.".to_string()), None))}
         };
 
-        // the 'main' function must return a Number value, which will be rounded and returned as exit code
-        if main_func.get_output_type() != Type::Number {
-            return Err(Error::new(ErrorMessage::InvalidEntryPoint("The 'main' function must return a Number, that will be the exit code of your program".to_string()), None))
-        }
 
         // Convert given arguments to Values, push them to the Expression Stack and store its Expression ids
         let mut args_id: Vec<ExpressionID> = Vec::new();
