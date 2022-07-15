@@ -261,7 +261,7 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
         // The expression starts with a Literal, so it's only this literal
         Some((Token::Literal(s), first_position)) => {
             iterator.next();
-            (Expression::Literal(Value::from_string(s.clone()), first_position.clone()), first_position.clone())
+            (Expression::Literal(Value::from_raw_token(s.clone()), first_position.clone()), first_position.clone())
         },
 
         // TODO: lists

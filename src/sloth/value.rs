@@ -45,8 +45,8 @@ impl Value {
     }
 
 
-    // Try to convert the given string to a value
-    pub fn from_string(s: String) -> Value {
+    /// Try to convert the given raw token string into a value
+    pub fn from_raw_token(s: String) -> Value {
         if s.parse::<f64>().is_ok() {Value::Number(s.parse::<f64>().unwrap())}
         else if s == "true" {Value::Boolean(true)}
         else if s == "false" {Value::Boolean(false)}
@@ -56,6 +56,31 @@ impl Value {
         }
         else {panic!("Can't generate Value from string '{}'", s)}
     }
+
+
+    /// Try to convert the given string (potentially a user input) into the desired type
+    pub fn string_to_value(s: String, t: Type) -> Result<Value, String> {
+        match t {
+            Type::String => Ok(Value::String(s)),
+            Type::Number => {
+                match s.parse::<f64>() {
+                    Ok(v) => Ok(Value::Number(v)),
+                    Err(_) => Err(format!("Cannot convert '{}' into a Number value", s))
+                }
+            },
+            Type::Boolean => {
+                match s.as_str() {
+                    "True" | "true" | "t" | "1" => Ok(Value::Boolean(true)),
+                    "False" | "false" | "f" | "0" => Ok(Value::Boolean(false)),
+                    _ => Err(format!("Cannot convert '{}' into a Boolean value", s))
+                }
+            }
+            Type::List(_t) => unimplemented!(),
+            Type::Struct(_n) => unimplemented!()
+        }
+    }
+
+
 }
 
 

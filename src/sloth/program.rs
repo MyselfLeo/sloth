@@ -1,4 +1,6 @@
 use std::collections::{HashMap, BTreeMap};
+use std::iter::zip;
+
 use crate::errors::{Error, ErrorMessage};
 use crate::tokenizer::ElementPosition;
 use super::function::{SlothFunction, FunctionSignature};
@@ -169,14 +171,28 @@ impl SlothProgram {
             Err(_) => {return Err(Error::new(ErrorMessage::NoEntryPoint("Your program needs a 'main' function, returning a Number (the return code of your program), as an entry point.".to_string()), None))}
         };
 
+        let main_inputs = main_func.get_signature().input_types.unwrap();
 
         // Convert given arguments to Values, push them to the Expression Stack and store its Expression ids
         let mut args_id: Vec<ExpressionID> = Vec::new();
 
         let dummy_pos = ElementPosition {filename: "".to_string(), line: 0, first_column: 0, last_column: 0};
 
-        for arg in s_args {
-            let expr = Expression::Literal(Value::from_string(arg), dummy_pos.clone());
+        if s_args.len() != main_inputs.len() {
+            let err_msg = format!("Given {} command-line argument(s), but the main function requires {} argument(s)", s_args.len(), main_inputs.len());
+            return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None))
+        }
+
+        for (arg, t) in zip(s_args, main_inputs) {
+            let value = match Value::string_to_value(arg, t) {
+                Ok(v) => v,
+                Err(e) => {
+                    let err_msg = format!("Error while parsing command-line arguments: {}", e);
+                    return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None))
+                }
+            };
+
+            let expr = Expression::Literal(value, dummy_pos.clone());
             args_id.push(self.push_expr(expr))
         }
 
