@@ -1,0 +1,11 @@
+# Return the square of the number it is used on
+define square for num: -> num {
+    @return = * @self @self;
+}
+
+
+define main: num -> num {
+    # Both should work
+    print(@0.square());
+    print(3.square());
+}

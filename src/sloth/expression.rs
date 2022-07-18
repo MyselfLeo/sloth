@@ -24,8 +24,10 @@ impl ExpressionID {
 pub enum Expression {
     Literal(Value, ElementPosition),                                                     // value of the literal
     VariableCall(String, ElementPosition),                                               // name of the variable
+    ParameterCall(ExpressionID, String, ElementPosition),                                // name of a parameter of a structure or built-in that can be accessed
     Operation(Operator, Option<ExpressionID>, Option<ExpressionID>, ElementPosition),    // Operator to apply to one or 2 values from the Scope Expression stack (via index)
     FunctionCall(FunctionSignature, Vec<ExpressionID>, ElementPosition),                 // name of the function and its list of expressions to be evaluated
+    MethodCall(ExpressionID, FunctionSignature, Vec<ExpressionID>, ElementPosition)      // call of a method of a Value
 }
 
 
@@ -133,7 +135,12 @@ impl Expression {
                     },
                     Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                 }
-            }
+            },
+
+
+            Expression::ParameterCall(_, _, _) => unimplemented!("Parameters calls are not implemented yet"),
+            Expression::MethodCall(owner, signature, arguments, p) => unimplemented!("Method calls are not implemented yet")
+
         }
     }
 }
