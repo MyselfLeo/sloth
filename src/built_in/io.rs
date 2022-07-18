@@ -44,7 +44,7 @@ impl SlothFunction for BuiltinIoPrint {
         let inputs = scope.get_inputs();
         let mut text = String::new();
 
-        for (i, v) in inputs.iter().enumerate() {
+        for (_, v) in inputs.iter().enumerate() {
             text += &format!("{}", v).replace("\\n", "\n");
         }
         print!("{}", text);
