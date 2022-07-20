@@ -734,7 +734,7 @@ fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram, warn
 
 
 
-/// Parse a "use" statement and add the requested import to the program's list of imports.
+/// Parse a "builtin" statement and add the requested import to the program's list of imports.
 fn parse_builtin(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<(), Error> {
     let first_pos;
 
