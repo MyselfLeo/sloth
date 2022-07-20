@@ -5,7 +5,7 @@ use crate::errors::{Error, ErrorMessage};
 use regex::Regex;
 
 
-const KEYWORDS: [&str; 11] = ["define", "num", "bool", "string", "list", "none", "->", "=", "if", "while", "builtin"];
+const KEYWORDS: [&str; 12] = ["define", "num", "bool", "string", "list", "none", "->", "=", "if", "while", "builtin", "for"];
 const OPERATORS: [&str; 12] = ["+", "-", "*", "/", "<", ">", "<=", ">=", "==", "&", "?", "!"];
 const SEPARATORS: [&str; 9] = ["(", ")", "{", "}", "[", "]", ";", ":", ","];
 

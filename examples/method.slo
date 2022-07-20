@@ -1,3 +1,5 @@
+builtin io:print;
+
 # Return the square of the number it is used on
 define square for num: -> num {
     @return = * @self @self;
@@ -6,6 +8,8 @@ define square for num: -> num {
 
 define main: num -> num {
     # Both should work
-    print(@0.square());
-    print(3.square());
+    #print(@0.square());
+    #print(3.square());
+
+    print(square());
 }

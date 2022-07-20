@@ -8,7 +8,7 @@ use crate::sloth::types::Type;
 use crate::sloth::value::Value;
 use crate::tokenizer::{TokenizedProgram, Token, ElementPosition, Separator};
 use crate::errors::{Error, ErrorMessage, Warning};
-
+use regex::Regex;
 
 
 const UNEXPECTED_EOF_ERR_MSG: &str = "Unexpected End Of File";
@@ -550,6 +550,21 @@ fn parse_while(iterator: &mut TokenIterator, program: &mut SlothProgram, warning
 
 
 
+fn get_type_from_str(str: &str) -> Result<Type, String> {
+    match str {
+        "num" => Ok(Type::Number),
+        "bool" => Ok(Type::Boolean),
+        "string" => Ok(Type::String),
+        s => {
+            let identifier_re = Regex::new(r"^([a-zA-Z_][a-zA-Z0-9_]*)$").unwrap();
+            if identifier_re.is_match(s) {Ok(Type::Struct(s.to_string()))}
+            else {Err(format!("Expected structure name, got '{}'", s))}
+        }
+    }
+}
+
+
+
 
 
 
@@ -586,6 +601,32 @@ fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram, warn
     };
 
 
+
+    // If the next token is "for", the function is a method of a given type
+    let owner_type = match iterator.peek(1) {
+        Some((Token::Keyword(kw), _)) => {
+            if kw == "for".to_string() {
+                iterator.next();
+
+                // next token must be the type name
+                Some(match iterator.next() {
+                    Some((t, p)) => match get_type_from_str(&t.original_string()) {
+                        Ok(t) => t,
+                        Err(s) => return Err(Error::new(ErrorMessage::TypeError(s), Some(p)))
+                    },
+
+                    None => return Err(eof_error(line!())),
+                })
+            }
+            else {None}
+        },
+        _ => None
+    };
+
+
+
+
+
     // Next token must be a colon
     match iterator.next() {
         Some(t) => {
@@ -609,16 +650,10 @@ fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram, warn
     } {
         // Check the value of the keyword
         match iterator.next() {
-            Some(e) => match e.0.original_string().as_str() {
-                "num" => input_types.push(Type::Number),
-                "bool" => input_types.push(Type::Boolean),
-                "string" => input_types.push(Type::String),
-                s => {
-                    let err_msg = format!("Unexpected input type '{}'", s);
-                    return Err(Error::new(ErrorMessage::TypeError(err_msg), Some(e.1.clone())));
-                }
-            }
-
+            Some((t, p)) => match get_type_from_str(t.original_string().as_str()) {
+                Ok(t) => input_types.push(t),
+                Err(e) => return Err(Error::new(ErrorMessage::TypeError(e), Some(p)))
+            },
             // This should not happen as it's already checked with peek(). But just in case
             None => return Err(eof_error(line!()))
         }
@@ -640,15 +675,10 @@ fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram, warn
 
     // The next token is the return value
     let output_type = match iterator.next() {
-        Some(e) => match e.0.original_string().as_str() {
-            "num" => Type::Number,
-            "bool" => Type::Boolean,
-            "string" => Type::String,
-            s => {
-                let err_msg = format!("Unexpected output type '{}'", s);
-                return Err(Error::new(ErrorMessage::TypeError(err_msg), Some(e.1.clone())));
-            }
-        }
+        Some((t, p)) => match get_type_from_str(t.original_string().as_str()) {
+            Ok(t) => t,
+            Err(e) => return Err(Error::new(ErrorMessage::TypeError(e), Some(p)))
+        },
         None => return Err(eof_error(line!()))
     };
 
@@ -682,7 +712,7 @@ fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram, warn
         signature: FunctionSignature::new(
             None,
             f_name.clone(),
-            None,
+            owner_type,
             Some(input_types),
             Some(output_type)
         ),

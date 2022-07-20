@@ -202,4 +202,40 @@ impl SlothProgram {
 
         f_call.evaluate(&scope, self)
     }
+
+
+
+
+
+    /// Print to console the list of functions defined in the program
+    pub fn print_functions(self) {
+        println!("{:25}{:15}{:15}{:25}{:15}", "FUNCTION NAME", "OWNER TYPE", "MODULE", "INPUT TYPES", "OUTPUT TYPE");
+        for (signature, _) in self.functions {
+            let type_txt = match signature.owner_type {
+                Some(v) => format!("{}", v),
+                None => "-".to_string(),
+            };
+            let module_txt = match signature.module {
+                Some(v) => format!("{}", v),
+                None => "-".to_string(),
+            };
+            let input_types_txt = match signature.input_types {
+                Some(v) => {
+                    let mut res = "".to_string();
+                    for t in v {
+                        if res.is_empty() {res = format!("{t}")}
+                        else {res = format!("{}, {}", res, t);}
+                    }
+                    res
+                },
+                None => "-".to_string()
+            };
+            let output_type_str = match signature.output_type {
+                Some(v) => format!("{v}"),
+                None => "-".to_string()
+            };
+
+            println!("{:25}{:15}{:15}{:25}{:15}", signature.name, type_txt, module_txt, input_types_txt, output_type_str);
+        }
+    }
 }
