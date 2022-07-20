@@ -3,7 +3,7 @@ use std::iter::zip;
 
 use crate::errors::{Error, ErrorMessage};
 use crate::tokenizer::ElementPosition;
-use super::function::{SlothFunction, FunctionSignature};
+use super::function::{SlothFunction, Callable, FunctionSignature};
 use super::scope::{Scope, ScopeID};
 use super::expression::{Expression, ExpressionID};
 use super::structure::StructDefinition;

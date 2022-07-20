@@ -24,7 +24,7 @@ impl FunctionSignature {
 
 
 
-pub trait SlothFunction {
+pub trait SlothFunction: Callable {
     /// Return the type owning this function, or None if this is not a method
     fn get_owner_type(&self) -> Option<Type>;
 
@@ -37,13 +37,17 @@ pub trait SlothFunction {
     /// Return the name of the function
     fn get_name(&self) -> String;
 
+    fn get_output_type(&self) -> Type;
+}
+
+
+pub trait Callable {
     /// Call the function, like a procedure, in the given scope.
     /// The FunctionCall statement must create a new scope for this function. The 'scope' given to this method
     /// IS NOT the Scope in which the function is called, but the scope INSIDE of the function
     unsafe fn call(&self,  scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error>;
-
-    fn get_output_type(&self) -> Type;
 }
+
 
 /// Function defined in the code, written in Sloth
 /// The input_types and output_type can't be None because Sloth code can't permit it
@@ -59,8 +63,10 @@ impl SlothFunction for CustomFunction {
     fn get_module(&self) -> Option<String> {self.signature.module.clone()}
     fn get_name(&self) -> String {self.signature.name.clone()}
     fn get_output_type(&self) -> Type {self.signature.output_type.as_ref().unwrap().clone()}
-    
+}
 
+
+impl Callable for CustomFunction {    
     unsafe fn call(&self, scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
         // get the given arguments
         let args = scope.get_inputs();

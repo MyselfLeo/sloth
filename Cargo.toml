@@ -11,3 +11,4 @@ description = "A weird, slow and a bit moldy interpreted programming language"
 clap = { version = "3.2.3", features = ["derive"] }
 regex = "1.5.6"
 text_io = "0.1.10"
+sloth_derive = { path = "sloth_derive" }

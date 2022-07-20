@@ -1,5 +1,5 @@
 use crate::errors::Error;
-use crate::sloth::function::{SlothFunction, FunctionSignature};
+use crate::sloth::function::{SlothFunction, FunctionSignature, Callable};
 use crate::sloth::program::SlothProgram;
 use crate::sloth::scope::Scope;
 use crate::sloth::types::Type;
@@ -39,7 +39,9 @@ impl SlothFunction for BuiltinIoPrint {
     fn get_signature(&self) -> FunctionSignature {
         FunctionSignature::new(self.get_module(), self.get_name(), self.get_owner_type(), None, Some(self.get_output_type()))
     }
+}
 
+impl Callable for BuiltinIoPrint {
     unsafe fn call(&self, scope: &mut Scope, _: &mut SlothProgram) -> Result<(), Error> {
         let inputs = scope.get_inputs();
         let mut text = String::new();
@@ -68,7 +70,9 @@ impl SlothFunction for BuiltinIoRead {
     fn get_signature(&self) -> FunctionSignature {
         FunctionSignature::new(self.get_module(), self.get_name(), self.get_owner_type(), None, Some(self.get_output_type()))
     }
+}
 
+impl Callable for BuiltinIoRead {
     unsafe fn call(&self, scope: &mut Scope, _: &mut SlothProgram) -> Result<(), Error> {
         let inputs = scope.get_inputs();
         let mut text = String::new();

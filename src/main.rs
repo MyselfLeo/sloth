@@ -9,9 +9,9 @@ mod built_in;
 #[allow(dead_code)]
 mod builder;
 
-
 use clap::Parser;
-use sloth::{program::SlothProgram, value::Value};
+use sloth::program::SlothProgram;
+use sloth::value::Value;
 
 
 
@@ -43,11 +43,6 @@ struct Args {
     #[clap(value_parser)]
     arguments: Vec<String>,
 }
-
-
-
-
-
 
 
 fn main() {

@@ -1,4 +1,5 @@
 builtin io;
+builtin types;
 
 define main: bool -> num {
     if @0 {
