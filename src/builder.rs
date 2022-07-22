@@ -253,6 +253,37 @@ fn parse_operation(iterator: &mut TokenIterator, program: &mut SlothProgram, war
 
 
 
+
+
+/// In the case of a VariableCall or a MethodCall (expr.attribute or expr.method()), this function parses the second part (after the period)
+/// It is given the ExpressionID and ElementPosition of the first expression
+fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool, first_expr: (ExpressionID, ElementPosition)) -> Result<(ExpressionID, ElementPosition), Error> {
+
+    
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /// Parse an expression, push it to the program's expression stack and return its id
 fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<(ExpressionID, ElementPosition), Error> {
     // we use the first token of the expression to find its type
@@ -297,7 +328,17 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
     };
 
 
-    Ok((program.push_expr(expr), expr_pos))
+
+    let first_expr = (program.push_expr(expr), expr_pos);
+
+
+    // If after parsing the expression, the iterator is on a Separator::Period, the expression is in fact not finished here.
+    // It is a variable call or a method call on the result of that expression/the value stored in the variable forming this expression
+    match iterator.current() {
+        Some((Token::Separator(Separator::Period), _)) => parse_second_expr(iterator, program, warning, first_expr),
+        None => Err(eof_error(line!())),
+        _ => Ok(first_expr)
+    }
 }
 
 

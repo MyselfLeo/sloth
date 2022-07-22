@@ -8,8 +8,6 @@ define square for num: -> num {
 
 define main: num -> num {
     # Both should work
-    #print(@0.square());
-    #print(3.square());
-
-    print(square());
+    print(@0.square());
+    print(3.square());
 }
