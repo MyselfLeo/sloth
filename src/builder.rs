@@ -1,4 +1,4 @@
-use crate::built_in::{BuiltInImport};
+use crate::built_in::{BuiltInImport, self};
 use crate::sloth::expression::{ExpressionID, Expression};
 use crate::sloth::function::{CustomFunction, FunctionSignature};
 use crate::sloth::operator::{Operator};
@@ -96,7 +96,7 @@ fn parse_functioncall(iterator: &mut TokenIterator, program: &mut SlothProgram, 
 
     let start_pos;
 
-    // Get the first identifier. It can either be a module name (followed by a colon), or the name of the function (followed by a '(')
+    // Get the first identifier. It can either be a module name (followed by a colon) or the name of the function (followed by a '(')
     let current = iterator.current().clone();
     if let Some((Token::Identifier(s), pos)) = current {
         start_pos = pos;
@@ -115,7 +115,7 @@ fn parse_functioncall(iterator: &mut TokenIterator, program: &mut SlothProgram, 
     else {panic!("Function 'parse_functioncall' called but token iterator is not on a function call.")}
 
 
-    // If we parsed the module, we still have to parse the function's name before the rest of the call
+    // If we parsed an prepending ident, we have to check if it's a built in
     if module.is_some() {
 
         // Next token must be ":"
@@ -255,11 +255,47 @@ fn parse_operation(iterator: &mut TokenIterator, program: &mut SlothProgram, war
 
 
 
-/// In the case of a VariableCall or a MethodCall (expr.attribute or expr.method()), this function parses the second part (after the period)
+/// In the case of a ParameterCall or a MethodCall (expr.attribute or expr.method()), this function parses the second part (after the period)
 /// It is given the ExpressionID and ElementPosition of the first expression
 fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool, first_expr: (ExpressionID, ElementPosition)) -> Result<(ExpressionID, ElementPosition), Error> {
 
-    
+    // name of the variable or function to use
+    let ident = match iterator.next() {
+        Some((Token::Identifier(s), _)) => s,
+        Some((t, p)) => {
+            let err_msg = format!("Expected identifier, got unexpected token '{}'", t.original_string());
+            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)));
+        },
+        None => return Err(eof_error(line!()))
+    };
+
+
+
+    // Check whether the call is a method call or a parameter call
+    match iterator.peek(1) {
+        // method call
+        Some((Token::Separator(Separator::OpenParenthesis), _)) | Some((Token::Separator(Separator::Colon), _)) => {
+            let function = parse_functioncall(iterator, program, warning)?;
+            // Transforms the FunctionCall expression given by the parse_functioncall function into a MethodCall
+            if let Expression::FunctionCall(signature, input_exprs, pos) = function {
+                let expr_pos = first_expr.1.until(pos);
+                let method_call = Expression::MethodCall(first_expr.0, signature, input_exprs, expr_pos.clone());
+                return Ok((program.push_expr(method_call), expr_pos));
+            }
+            else {panic!("Function 'parse_functioncall' did not return an Expression::Functioncall value")}
+        },
+        
+        // Parameter call
+        Some((t, p)) => {
+            let expr_pos = first_expr.1.until(p);
+            let param_call = Expression::ParameterCall(first_expr.0, ident, expr_pos.clone());
+            return Ok((program.push_expr(param_call), expr_pos));
+        },
+
+        None => return Err(eof_error(line!()))
+    }
+
+
 
 }
 
@@ -335,7 +371,7 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
     // If after parsing the expression, the iterator is on a Separator::Period, the expression is in fact not finished here.
     // It is a variable call or a method call on the result of that expression/the value stored in the variable forming this expression
     match iterator.current() {
-        Some((Token::Separator(Separator::Period), _)) => parse_second_expr(iterator, program, warning, first_expr),
+        Some((Token::Separator(Separator::Colon), _)) => parse_second_expr(iterator, program, warning, first_expr),
         None => Err(eof_error(line!())),
         _ => Ok(first_expr)
     }

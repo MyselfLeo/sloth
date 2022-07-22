@@ -199,10 +199,10 @@ impl SlothProgram {
         }
 
         // Call the main function
-        let scope = self.get_scope(self.main_scope.unwrap()).unwrap().clone();
+        let mut scope = self.get_scope(self.main_scope.unwrap()).unwrap().clone();
         let f_call = Expression::FunctionCall(main_func_id, args_id, dummy_pos.clone());
 
-        f_call.evaluate(&scope, self)
+        f_call.evaluate(&mut scope, self)
     }
 
 

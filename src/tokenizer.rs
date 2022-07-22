@@ -7,7 +7,7 @@ use regex::Regex;
 
 const KEYWORDS: [&str; 12] = ["define", "num", "bool", "string", "list", "none", "->", "=", "if", "while", "builtin", "for"];
 const OPERATORS: [&str; 12] = ["+", "-", "*", "/", "<", ">", "<=", ">=", "==", "&", "?", "!"];
-const SEPARATORS: [&str; 10] = ["(", ")", "{", "}", "[", "]", ";", ":", ",", "."];
+const SEPARATORS: [&str; 10] = ["(", ")", "{", "}", "[", "]", ";", ":", ",", "|"];
 
 // Unlike SEPARATORS, those do not have a semantic meaning (only used for separating tokens)
 const DEFAULT_SEPARATORS: [char; 2] = [' ', '"'];
@@ -38,7 +38,7 @@ pub enum Separator {
     SemiColon,
     Colon,
     Comma,
-    Period
+    Line
 }
 
 impl Separator {
@@ -53,7 +53,7 @@ impl Separator {
             Separator::SemiColon => ";",
             Separator::Colon => ":",
             Separator::Comma => ",",
-            Separator::Period => "."
+            Separator::Line => "|",
         }.to_string()
     }
 }
@@ -80,7 +80,7 @@ impl Token {
                 ";" => Ok(Token::Separator(Separator::SemiColon)),
                 ":" => Ok(Token::Separator(Separator::Colon)),
                 "," => Ok(Token::Separator(Separator::Comma)),
-                "." => Ok(Token::Separator(Separator::Period)),
+                "|" => Ok(Token::Separator(Separator::Line)),
                 &_ => Err(format!("Unimplemented separator '{}'", string))
             }
         }

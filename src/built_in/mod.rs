@@ -5,7 +5,7 @@ pub mod types;
 
 
 
-const SUBMODULES: [&str; 2] = [
+pub const SUBMODULES: [&str; 2] = [
     "io",
     "types"
 ];
