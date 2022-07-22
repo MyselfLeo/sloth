@@ -1,7 +1,7 @@
 use std::collections::{HashMap, BTreeMap};
 use std::iter::zip;
 
-use crate::errors::{Error, ErrorMessage};
+use crate::errors::{Error, ErrorMessage, formatted_vec_string};
 use crate::tokenizer::ElementPosition;
 use super::function::{SlothFunction, FunctionSignature};
 use super::scope::{Scope, ScopeID};
@@ -179,7 +179,9 @@ impl SlothProgram {
         let dummy_pos = ElementPosition {filename: "".to_string(), line: 0, first_column: 0, last_column: 0};
 
         if s_args.len() != main_inputs.len() {
-            let err_msg = format!("Given {} command-line argument(s), but the main function requires {} argument(s)", s_args.len(), main_inputs.len());
+            // Create a string representing the required arguments types, like "num, bool, string"
+            let input_types_list = formatted_vec_string(&main_inputs, ',');
+            let err_msg = format!("Given {} command-line argument(s), but the main function requires {} argument(s): {}", s_args.len(), main_inputs.len(), input_types_list);
             return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None))
         }
 

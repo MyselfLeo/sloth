@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 use crate::tokenizer::{ElementPosition};
 
 
@@ -120,4 +122,21 @@ impl Warning {
             }
         }
     }
+}
+
+
+
+
+
+
+
+
+/// Return as a String the elements of the Vec, separated by the given caracter
+pub fn formatted_vec_string<T: Display>(vec: &Vec<T>, sep: char) -> String {
+    let mut res = String::new();
+    for (i, e) in vec.iter().enumerate() {
+        res = format!("{} {}", res, e);
+        if i < vec.len() - 1 {res.push(sep)}
+    }
+    res
 }
