@@ -154,7 +154,7 @@ impl Expression {
                 // The Method call behave differently whether the call is made on a variable call (a value stored in a variable)
                 // or another type of expression, evaluated and not stored in a variable (like an operation or a literal)
                 match expr.clone() {
-                    Expression::VariableCall(name, p) => {
+                    Expression::VariableCall(name, _) => {
 
                         // get the value stored in the variable
                         let value = expr.clone().evaluate(scope, program)?;
@@ -163,7 +163,8 @@ impl Expression {
                         signature_clone.owner_type = Some(value.get_type());
                         let method = match program.as_ref().unwrap().get_function(&signature_clone) {
                             Ok(f) => f,
-                            Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
+                            Err(e) => {
+                                return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                         };
 
 

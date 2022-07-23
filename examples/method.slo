@@ -1,4 +1,4 @@
-builtin io|print;
+builtin io:print;
 
 # Return the square of the number it is used on
 define square for num: -> num {
@@ -7,8 +7,5 @@ define square for num: -> num {
 
 
 define main: num -> num {
-    io|square()
-    # Both should work
-    print(@0:square() "\n");
-    print(0:square() "\n");
+    print(@0.square() "\n");
 }

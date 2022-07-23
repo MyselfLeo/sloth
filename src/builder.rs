@@ -115,7 +115,7 @@ fn parse_functioncall(iterator: &mut TokenIterator, program: &mut SlothProgram, 
     else {panic!("Function 'parse_functioncall' called but token iterator is not on a function call.")}
 
 
-    // If we parsed an prepending ident, we have to check if it's a built in
+
     if module.is_some() {
 
         // Next token must be ":"
@@ -258,7 +258,6 @@ fn parse_operation(iterator: &mut TokenIterator, program: &mut SlothProgram, war
 /// In the case of a ParameterCall or a MethodCall (expr.attribute or expr.method()), this function parses the second part (after the period)
 /// It is given the ExpressionID and ElementPosition of the first expression
 fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool, first_expr: (ExpressionID, ElementPosition)) -> Result<(ExpressionID, ElementPosition), Error> {
-
     // name of the variable or function to use
     let ident = match iterator.next() {
         Some((Token::Identifier(s), _)) => s,
@@ -371,7 +370,7 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
     // If after parsing the expression, the iterator is on a Separator::Period, the expression is in fact not finished here.
     // It is a variable call or a method call on the result of that expression/the value stored in the variable forming this expression
     match iterator.current() {
-        Some((Token::Separator(Separator::Colon), _)) => parse_second_expr(iterator, program, warning, first_expr),
+        Some((Token::Separator(Separator::Period), _)) => parse_second_expr(iterator, program, warning, first_expr),
         None => Err(eof_error(line!())),
         _ => Ok(first_expr)
     }
