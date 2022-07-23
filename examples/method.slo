@@ -6,6 +6,19 @@ define square for num: -> num {
 }
 
 
-define main: num -> num {
-    print(@0.square() "\n");
+define double for num: -> num {
+    @self = * 2 @self;
+    @return = 0;
+}
+
+define concat for string: -> num {
+    @self = + @self @self;
+    @return = 0;
+}
+
+
+define main: string -> num {
+    print("before: @0 = " @0 "\n");
+    @0.concat();
+    print("after: @0 = " @0 "\n");
 }
