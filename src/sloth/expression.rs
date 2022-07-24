@@ -124,6 +124,9 @@ impl Expression {
                     }
                 }
 
+                // remove the scope from the program
+                program.as_mut().unwrap().dump_scope(&func_scope_id);
+
                 // return the value in the '@return' variable, but check its type first
                 match func_scope.get_variable("@return".to_string(), program.as_mut().unwrap()) {
                     Ok(v) => {
@@ -150,159 +153,82 @@ impl Expression {
                     Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                 };
 
-
-                // The Method call behave differently whether the call is made on a variable call (a value stored in a variable)
-                // or another type of expression, evaluated and not stored in a variable (like an operation or a literal)
-                match expr.clone() {
-                    Expression::VariableCall(name, _) => {
-
-                        // get the value stored in the variable
-                        let value = expr.clone().evaluate(scope, program)?;
-                        
-                        // try to find if the method, applied to the type of the value
-                        signature_clone.owner_type = Some(value.get_type());
-                        let method = match program.as_ref().unwrap().get_function(&signature_clone) {
-                            Ok(f) => f,
-                            Err(e) => {
-                                return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
-                        };
+                // get the value stored in the variable
+                let value = expr.clone().evaluate(scope, program)?;
+                
+                // try to find if the method, applied to the type of the value
+                signature_clone.owner_type = Some(value.get_type());
+                let method = match program.as_ref().unwrap().get_function(&signature_clone) {
+                    Ok(f) => f,
+                    Err(e) => {
+                        return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
+                };
 
 
+                // Create a new scope for the execution of the method
+                let method_scope_id = program.as_mut().unwrap().new_scope(Some(scope.id));
+                let mut func_scope = match program.as_mut().unwrap().get_scope(method_scope_id) {
+                    Ok(s) => s.clone(),
+                    Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
+                };
 
-                        // Create a new scope for the execution of the method
-                        let method_scope_id = program.as_mut().unwrap().new_scope(Some(scope.id));
-                        let mut func_scope = match program.as_mut().unwrap().get_scope(method_scope_id) {
-                            Ok(s) => s.clone(),
-                            Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
-                        };
+                // Evaluate each given expression in the scope, and create an input variable (@0, @1, etc.) with the set value
+                for (i, param_expr_id) in arguments.iter().enumerate() {
 
-                        // Evaluate each given expression in the scope, and create an input variable (@0, @1, etc.) with the set value
-                        for (i, param_expr_id) in arguments.iter().enumerate() {
+                    let expr = match program.as_ref().unwrap().get_expr(*param_expr_id) {
+                        Ok(e) => e,
+                        Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
+                    };
 
-                            let expr = match program.as_ref().unwrap().get_expr(*param_expr_id) {
-                                Ok(e) => e,
-                                Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
-                            };
-
-                            let value = expr.evaluate(scope, program)?;
-                            func_scope.set_variable(format!("@{}", i), value);
-                        }
-
-
-                        // Create the @return variable, with default value
-                        let default_value = method.get_output_type().default();
-                        func_scope.set_variable("@return".to_string(), default_value);
+                    let value = expr.evaluate(scope, program)?;
+                    func_scope.set_variable(format!("@{}", i), value);
+                }
 
 
-                        // create the "@self" variable, containing a copy of the value stored in the variable
-                        func_scope.set_variable("@self".to_string(), value);
+                // Create the @return variable, with default value
+                let default_value = method.get_output_type().default();
+                func_scope.set_variable("@return".to_string(), default_value);
 
 
-                        // run the method in the given scope.
-                        // If the method call returned an error without position, set its position to this function call's
-                        match method.call(&mut func_scope, program.as_mut().unwrap()) {
-                            Ok(()) => (),
-                            Err(mut e) => {
-                                if e.position.is_none() && p.filename != "" {e.position = Some(p.clone());}
-                                return Err(e)
-                            }
-                        };
+                // create the "@self" variable, containing a copy of the value stored in the variable
+                func_scope.set_variable("@self".to_string(), value);
 
 
-
-                        // Set the variable on which was called the function to the new value of "@self"
-                        let new_self = match func_scope.get_variable("@self".to_string(), program.as_mut().unwrap()) {
-                            Ok(v) => (v),
-                            Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
-                        };
-                        scope.set_variable(name, new_self);
-
-
-
-
-                        // return the value in the '@return' variable, but check its type first
-                        match func_scope.get_variable("@return".to_string(), program.as_mut().unwrap()) {
-                            Ok(v) => {
-                                if v.get_type() != method.get_output_type() {
-                                    let err_msg = format!("Function {} should return a value of type {}, but it returned {} which is of type {}", method.get_name(), method.get_output_type(), v.to_string(), v.get_type());
-                                    return Err(Error::new(ErrorMessage::ReturnValueError(err_msg), Some(p.clone())))
-                                }
-                                else {return Ok(v)}
-                            },
-                            Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
-                        }
+                // run the method in the given scope.
+                // If the method call returned an error without position, set its position to this function call's
+                match method.call(&mut func_scope, program.as_mut().unwrap()) {
+                    Ok(()) => (),
+                    Err(mut e) => {
+                        if e.position.is_none() && p.filename != "" {e.position = Some(p.clone());}
+                        return Err(e)
                     }
+                };
 
 
-                    e => {
-                        // The expression is not stored in a variable. Its value is passed to the method as
-                        // "@self", but it is not reinjected in the scope like before
+                if let Expression::VariableCall(name, _) = expr {
+                    // Set the variable on which was called the function to the new value of "@self"
+                    let new_self = match func_scope.get_variable("@self".to_string(), program.as_mut().unwrap()) {
+                        Ok(v) => (v),
+                        Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
+                    };
+                    scope.set_variable(name, new_self);
+                }
 
 
-                        let value = e.evaluate(scope, program)?;
+                // remove the scope from the program
+                program.as_mut().unwrap().dump_scope(&method_scope_id);
 
 
-                        // try to find if the method, applied to the type of the value
-                        signature_clone.owner_type = Some(value.get_type());
-                        let method = match program.as_ref().unwrap().get_function(&signature_clone) {
-                            Ok(f) => f,
-                            Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
-                        };
-
-
-                        // Create a new scope for the execution of the method
-                        let method_scope_id = program.as_mut().unwrap().new_scope(Some(scope.id));
-                        let mut func_scope = match program.as_mut().unwrap().get_scope(method_scope_id) {
-                            Ok(s) => s.clone(),
-                            Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
-                        };
-
-                        
-                        // Evaluate each given expression in the scope, and create an input variable (@0, @1, etc.) with the set value
-                        for (i, param_expr_id) in arguments.iter().enumerate() {
-
-                            let expr = match program.as_ref().unwrap().get_expr(*param_expr_id) {
-                                Ok(e) => e,
-                                Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
-                            };
-
-                            let value = expr.evaluate(scope, program)?;
-                            func_scope.set_variable(format!("@{}", i), value);
+                // return the value in the '@return' variable, but check its type first
+                match func_scope.get_variable("@return".to_string(), program.as_mut().unwrap()) {
+                    Ok(v) => {
+                        if v.get_type() != method.get_output_type() {
+                            let err_msg = format!("Function {} should return a value of type {}, but it returned {} which is of type {}", method.get_name(), method.get_output_type(), v.to_string(), v.get_type());
+                            return Err(Error::new(ErrorMessage::ReturnValueError(err_msg), Some(p.clone())))
                         }
-
-
-                        // create the "@self" variable, containing a copy of the value stored in the variable
-                        func_scope.set_variable("@self".to_string(), value);
-
-
-                        // Create the @return variable, with default value
-                        let default_value = method.get_output_type().default();
-                        func_scope.set_variable("@return".to_string(), default_value);
-
-
-                        // run the method in the given scope.
-                        // If the method call returned an error without position, set its position to this function call's
-                        match method.call(&mut func_scope, program.as_mut().unwrap()) {
-                            Ok(()) => (),
-                            Err(mut e) => {
-                                if e.position.is_none() && p.filename != "" {e.position = Some(p.clone());}
-                                return Err(e)
-                            }
-                        };
-
-
-                        // return the value in the '@return' variable, but check its type first
-                        match func_scope.get_variable("@return".to_string(), program.as_mut().unwrap()) {
-                            Ok(v) => {
-                                if v.get_type() != method.get_output_type() {
-                                    let err_msg = format!("Function {} should return a value of type {}, but it returned {} which is of type {}", method.get_name(), method.get_output_type(), v.to_string(), v.get_type());
-                                    return Err(Error::new(ErrorMessage::ReturnValueError(err_msg), Some(p.clone())))
-                                }
-                                else {return Ok(v)}
-                            },
-                            Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
-                        }
-                    }
+                        else {return Ok(v)}
+                    },
+                    Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                 }
             }
         }

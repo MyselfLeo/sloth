@@ -118,6 +118,13 @@ impl SlothProgram {
         scope_id
     }
 
+
+    /// Remove the scope, freeing memory
+    pub fn dump_scope(&mut self, scope: &ScopeID) {
+        self.scopes.remove(scope);
+    }
+
+
     /// Return a reference to the scope with the given ScopeID
     pub fn get_scope(&mut self, id: ScopeID) -> Result<&Scope, String>{
         match self.scopes.get(&id) {
