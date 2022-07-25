@@ -34,7 +34,7 @@ fn get_type_stringified(type_str: String, option: bool) -> proc_macro2::TokenStr
 
 
 
-#[proc_macro_derive(SlothFunction, attributes(sloth_function))]
+#[proc_macro_derive(SlothFunction, attributes(name, output, owner, module))]
 pub fn sloth_function_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     // Construct a representation of Rust code as a syntax tree
     // that we can manipulate

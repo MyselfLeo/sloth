@@ -7,6 +7,13 @@ use crate::sloth::scope::Scope;
 use crate::sloth::types::Type;
 use crate::sloth::value::Value;
 
+use sloth_derive::SlothFunction;
+
+
+
+
+
+
 
 pub const BUILTINS: [&str; 1] = [
     "to_string"
@@ -25,35 +32,16 @@ pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
 
 
 
+#[derive(SlothFunction)]
+#[name = "to_string"] #[module = "types"] #[output = "string"] #[owner = "num"]
 pub struct BuiltinTypesToString {}
-
-impl SlothFunction for BuiltinTypesToString {
-    fn get_name(&self) -> String {"to_string".to_string()}
-    fn get_owner_type(&self) -> Option<Type> {None}
-    fn get_module(&self) -> Option<String> {Some("types".to_string())}
-    fn get_output_type(&self) -> Type {Type::String}
-
-    fn get_signature(&self) -> FunctionSignature {
-        FunctionSignature::new(self.get_module(), self.get_name(), self.get_owner_type(), None, Some(self.get_output_type()))
-    }
-}
-
 impl Callable for BuiltinTypesToString {
-    unsafe fn call(&self, scope: &mut Scope, _: &mut SlothProgram) -> Result<(), Error> {
-        let inputs = scope.get_inputs();
-        
-        if inputs.len() != 1 {
-            let err_msg = format!("Called function 'to_string' with {} argument(s), but the function requires 1 argument", &inputs.len());
-            return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None))
-        }
+    unsafe fn call(&self, scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
+        let value = scope.get_variable("@self".to_string(), program).unwrap();
 
-        let value = inputs[0].clone();
         let result = match value {
             Value::Number(x) => Value::String(x.to_string()),
-            Value::Boolean(v) => if v {Value::String("true".to_string())} else {Value::String("false".to_string())},
-            Value::List(_, _) => unimplemented!("Converting a list to a string is not implemented yet"),
-            Value::Struct(_, _) => return Err(Error::new(ErrorMessage::InvalidArguments("Can't convert an object into a string".to_string()), None)),
-            string => string    // in case of Value::String
+            _ => panic!("Implementation of method 'to_string' for type 'num' was called on a value of another type")
         };
 
         scope.set_variable("@return".to_string(), result);

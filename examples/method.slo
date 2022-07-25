@@ -1,4 +1,4 @@
-builtin io:print;
+builtin io;
 
 # Return the square of the number it is used on
 define square for num: -> num {

@@ -7,11 +7,19 @@ use crate::sloth::value::Value;
 use std::io::{self, Write};
 use text_io::read;
 
+use sloth_derive::SlothFunction;
+
+
+
+
+
+
+
 
 
 pub const BUILTINS: [&str; 2] = [
     "print",
-    "read",
+    "read"
 ];
 
 
@@ -28,19 +36,16 @@ pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
 
 
 
+
+
+
+
+
+
+
+#[derive(SlothFunction)]
+#[name = "print"] #[module = "io"] #[output = "num"]
 pub struct BuiltinIoPrint {}
-
-impl SlothFunction for BuiltinIoPrint {
-    fn get_name(&self) -> String {"print".to_string()}
-    fn get_owner_type(&self) -> Option<Type> {None}
-    fn get_module(&self) -> Option<String> {Some("io".to_string())}
-    fn get_output_type(&self) -> Type {Type::Number}
-
-    fn get_signature(&self) -> FunctionSignature {
-        FunctionSignature::new(self.get_module(), self.get_name(), self.get_owner_type(), None, Some(self.get_output_type()))
-    }
-}
-
 impl Callable for BuiltinIoPrint {
     unsafe fn call(&self, scope: &mut Scope, _: &mut SlothProgram) -> Result<(), Error> {
         let inputs = scope.get_inputs();
@@ -60,18 +65,10 @@ impl Callable for BuiltinIoPrint {
 
 
 
+
+#[derive(SlothFunction)]
+#[name = "read"] #[module = "io"] #[output = "string"]
 pub struct BuiltinIoRead {}
-impl SlothFunction for BuiltinIoRead {
-    fn get_name(&self) -> String {"read".to_string()}
-    fn get_owner_type(&self) -> Option<Type> {None}
-    fn get_module(&self) -> Option<String> {Some("io".to_string())}
-    fn get_output_type(&self) -> Type {Type::String}
-
-    fn get_signature(&self) -> FunctionSignature {
-        FunctionSignature::new(self.get_module(), self.get_name(), self.get_owner_type(), None, Some(self.get_output_type()))
-    }
-}
-
 impl Callable for BuiltinIoRead {
     unsafe fn call(&self, scope: &mut Scope, _: &mut SlothProgram) -> Result<(), Error> {
         let inputs = scope.get_inputs();
