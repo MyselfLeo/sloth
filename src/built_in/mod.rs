@@ -1,13 +1,13 @@
 use crate::sloth::function::SlothFunction;
 pub mod io;
-pub mod types;
+pub mod numbers;
 
 
 
 
 pub const SUBMODULES: [&str; 2] = [
     "io",
-    "types"
+    "numbers"
 ];
 
 
@@ -44,7 +44,7 @@ impl BuiltInImport {
                 // Get the list of builtins from the submodule
                 let builtins = match self.submodule.as_str() {
                     "io" => io::BUILTINS.to_vec(),
-                    "types" => types::BUILTINS.to_vec(),
+                    "numbers" => numbers::BUILTINS.to_vec(),
                     _ => panic!("Trying to access builtins of submodule '{}', which do not exists", self.submodule)
                 };
 
@@ -87,7 +87,7 @@ pub fn collapse_imports(imports: &Vec<BuiltInImport>) -> Result<(Vec<Box<dyn Slo
             None => {
                 let list = match import.submodule.as_str() {
                     "io" => io::BUILTINS.to_vec(),
-                    "types" => types::BUILTINS.to_vec(),
+                    "numbers" => numbers::BUILTINS.to_vec(),
                     _ => panic!()
                 };
 
@@ -106,7 +106,7 @@ pub fn collapse_imports(imports: &Vec<BuiltInImport>) -> Result<(Vec<Box<dyn Slo
                 // todo: add structure support
                 let f = match import.submodule.as_str() {
                     "io" => io::get_function(bi),
-                    "types" => types::get_function(bi),
+                    "numbers" => numbers::get_function(bi),
                     _ => panic!()
                 };
                 funcs.push(f);

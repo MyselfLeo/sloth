@@ -1,0 +1,12 @@
+builtin numbers;
+builtin io;
+
+
+
+
+
+define main: -> num {
+    value = read();
+    print("Square: " @0.square() "\n");
+    print("Root: " @0.sqrt() "\n");
+}
