@@ -285,7 +285,7 @@ impl TokenizedProgram {
 
                     token_buffer = token_buffer.trim().to_string();
 
-                    if token_buffer.parse::<i64>().is_ok() && c == '.' {
+                    if token_buffer.parse::<i64>().is_ok() && c == '.' && line.chars().nth(c_index + 1).unwrap_or(' ').is_numeric() {
                         token_buffer.push('.');
                     }
 

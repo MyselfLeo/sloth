@@ -93,7 +93,12 @@ impl SlothProgram {
         }
 ;
         match fitting_functions.len() {
-            0 => Err(format!("No function named '{}' with the given inputs", signature.name)),
+            0 => {
+                match &signature.owner_type {
+                    Some(t) => Err(format!("No function named '{}' for type '{}' with the given inputs", signature.name, t)),
+                    None => Err(format!("No function named '{}' with the given inputs", signature.name))
+                }
+            },
             1 => self.get_function(&fitting_functions[0]),
             _ => {Err(format!("Ambiguous function name: '{}' is found in multiple modules. Consider specifying the module ( module:{}(input1 input2 ...) )", signature.name, signature.name))}
         }

@@ -11,14 +11,9 @@ define double for num: -> num {
     @return = 0;
 }
 
-define concat for string: -> num {
-    @self = + @self @self;
-    @return = 0;
-}
 
-
-define main: string -> num {
-    print("before: @0 = " @0 "\n");
-    @0.concat();
-    print("after: @0 = " @0 "\n");
+define main: num -> num {
+    test = @0;
+    @0.double();
+    print(test "\n");
 }

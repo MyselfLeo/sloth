@@ -1,4 +1,4 @@
-use crate::built_in::{BuiltInImport, self};
+use crate::built_in::BuiltInImport;
 use crate::sloth::expression::{ExpressionID, Expression};
 use crate::sloth::function::{CustomFunction, FunctionSignature};
 use crate::sloth::operator::{Operator};
