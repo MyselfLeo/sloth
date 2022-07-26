@@ -16,7 +16,7 @@ impl Type {
             Type::Boolean => Value::Boolean(false),
             Type::Number => Value::Number(0.0),
             Type::String => Value::String("".to_string()),
-            Type::List(_x) => unimplemented!(),
+            Type::List(t) => Value::List(*t.clone(), Vec::new()),
             Type::Struct(_s) => unimplemented!()
         }
     }

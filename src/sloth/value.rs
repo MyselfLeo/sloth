@@ -75,7 +75,7 @@ impl Value {
                     _ => Err(format!("Cannot convert '{}' into a Boolean value", s))
                 }
             }
-            Type::List(_t) => unimplemented!(),
+            Type::List(_t) => Err("Cannot create a list from a string".to_string()),
             Type::Struct(_n) => unimplemented!()
         }
     }

@@ -1,12 +1,7 @@
-#[allow(dead_code)]
 mod tokenizer;
-#[allow(dead_code)]
 mod errors;
-#[allow(dead_code)]
 mod sloth;
-#[allow(dead_code)]
 mod built_in;
-#[allow(dead_code)]
 mod builder;
 
 use clap::Parser;

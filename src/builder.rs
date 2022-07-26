@@ -285,7 +285,7 @@ fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, w
         },
         
         // Parameter call
-        Some((t, p)) => {
+        Some((_, p)) => {
             let expr_pos = first_expr.1.until(p);
             let param_call = Expression::ParameterCall(first_expr.0, ident, expr_pos.clone());
             (program.push_expr(param_call), expr_pos)
@@ -321,6 +321,31 @@ fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, w
 
 
 
+/// Parse a literal list
+fn parse_list(iterator: &mut TokenIterator, program: &mut SlothProgram, _: bool) -> Result<Value, Error> {
+
+    let starting_pos;
+    // The starting token must be an open square bracket
+    if let Some((Token::Separator(Separator::OpenSquareBracket), p)) = iterator.current() {starting_pos = p;}
+    else {panic!("Called parse_list but iterator is not a on an open square bracket")}
+
+
+    
+
+
+    todo!()
+}
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -340,7 +365,15 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
             (Expression::Literal(Value::from_raw_token(s.clone()), first_position.clone()), first_position.clone())
         },
 
-        // TODO: lists
+    
+        // The token is an open square bracket. It's the start of a list
+        Some((Token::Separator(Separator::OpenSquareBracket), _)) => {
+            let list = parse_list(iterator, program, warning);
+
+            todo!()
+        }
+
+
 
         // The token is an identifier. CHeck the next token to see if its a function call, a variable call or a list access (lists not implemented yet)
         Some((Token::Identifier(s), first_position)) =>  {
