@@ -38,7 +38,7 @@ impl Value {
             Value::List(_, values) => {
                 let mut string_vec: Vec<String> = Vec::new();
                 for v in values {string_vec.push(v.to_string())}
-                format!("[{}]", string_vec.join(", ")).to_string()
+                format!("[{}]", string_vec.join(" ")).to_string()
             },
             Value::Struct(s, _) => format!("'{}' object", s.name).to_string()
         }

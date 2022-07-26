@@ -321,19 +321,37 @@ fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, w
 
 
 
-/// Parse a literal list
-fn parse_list(iterator: &mut TokenIterator, program: &mut SlothProgram, _: bool) -> Result<Value, Error> {
+/// Parse a list
+fn parse_list(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<(Expression, ElementPosition), Error> {
 
     let starting_pos;
+    let mut last_pos;
     // The starting token must be an open square bracket
     if let Some((Token::Separator(Separator::OpenSquareBracket), p)) = iterator.current() {starting_pos = p;}
     else {panic!("Called parse_list but iterator is not a on an open square bracket")}
 
 
+    let mut exprs: Vec<ExpressionID> = Vec::new();
+
     
+    iterator.next();
 
 
-    todo!()
+    // Until we meet a closed square bracket, we parse each expressions
+    while match iterator.current() {Some((Token::Separator(Separator::CloseSquareBracket), _)) => false, Some(_) => true, None => return Err(eof_error(line!()))} {
+        let (expr_id, p) = parse_expression(iterator, program, warning)?;
+        exprs.push(expr_id);
+        last_pos = p;
+    }
+
+    // At this point, the iterator should be on a closed square bracket
+    if let Some((Token::Separator(Separator::CloseSquareBracket), p)) = iterator.current() {last_pos = p;}
+    else {panic!("parse_list do not finish on a ']'")}
+
+    iterator.next();
+    let pos = starting_pos.until(last_pos);
+
+    Ok((Expression::ListInit(exprs, pos.clone()), pos))
 }
 
 
@@ -367,11 +385,7 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
 
     
         // The token is an open square bracket. It's the start of a list
-        Some((Token::Separator(Separator::OpenSquareBracket), _)) => {
-            let list = parse_list(iterator, program, warning);
-
-            todo!()
-        }
+        Some((Token::Separator(Separator::OpenSquareBracket), _)) => parse_list(iterator, program, warning)?,
 
 
 

@@ -1,3 +1,7 @@
+builtin io;
+
 define main: -> num {
-    l = [1 2 3 4 5];
+    l = [true false false true true];
+
+    print(l "\n");
 }

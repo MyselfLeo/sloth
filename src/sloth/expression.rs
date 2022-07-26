@@ -1,4 +1,5 @@
 use super::function::FunctionSignature;
+use super::types::Type;
 use super::value::Value;
 use super::operator::{Operator, apply_op};
 use super::scope::Scope;
@@ -23,6 +24,7 @@ impl ExpressionID {
 /// Expressions are objects that can be evaluated into a value
 pub enum Expression {
     Literal(Value, ElementPosition),                                                     // value of the literal
+    ListInit(Vec<ExpressionID>, ElementPosition),                                        // list initialised in code. Example: [1 2 3 4 5]
     VariableCall(String, ElementPosition),                                               // name of the variable
     ParameterCall(ExpressionID, String, ElementPosition),                                // name of a parameter of a structure or built-in that can be accessed
     Operation(Operator, Option<ExpressionID>, Option<ExpressionID>, ElementPosition),    // Operator to apply to one or 2 values from the Scope Expression stack (via index)
@@ -39,6 +41,40 @@ impl Expression {
         match self {
             // return this literal value
             Expression::Literal(v, _) => Ok(v.clone()),
+
+            // a list
+            Expression::ListInit(exprs, p) => {
+                let mut values: Vec<Value> = Vec::new();
+                let list_type: Type;
+
+                // get the type of the list from the first expression
+                let expr = match program.as_ref().unwrap().get_expr(exprs[0]) {
+                    Ok(e) => e,
+                    Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
+                };
+                values.push(expr.evaluate(scope, program)?);
+
+                list_type = values[0].get_type();
+
+
+                // Add the other elements to the value list, but checking the type of the value first
+                for id in exprs.iter().skip(1) {
+                    let expr = match program.as_ref().unwrap().get_expr(*id) {
+                        Ok(e) => e,
+                        Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
+                    };
+
+                    let value = expr.evaluate(scope, program)?;
+
+                    if value.get_type() == list_type {values.push(value);}
+                    else {
+                        let err_msg = format!("Created a list of type '{}' but this value is of type '{}'", list_type, value.get_type());
+                        return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), Some(expr.get_pos())));
+                    }
+                }
+
+                Ok(Value::List(list_type, values))
+            },
 
             // return the value stored in this variable
             Expression::VariableCall(name, p) => {
@@ -233,4 +269,35 @@ impl Expression {
             }
         }
     }
+
+
+
+
+
+    /// Return the position of the expression
+    pub fn get_pos(&self) -> ElementPosition {
+        match self {
+            Expression::Literal(_, p) => p,
+            Expression::ListInit(_, p) => p,
+            Expression::VariableCall(_, p) => p,
+            Expression::ParameterCall(_, _, p) => p,
+            Expression::Operation(_, _, _, p) => p,
+            Expression::FunctionCall(_, _, p) => p,
+            Expression::MethodCall(_, _, _, p) => p,
+        }.clone()
+    }
 }
+
+
+
+
+
+/*
+
+    Literal(Value, ElementPosition),                                                     // value of the literal
+    ListInit(Vec<ExpressionID>, ElementPosition),                                        // list initialised in code. Example: [1 2 3 4 5]
+    VariableCall(String, ElementPosition),                                               // name of the variable
+    ParameterCall(ExpressionID, String, ElementPosition),                                // name of a parameter of a structure or built-in that can be accessed
+    Operation(Operator, Option<ExpressionID>, Option<ExpressionID>, ElementPosition),    // Operator to apply to one or 2 values from the Scope Expression stack (via index)
+    FunctionCall(FunctionSignature, Vec<ExpressionID>, ElementPosition),                 // name of the function and its list of expressions to be evaluated
+    MethodCall(ExpressionID, FunctionSignature, Vec<ExpressionID>, ElementPosition)      // call of a method of a Value */
