@@ -1,15 +1,16 @@
-builtin types:to_string;
+builtin numbers:to_string;
+builtin strings:len;
 builtin io:print;
 
 
 
-define main: num num -> num {
+define main: num num num -> num {
     i = 0;
     result = "";
-    while < i 10 {
-        result = + result + @0.to_string() @1.to_string();
+    while & < i @0 > @0 0 {
+        result = + result + @1.to_string() @2.to_string();
         i = + i 1;
     };
 
-    print(result "\n");
+    if > result.len() 0 {print(result "\n");};
 }
