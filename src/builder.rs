@@ -271,7 +271,7 @@ fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, w
 
 
     // Check whether the call is a method call or a parameter call
-    match iterator.peek(1) {
+    let expr = match iterator.peek(1) {
         // method call
         Some((Token::Separator(Separator::OpenParenthesis), _)) | Some((Token::Separator(Separator::Colon), _)) => {
             let function = parse_functioncall(iterator, program, warning)?;
@@ -279,7 +279,7 @@ fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, w
             if let Expression::FunctionCall(signature, input_exprs, pos) = function {
                 let expr_pos = first_expr.1.until(pos);
                 let method_call = Expression::MethodCall(first_expr.0, signature, input_exprs, expr_pos.clone());
-                return Ok((program.push_expr(method_call), expr_pos));
+                (program.push_expr(method_call), expr_pos)
             }
             else {panic!("Function 'parse_functioncall' did not return an Expression::Functioncall value")}
         },
@@ -288,10 +288,20 @@ fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, w
         Some((t, p)) => {
             let expr_pos = first_expr.1.until(p);
             let param_call = Expression::ParameterCall(first_expr.0, ident, expr_pos.clone());
-            return Ok((program.push_expr(param_call), expr_pos));
+            (program.push_expr(param_call), expr_pos)
         },
 
         None => return Err(eof_error(line!()))
+    };
+
+
+
+    // If after parsing the expression, the iterator is on a Separator::Period, the expression is in fact not finished here.
+    // It is a variable call or a method call on the result of that expression/the value stored in the variable forming this expression
+    match iterator.current() {
+        Some((Token::Separator(Separator::Period), _)) => parse_second_expr(iterator, program, warning, expr),
+        None => Err(eof_error(line!())),
+        _ => Ok(expr)
     }
 
 

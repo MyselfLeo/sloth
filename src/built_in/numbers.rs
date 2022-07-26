@@ -22,9 +22,9 @@ pub const BUILTINS: [&str; 3] = [
 /// Return a reference to a new SlothFunction. Panics if the function does not exists
 pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
     match f_name.as_str() {
-        "to_string" => Box::new(BuiltinTypesToString {}),
-        "square" => Box::new(BuiltinTypesSquare {}),
-        "sqrt" => Box::new(BuiltinTypesSqrt {}),
+        "to_string" => Box::new(BuiltinNumToString {}),
+        "square" => Box::new(BuiltinNumSquare {}),
+        "sqrt" => Box::new(BuiltinNumSqrt {}),
         n => panic!("Requested unknown built-in '{}'", n)
     }
 }
@@ -35,8 +35,8 @@ pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
 
 #[derive(SlothFunction)]
 #[name = "to_string"] #[module = "numbers"] #[output = "string"] #[owner = "num"]
-pub struct BuiltinTypesToString {}
-impl Callable for BuiltinTypesToString {
+pub struct BuiltinNumToString {}
+impl Callable for BuiltinNumToString {
     unsafe fn call(&self, scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
         let value = scope.get_variable("@self".to_string(), program).unwrap();
 
@@ -55,8 +55,8 @@ impl Callable for BuiltinTypesToString {
 
 #[derive(SlothFunction)]
 #[name = "square"] #[module = "numbers"] #[output = "num"] #[owner = "num"]
-pub struct BuiltinTypesSquare {}
-impl Callable for BuiltinTypesSquare {
+pub struct BuiltinNumSquare {}
+impl Callable for BuiltinNumSquare {
     unsafe fn call(&self, scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
         let value = scope.get_variable("@self".to_string(), program).unwrap();
 
@@ -74,8 +74,8 @@ impl Callable for BuiltinTypesSquare {
 
 #[derive(SlothFunction)]
 #[name = "sqrt"] #[module = "numbers"] #[output = "num"] #[owner = "num"]
-pub struct BuiltinTypesSqrt {}
-impl Callable for BuiltinTypesSqrt {
+pub struct BuiltinNumSqrt {}
+impl Callable for BuiltinNumSqrt {
     unsafe fn call(&self, scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
         let value = scope.get_variable("@self".to_string(), program).unwrap();
 

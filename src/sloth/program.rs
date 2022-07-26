@@ -252,4 +252,14 @@ impl SlothProgram {
             println!("{:25}{:15}{:15}{:25}{:15}", signature.name, type_txt, module_txt, input_types_txt, output_type_str);
         }
     }
+
+
+
+    /// Print to console the list of expressions defined in the program
+    pub fn print_exprs(self)  {
+        println!("{:15}{}", "EXPRESSION ID", "EXPRESSION");
+        for (id, e) in self.expressions {
+            println!("{:<15}{:?}", id.id, e);
+        }
+    }
 }

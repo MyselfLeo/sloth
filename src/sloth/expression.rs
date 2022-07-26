@@ -10,7 +10,7 @@ use crate::tokenizer::ElementPosition;
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 /// Used by scopes to reference to parent scope in the Scope stack
 pub struct ExpressionID {
-    id: u64
+    pub id: u64
 }
 impl ExpressionID {
     pub fn new(value: u64) -> ExpressionID {
