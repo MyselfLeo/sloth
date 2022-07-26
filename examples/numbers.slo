@@ -1,4 +1,3 @@
-builtin numbers;
 builtin strings;
 builtin io;
 
@@ -7,6 +6,6 @@ builtin io;
 
 
 define main: -> num {
-    value = read().to_num().square();
-    print("Value: " value "\n");
+    value = read().len();
+    print("Value lenght: " value "\n");
 }

@@ -58,6 +58,7 @@ impl Callable for BuiltinStringToNum {
 
 
 
+
 #[derive(SlothFunction)]
 #[name = "len"] #[module = "strings"] #[output = "num"] #[owner = "string"]
 pub struct BuiltinStringLen {}
