@@ -1,6 +1,6 @@
-use crate::built_in::{BuiltInImport};
+use crate::built_in::BuiltInImport;
 use crate::sloth::expression::{ExpressionID, Expression};
-use crate::sloth::function::{CustomFunction};
+use crate::sloth::function::{CustomFunction, FunctionSignature};
 use crate::sloth::operator::{Operator};
 use crate::sloth::program::SlothProgram;
 use crate::sloth::statement::Statement;
@@ -8,7 +8,7 @@ use crate::sloth::types::Type;
 use crate::sloth::value::Value;
 use crate::tokenizer::{TokenizedProgram, Token, ElementPosition, Separator};
 use crate::errors::{Error, ErrorMessage, Warning};
-
+use regex::Regex;
 
 
 const UNEXPECTED_EOF_ERR_MSG: &str = "Unexpected End Of File";
@@ -91,15 +91,55 @@ impl TokenIterator {
 
 /// Parse a function call
 fn parse_functioncall(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<Expression, Error> {
-    let function_name;
+    let mut module: Option<String> = None;
+    let mut function_name= String::new();
+
     let start_pos;
 
-    // Get the function's identifier
-    if let Some((Token::Identifier(s), pos)) = iterator.current() {
-        function_name = s;
+    // Get the first identifier. It can either be a module name (followed by a colon) or the name of the function (followed by a '(')
+    let current = iterator.current().clone();
+    if let Some((Token::Identifier(s), pos)) = current {
         start_pos = pos;
+
+        match iterator.peek(1) {
+            Some((Token::Separator(Separator::OpenParenthesis), _)) => function_name = s,
+            Some((Token::Separator(Separator::Colon), _)) => module = Some(s),
+            Some((t, p)) => {
+                let err_msg = format!("Expected '(' or ':', got unexpected token '{}'", t.original_string());
+                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)))
+            },
+            _ => return Err(eof_error(line!()))
+        };
+
     }
     else {panic!("Function 'parse_functioncall' called but token iterator is not on a function call.")}
+
+
+
+    if module.is_some() {
+
+        // Next token must be ":"
+        match iterator.next() {
+            Some((token, position)) => {
+                if token != Token::Separator(Separator::Colon) {
+                    let err_msg = format!("Expected ':', got unexpected token '{}'", token.original_string());
+                    return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(position.clone())));
+                }
+            }
+            None => return Err(eof_error(line!()))
+        };
+
+
+        // Next token is the function's name
+        match iterator.next() {
+            Some((Token::Identifier(s), _)) => function_name = s,
+            Some((t, p)) => {
+                let err_msg = format!("Expected function name, got unexpected token '{}'", t.original_string());
+                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())));
+            },
+            None => return Err(eof_error(line!()))
+        };
+    }
 
 
     // Next token must be an open parenthesis
@@ -141,8 +181,10 @@ fn parse_functioncall(iterator: &mut TokenIterator, program: &mut SlothProgram, 
 
     let functioncall_pos = start_pos.until(last_pos);
 
+    let func_id = FunctionSignature::new(module, function_name, None, None, None);
+
     iterator.next();
-    Ok(Expression::FunctionCall(function_name, inputs_expr_id, functioncall_pos))
+    Ok(Expression::FunctionCall(func_id, inputs_expr_id, functioncall_pos))
 }
 
 
@@ -211,6 +253,82 @@ fn parse_operation(iterator: &mut TokenIterator, program: &mut SlothProgram, war
 
 
 
+
+
+/// In the case of a ParameterCall or a MethodCall (expr.attribute or expr.method()), this function parses the second part (after the period)
+/// It is given the ExpressionID and ElementPosition of the first expression
+fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool, first_expr: (ExpressionID, ElementPosition)) -> Result<(ExpressionID, ElementPosition), Error> {
+    // name of the variable or function to use
+    let ident = match iterator.next() {
+        Some((Token::Identifier(s), _)) => s,
+        Some((t, p)) => {
+            let err_msg = format!("Expected identifier, got unexpected token '{}'", t.original_string());
+            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)));
+        },
+        None => return Err(eof_error(line!()))
+    };
+
+
+
+    // Check whether the call is a method call or a parameter call
+    let expr = match iterator.peek(1) {
+        // method call
+        Some((Token::Separator(Separator::OpenParenthesis), _)) | Some((Token::Separator(Separator::Colon), _)) => {
+            let function = parse_functioncall(iterator, program, warning)?;
+            // Transforms the FunctionCall expression given by the parse_functioncall function into a MethodCall
+            if let Expression::FunctionCall(signature, input_exprs, pos) = function {
+                let expr_pos = first_expr.1.until(pos);
+                let method_call = Expression::MethodCall(first_expr.0, signature, input_exprs, expr_pos.clone());
+                (program.push_expr(method_call), expr_pos)
+            }
+            else {panic!("Function 'parse_functioncall' did not return an Expression::Functioncall value")}
+        },
+        
+        // Parameter call
+        Some((t, p)) => {
+            let expr_pos = first_expr.1.until(p);
+            let param_call = Expression::ParameterCall(first_expr.0, ident, expr_pos.clone());
+            (program.push_expr(param_call), expr_pos)
+        },
+
+        None => return Err(eof_error(line!()))
+    };
+
+
+
+    // If after parsing the expression, the iterator is on a Separator::Period, the expression is in fact not finished here.
+    // It is a variable call or a method call on the result of that expression/the value stored in the variable forming this expression
+    match iterator.current() {
+        Some((Token::Separator(Separator::Period), _)) => parse_second_expr(iterator, program, warning, expr),
+        None => Err(eof_error(line!())),
+        _ => Ok(expr)
+    }
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /// Parse an expression, push it to the program's expression stack and return its id
 fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<(ExpressionID, ElementPosition), Error> {
     // we use the first token of the expression to find its type
@@ -219,7 +337,7 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
         // The expression starts with a Literal, so it's only this literal
         Some((Token::Literal(s), first_position)) => {
             iterator.next();
-            (Expression::Literal(Value::from_string(s.clone()), first_position.clone()), first_position.clone())
+            (Expression::Literal(Value::from_raw_token(s.clone()), first_position.clone()), first_position.clone())
         },
 
         // TODO: lists
@@ -227,7 +345,7 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
         // The token is an identifier. CHeck the next token to see if its a function call, a variable call or a list access (lists not implemented yet)
         Some((Token::Identifier(s), first_position)) =>  {
             match iterator.peek(1) {
-                Some((Token::Separator(Separator::OpenParenthesis), _)) => {
+                Some((Token::Separator(Separator::OpenParenthesis), _)) | Some((Token::Separator(Separator::Colon), _)) => {
                     let func_call = parse_functioncall(iterator, program, warning)?;
                     if let Expression::FunctionCall(_, _, p) = func_call.clone() {(func_call, p)}
                     else {panic!("parse_functioncall did not return an Expression::FunctionCall enum")}
@@ -255,7 +373,17 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
     };
 
 
-    Ok((program.push_expr(expr), expr_pos))
+
+    let first_expr = (program.push_expr(expr), expr_pos);
+
+
+    // If after parsing the expression, the iterator is on a Separator::Period, the expression is in fact not finished here.
+    // It is a variable call or a method call on the result of that expression/the value stored in the variable forming this expression
+    match iterator.current() {
+        Some((Token::Separator(Separator::Period), _)) => parse_second_expr(iterator, program, warning, first_expr),
+        None => Err(eof_error(line!())),
+        _ => Ok(first_expr)
+    }
 }
 
 
@@ -508,6 +636,21 @@ fn parse_while(iterator: &mut TokenIterator, program: &mut SlothProgram, warning
 
 
 
+fn get_type_from_str(str: &str) -> Result<Type, String> {
+    match str {
+        "num" => Ok(Type::Number),
+        "bool" => Ok(Type::Boolean),
+        "string" => Ok(Type::String),
+        s => {
+            let identifier_re = Regex::new(r"^([a-zA-Z_][a-zA-Z0-9_]*)$").unwrap();
+            if identifier_re.is_match(s) {Ok(Type::Struct(s.to_string()))}
+            else {Err(format!("Expected structure name, got '{}'", s))}
+        }
+    }
+}
+
+
+
 
 
 
@@ -544,6 +687,32 @@ fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram, warn
     };
 
 
+
+    // If the next token is "for", the function is a method of a given type
+    let owner_type = match iterator.peek(1) {
+        Some((Token::Keyword(kw), _)) => {
+            if kw == "for".to_string() {
+                iterator.next();
+
+                // next token must be the type name
+                Some(match iterator.next() {
+                    Some((t, p)) => match get_type_from_str(&t.original_string()) {
+                        Ok(t) => t,
+                        Err(s) => return Err(Error::new(ErrorMessage::TypeError(s), Some(p)))
+                    },
+
+                    None => return Err(eof_error(line!())),
+                })
+            }
+            else {None}
+        },
+        _ => None
+    };
+
+
+
+
+
     // Next token must be a colon
     match iterator.next() {
         Some(t) => {
@@ -567,16 +736,10 @@ fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram, warn
     } {
         // Check the value of the keyword
         match iterator.next() {
-            Some(e) => match e.0.original_string().as_str() {
-                "num" => input_types.push(Type::Number),
-                "bool" => input_types.push(Type::Boolean),
-                "string" => input_types.push(Type::String),
-                s => {
-                    let err_msg = format!("Unexpected input type '{}'", s);
-                    return Err(Error::new(ErrorMessage::TypeError(err_msg), Some(e.1.clone())));
-                }
-            }
-
+            Some((t, p)) => match get_type_from_str(t.original_string().as_str()) {
+                Ok(t) => input_types.push(t),
+                Err(e) => return Err(Error::new(ErrorMessage::TypeError(e), Some(p)))
+            },
             // This should not happen as it's already checked with peek(). But just in case
             None => return Err(eof_error(line!()))
         }
@@ -598,15 +761,10 @@ fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram, warn
 
     // The next token is the return value
     let output_type = match iterator.next() {
-        Some(e) => match e.0.original_string().as_str() {
-            "num" => Type::Number,
-            "bool" => Type::Boolean,
-            "string" => Type::String,
-            s => {
-                let err_msg = format!("Unexpected output type '{}'", s);
-                return Err(Error::new(ErrorMessage::TypeError(err_msg), Some(e.1.clone())));
-            }
-        }
+        Some((t, p)) => match get_type_from_str(t.original_string().as_str()) {
+            Ok(t) => t,
+            Err(e) => return Err(Error::new(ErrorMessage::TypeError(e), Some(p)))
+        },
         None => return Err(eof_error(line!()))
     };
 
@@ -637,9 +795,14 @@ fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram, warn
 
     // Create the function and push it to the program
     let function = CustomFunction {
-        name: f_name,
-        input_types: input_types,
-        output_type: output_type,
+        signature: FunctionSignature::new(
+            None,
+            f_name.clone(),
+            owner_type,
+            Some(input_types),
+            Some(output_type)
+        ),
+
         instructions: statements
     };
     program.push_function(Box::new(function));
@@ -657,7 +820,7 @@ fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram, warn
 
 
 
-/// Parse a "use" statement and add the requested import to the program's list of imports.
+/// Parse a "builtin" statement and add the requested import to the program's list of imports.
 fn parse_builtin(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<(), Error> {
     let first_pos;
 

@@ -1,0 +1,11 @@
+builtin io;
+builtin types;
+
+define main: bool -> num {
+    if @0 {
+        print("You said true!\n");
+    };
+    if ! @0 {
+        print("You said false!\n");
+    };
+}

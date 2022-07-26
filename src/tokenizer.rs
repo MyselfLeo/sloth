@@ -1,13 +1,13 @@
 // The tokenizer (TokenisedProgram) takes a .slo file and convert it into a list of tokens,
-// to be used by the Parser to generate a Program Tree
+// to be used by the Builder to generate a Program Tree
 
 use crate::errors::{Error, ErrorMessage};
 use regex::Regex;
 
 
-const KEYWORDS: [&str; 11] = ["define", "num", "bool", "string", "list", "none", "->", "=", "if", "while", "builtin"];
+const KEYWORDS: [&str; 12] = ["define", "num", "bool", "string", "list", "none", "->", "=", "if", "while", "builtin", "for"];
 const OPERATORS: [&str; 12] = ["+", "-", "*", "/", "<", ">", "<=", ">=", "==", "&", "?", "!"];
-const SEPARATORS: [&str; 9] = ["(", ")", "{", "}", "[", "]", ";", ":", ","];
+const SEPARATORS: [&str; 11] = ["(", ")", "{", "}", "[", "]", ";", ":", ",", "|", "."];
 
 // Unlike SEPARATORS, those do not have a semantic meaning (only used for separating tokens)
 const DEFAULT_SEPARATORS: [char; 2] = [' ', '"'];
@@ -38,6 +38,8 @@ pub enum Separator {
     SemiColon,
     Colon,
     Comma,
+    Line,
+    Period
 }
 
 impl Separator {
@@ -51,7 +53,9 @@ impl Separator {
             Separator::CloseSquareBracket => "]",
             Separator::SemiColon => ";",
             Separator::Colon => ":",
-            Separator::Comma => ","
+            Separator::Comma => ",",
+            Separator::Line => "|",
+            Separator::Period => ".",
         }.to_string()
     }
 }
@@ -78,6 +82,8 @@ impl Token {
                 ";" => Ok(Token::Separator(Separator::SemiColon)),
                 ":" => Ok(Token::Separator(Separator::Colon)),
                 "," => Ok(Token::Separator(Separator::Comma)),
+                "|" => Ok(Token::Separator(Separator::Line)),
+                "." => Ok(Token::Separator(Separator::Period)),
                 &_ => Err(format!("Unimplemented separator '{}'", string))
             }
         }
@@ -273,50 +279,60 @@ impl TokenizedProgram {
                 // example: "fibonacci_rec:" (2 tokens: Identifier(fibonacci_rec) and Colon)
                 if string_buffer.is_empty() && (SEPARATORS.contains(&c.to_string().as_str()) || DEFAULT_SEPARATORS.contains(&c)) {
 
+                    // SPECIAL CASE: The period can be a separator, but can also be part of a number.
+                    // we check if the current buffer can be parsed into an integer: if so, the period is
+                    // part of the token
+
                     token_buffer = token_buffer.trim().to_string();
 
-                    // Push previous token buffer to the list (if not empty), along with its position.
-                    if !token_buffer.is_empty() {
-                        let position = ElementPosition {
-                            filename: filename.to_string(),
-                            line: token_start.0,
-                            first_column: token_start.1,
-                            last_column: c_index - 1
-                        };
-
-                        match Token::from_str(&token_buffer) {
-                            Ok(s) => {
-                                token_list.push(s);
-                                position_list.push(position);
-                            },
-                            Err(e) => {
-                                return Err(Error::new(ErrorMessage::SyntaxError(e), Some(position)));
-                            },
-                        };
-
-                        token_buffer.clear();
+                    if token_buffer.parse::<i64>().is_ok() && c == '.' && line.chars().nth(c_index + 1).unwrap_or(' ').is_numeric() {
+                        token_buffer.push('.');
                     }
 
-                    // Push the separator as a token, only if SEPARATORS contains the character
-                    if SEPARATORS.contains(&c.to_string().as_str()) {
-                        let position = ElementPosition {
-                            filename: filename.to_string(),
-                            line: line_index,
-                            first_column: c_index,
-                            last_column: c_index
-                        };
+                    else {
+                        // Push previous token buffer to the list (if not empty), along with its position.
+                        if !token_buffer.is_empty() {
+                            let position = ElementPosition {
+                                filename: filename.to_string(),
+                                line: token_start.0,
+                                first_column: token_start.1,
+                                last_column: c_index - 1
+                            };
 
-                        match Token::from_str(&c.to_string()) {
-                            Ok(s) => {
-                                token_list.push(s);
-                                position_list.push(position);
-                            },
-                            Err(e) => {
-                                return Err(Error::new(ErrorMessage::SyntaxError(e), Some(position)));
-                            },
-                        };
+                            match Token::from_str(&token_buffer) {
+                                Ok(s) => {
+                                    token_list.push(s);
+                                    position_list.push(position);
+                                },
+                                Err(e) => {
+                                    return Err(Error::new(ErrorMessage::SyntaxError(e), Some(position)));
+                                },
+                            };
 
-                        token_buffer.clear();
+                            token_buffer.clear();
+                        }
+
+                        // Push the separator as a token, only if SEPARATORS contains the character
+                        if SEPARATORS.contains(&c.to_string().as_str()) {
+                            let position = ElementPosition {
+                                filename: filename.to_string(),
+                                line: line_index,
+                                first_column: c_index,
+                                last_column: c_index
+                            };
+
+                            match Token::from_str(&c.to_string()) {
+                                Ok(s) => {
+                                    token_list.push(s);
+                                    position_list.push(position);
+                                },
+                                Err(e) => {
+                                    return Err(Error::new(ErrorMessage::SyntaxError(e), Some(position)));
+                                },
+                            };
+
+                            token_buffer.clear();
+                        }
                     }
 
                     continue 'chars;

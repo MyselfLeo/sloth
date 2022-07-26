@@ -1,5 +1,5 @@
 use crate::errors::Error;
-use crate::sloth::function::SlothFunction;
+use crate::sloth::function::{SlothFunction, FunctionSignature, Callable};
 use crate::sloth::program::SlothProgram;
 use crate::sloth::scope::Scope;
 use crate::sloth::types::Type;
@@ -7,11 +7,19 @@ use crate::sloth::value::Value;
 use std::io::{self, Write};
 use text_io::read;
 
+use sloth_derive::SlothFunction;
+
+
+
+
+
+
+
 
 
 pub const BUILTINS: [&str; 2] = [
     "print",
-    "read",
+    "read"
 ];
 
 
@@ -28,22 +36,23 @@ pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
 
 
 
-pub struct BuiltinIoPrint {}
 
-impl SlothFunction for BuiltinIoPrint {
-    fn get_name(&self) -> String {
-        "print".to_string()
-    }
-    fn get_output_type(&self) -> Type {
-        Type::Number
-    }
+
+
+
+
+
+
+#[derive(SlothFunction)]
+#[name = "print"] #[module = "io"] #[output = "num"]
+pub struct BuiltinIoPrint {}
+impl Callable for BuiltinIoPrint {
     unsafe fn call(&self, scope: &mut Scope, _: &mut SlothProgram) -> Result<(), Error> {
         let inputs = scope.get_inputs();
         let mut text = String::new();
 
-        for (i, v) in inputs.iter().enumerate() {
+        for (_, v) in inputs.iter().enumerate() {
             text += &format!("{}", v).replace("\\n", "\n");
-            if i < inputs.len() - 1 {text += " "}
         }
         print!("{}", text);
 
@@ -56,14 +65,11 @@ impl SlothFunction for BuiltinIoPrint {
 
 
 
+
+#[derive(SlothFunction)]
+#[name = "read"] #[module = "io"] #[output = "string"]
 pub struct BuiltinIoRead {}
-impl SlothFunction for BuiltinIoRead {
-    fn get_name(&self) -> String {
-        "read".to_string()
-    }
-    fn get_output_type(&self) -> Type {
-        Type::String
-    }
+impl Callable for BuiltinIoRead {
     unsafe fn call(&self, scope: &mut Scope, _: &mut SlothProgram) -> Result<(), Error> {
         let inputs = scope.get_inputs();
         let mut text = String::new();

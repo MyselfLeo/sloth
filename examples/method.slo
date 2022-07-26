@@ -1,0 +1,19 @@
+builtin io;
+
+# Return the square of the number it is used on
+define square for num: -> num {
+    @return = * @self @self;
+}
+
+
+define double for num: -> num {
+    @self = * 2 @self;
+    @return = 0;
+}
+
+
+define main: num -> num {
+    test = @0;
+    @0.double();
+    print(test "\n");
+}

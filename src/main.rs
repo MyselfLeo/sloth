@@ -9,9 +9,9 @@ mod built_in;
 #[allow(dead_code)]
 mod builder;
 
-
 use clap::Parser;
-use sloth::{program::SlothProgram, value::Value};
+use sloth::program::SlothProgram;
+use sloth::value::Value;
 
 
 
@@ -27,6 +27,14 @@ struct Args {
     #[clap(long, value_parser)]
     tokens: bool,
 
+    /// Display the list of the functions generated from the file instead of running it
+    #[clap(long, value_parser)]
+    functions: bool,
+
+    /// Display the list of the expressions generated from the file instead of running it
+    #[clap(long, value_parser)]
+    expr: bool,
+
     /// Print the return code after execution
     #[clap(long, value_parser)]
     code: bool,
@@ -39,11 +47,6 @@ struct Args {
     #[clap(value_parser)]
     arguments: Vec<String>,
 }
-
-
-
-
-
 
 
 fn main() {
@@ -63,17 +66,25 @@ fn main() {
                     Err(e) => {e.abort(); return},
                     Ok(p) => p,
                 };
-                unsafe {
-                    let return_value = program.run(args.arguments);
 
-                    match return_value {
-                        Err(e) => e.abort(),
-                        Ok(v) => match v {
-                            Value::Number(x) => {
-                                if args.code {println!("Exited with return code {}", x)};
-                                std::process::exit(x as i32)
-                            },
-                            _ => panic!("The main function must return a Number value")
+                
+                if args.functions {program.print_functions()}
+
+                else if args.expr {program.print_exprs()}
+
+                else {
+                    unsafe {
+                        let return_value = program.run(args.arguments);
+
+                        match return_value {
+                            Err(e) => e.abort(),
+                            Ok(v) => match v {
+                                Value::Number(x) => {
+                                    if args.code {println!("Exited with return code {}", x)};
+                                    std::process::exit(x as i32)
+                                },
+                                _ => panic!("The main function must return a Number value")
+                            }
                         }
                     }
                 }

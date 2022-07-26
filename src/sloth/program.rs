@@ -1,7 +1,9 @@
-use std::collections::HashMap;
-use crate::errors::{Error, ErrorMessage};
+use std::collections::{HashMap, BTreeMap};
+use std::iter::zip;
+
+use crate::errors::{Error, ErrorMessage, formatted_vec_string};
 use crate::tokenizer::ElementPosition;
-use super::function::SlothFunction;
+use super::function::{SlothFunction, FunctionSignature};
 use super::scope::{Scope, ScopeID};
 use super::expression::{Expression, ExpressionID};
 use super::structure::StructDefinition;
@@ -17,8 +19,8 @@ use crate::built_in;
 /// Note: Variables are stored in the scopes
 pub struct SlothProgram {
     filename: String,
-    functions: HashMap<String, Box<dyn SlothFunction>>,
-    structures: HashMap<String, StructDefinition>,
+    functions: BTreeMap<FunctionSignature, Box<dyn SlothFunction>>,
+    structures: BTreeMap<String, StructDefinition>,
     scopes: HashMap<ScopeID, Scope>,
     expressions: HashMap<ExpressionID, Expression>,
     scope_nb: u64,
@@ -33,8 +35,8 @@ impl SlothProgram {
     pub fn new(filename: String) -> SlothProgram {
         let mut program = SlothProgram {
             filename,
-            functions: HashMap::new(),
-            structures: HashMap::new(),
+            functions: BTreeMap::new(),
+            structures: BTreeMap::new(),
             scopes: HashMap::new(), 
             expressions: HashMap::new(),
             scope_nb: 0,
@@ -55,7 +57,7 @@ impl SlothProgram {
     /// Add a function to the Function Hashmap.
     /// Can return an optional warning message if a previously defined function was overwritten
     pub fn push_function(&mut self, function: Box<dyn SlothFunction>) -> Option<String> {
-        match self.functions.insert(function.get_name(), function) {
+        match self.functions.insert(function.get_signature(), function) {
             Some(f) => {
                 let msg = format!("Redefinition of function {}. Previous definition was overwritten", f.get_name());
                 Some(msg)
@@ -64,16 +66,45 @@ impl SlothProgram {
         }
     }
 
-    /// Return a clone of the requested function definition, or an error if the function is not defined
-    pub fn get_function(&self, name: String) -> Result<&Box<dyn SlothFunction>, String> {
-        match self.functions.get(&name) {
-            None => {
-                let msg = format!("Called undefined function {}", name);
-                Err(msg)
-            }
-            Some(v) => Ok(v)
+    /// Return a clone of the requested function definition
+    pub fn get_function(&self, signature: &FunctionSignature) -> Result<&Box<dyn SlothFunction>, String> {
+        //println!("[DEBUG] Looking for {:?}", signature);
+
+        /*for (f, _) in &self.functions {
+            println!("[DEBUG]     I have {:?}", f)
+        }*/
+
+        match self.functions.get(&signature) {
+            None => {}
+            Some(v) => {return Ok(v);}
+        };
+
+        if signature.module.is_some() {
+            return Err(format!("No function named '{}' in the module '{}'", signature.name, signature.module.clone().unwrap()));
+        }
+
+        let mut fitting_functions: Vec<FunctionSignature> = Vec::new();
+
+        for (sign, _) in &self.functions {
+            if sign.name == signature.name
+            && sign.owner_type == signature.owner_type
+            && (sign.input_types == signature.input_types || sign.input_types.is_none() || signature.input_types.is_none())
+            && (sign.output_type == signature.output_type || signature.output_type.is_none()) {fitting_functions.push(sign.clone());}
+        }
+;
+        match fitting_functions.len() {
+            0 => {
+                match &signature.owner_type {
+                    Some(t) => Err(format!("No function named '{}' for type '{}' with the given inputs", signature.name, t)),
+                    None => Err(format!("No function named '{}' with the given inputs", signature.name))
+                }
+            },
+            1 => self.get_function(&fitting_functions[0]),
+            _ => {Err(format!("Ambiguous function name: '{}' is found in multiple modules. Consider specifying the module ( module:{}(input1 input2 ...) )", signature.name, signature.name))}
         }
     }
+
+
 
 
     /// Create a scope to the Scope stack and return its ID
@@ -91,6 +122,13 @@ impl SlothProgram {
 
         scope_id
     }
+
+
+    /// Remove the scope, freeing memory
+    pub fn dump_scope(&mut self, scope: &ScopeID) {
+        self.scopes.remove(scope);
+    }
+
 
     /// Return a reference to the scope with the given ScopeID
     pub fn get_scope(&mut self, id: ScopeID) -> Result<&Scope, String>{
@@ -136,35 +174,92 @@ impl SlothProgram {
 
     /// Find the 'main' function, check its validity, execute it with the given arguments and return what the main function returned
     pub unsafe fn run(&mut self, s_args: Vec<String>) -> Result<Value, Error> {
-        let main_func = match self.get_function("main".to_string()) {
+        let main_func_id = FunctionSignature::new(None, "main".to_string(), None, None, Some(Type::Number));
+
+
+        // Check if the main function exists and is well defined
+        let main_func = match self.get_function(&main_func_id) {
             Ok(v) => v,
-            Err(_) => {return Err(Error::new(ErrorMessage::NoEntryPoint("Your program needs a 'main' function, returning a 'num' value, as an entry point.".to_string()), None))}
+            Err(_) => {return Err(Error::new(ErrorMessage::NoEntryPoint("Your program needs a 'main' function, returning a Number (the return code of your program), as an entry point.".to_string()), None))}
         };
 
-        // the 'main' function must return a Number value, which will be rounded and returned as exit code
-        if main_func.get_output_type() != Type::Number {
-            return Err(Error::new(ErrorMessage::InvalidEntryPoint("The 'main' function must return a Number, that will be the exit code of your program".to_string()), None))
-        }
+        let main_inputs = main_func.get_signature().input_types.unwrap();
 
         // Convert given arguments to Values, push them to the Expression Stack and store its Expression ids
         let mut args_id: Vec<ExpressionID> = Vec::new();
 
         let dummy_pos = ElementPosition {filename: "".to_string(), line: 0, first_column: 0, last_column: 0};
 
-        for arg in s_args {
-            let expr = Expression::Literal(Value::from_string(arg), dummy_pos.clone());
+        if s_args.len() != main_inputs.len() {
+            // Create a string representing the required arguments types, like "num, bool, string"
+            let input_types_list = formatted_vec_string(&main_inputs, ',');
+            let err_msg = format!("Given {} command-line argument(s), but the main function requires {} argument(s): {}", s_args.len(), main_inputs.len(), input_types_list);
+            return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None))
+        }
+
+        for (arg, t) in zip(s_args, main_inputs) {
+            let value = match Value::string_to_value(arg, t) {
+                Ok(v) => v,
+                Err(e) => {
+                    let err_msg = format!("Error while parsing command-line arguments: {}", e);
+                    return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None))
+                }
+            };
+
+            let expr = Expression::Literal(value, dummy_pos.clone());
             args_id.push(self.push_expr(expr))
         }
 
-        // Check that the main function exists
-        // technically, the FunctionCall we create below would be able to return an error if 'main' does not exists. HOWEVER it has a dummy_pos, so generating an error from it would
-        // panic as no file is named "".
-        if !self.functions.contains_key("main") {return Err(Error::new(ErrorMessage::NoEntryPoint("Your program needs a 'main' function".to_string()), None))}
-
         // Call the main function
-        let scope = self.get_scope(self.main_scope.unwrap()).unwrap().clone();
-        let f_call = Expression::FunctionCall("main".to_string(), args_id, dummy_pos.clone());
+        let mut scope = self.get_scope(self.main_scope.unwrap()).unwrap().clone();
+        let f_call = Expression::FunctionCall(main_func_id, args_id, dummy_pos.clone());
 
-        f_call.evaluate(&scope, self)
+        f_call.evaluate(&mut scope, self)
+    }
+
+
+
+
+
+    /// Print to console the list of functions defined in the program
+    pub fn print_functions(self) {
+        println!("{:25}{:15}{:15}{:25}{:15}", "FUNCTION NAME", "OWNER TYPE", "MODULE", "INPUT TYPES", "OUTPUT TYPE");
+        for (signature, _) in self.functions {
+            let type_txt = match signature.owner_type {
+                Some(v) => format!("{}", v),
+                None => "-".to_string(),
+            };
+            let module_txt = match signature.module {
+                Some(v) => format!("{}", v),
+                None => "-".to_string(),
+            };
+            let input_types_txt = match signature.input_types {
+                Some(v) => {
+                    let mut res = "".to_string();
+                    for t in v {
+                        if res.is_empty() {res = format!("{t}")}
+                        else {res = format!("{}, {}", res, t);}
+                    }
+                    res
+                },
+                None => "-".to_string()
+            };
+            let output_type_str = match signature.output_type {
+                Some(v) => format!("{v}"),
+                None => "-".to_string()
+            };
+
+            println!("{:25}{:15}{:15}{:25}{:15}", signature.name, type_txt, module_txt, input_types_txt, output_type_str);
+        }
+    }
+
+
+
+    /// Print to console the list of expressions defined in the program
+    pub fn print_exprs(self)  {
+        println!("{:15}{}", "EXPRESSION ID", "EXPRESSION");
+        for (id, e) in self.expressions {
+            println!("{:<15}{:?}", id.id, e);
+        }
     }
 }

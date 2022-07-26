@@ -1,0 +1,11 @@
+builtin strings;
+builtin io;
+
+
+
+
+
+define main: -> num {
+    value = read().len();
+    print("Value lenght: " value "\n");
+}
