@@ -14,6 +14,8 @@ fn get_type_stringified(type_str: String, option: bool) -> proc_macro2::TokenStr
             "num" => quote! {Some(Type::Number)}.into(),
             "bool" => quote! {Some(Type::Boolean)}.into(),
             "string" => quote! {Some(Type::String)}.into(),
+            "list" => quote! {Some(Type::List(Box::new(Type::Unknown)))}.into(),
+            "unknown" => quote! {Some(Type::Unknown)}.into(),
             "" => quote! {None}.into(),
             s => quote! {Some(Type::Struct(#s))}.into()
         }
@@ -23,6 +25,8 @@ fn get_type_stringified(type_str: String, option: bool) -> proc_macro2::TokenStr
             "num" => quote! {Type::Number}.into(),
             "bool" => quote! {Type::Boolean}.into(),
             "string" => quote! {Type::String}.into(),
+            "list" => quote! {Type::List(Box::new(Type::Unknown))}.into(),
+            "unknown" => quote! {Type::Unknown}.into(),
             s => quote! {Type::Struct(#s)}.into()
         }
     }
@@ -85,6 +89,7 @@ fn impl_sloth_function(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
     let owner_type = get_type_stringified(owner_type_str, true);
     let output_type = get_type_stringified(output_type_str, false);
 
+
     let module = match module_str.as_str() {
         "" => quote! {None}.into(),
         v => quote! {Some(#v.to_string())}
@@ -102,6 +107,6 @@ fn impl_sloth_function(ast: &syn::DeriveInput) -> proc_macro::TokenStream {
             }
         }
     };
-
+    
     gen.into()
 }

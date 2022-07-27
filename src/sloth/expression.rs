@@ -25,6 +25,7 @@ impl ExpressionID {
 pub enum Expression {
     Literal(Value, ElementPosition),                                                     // value of the literal
     ListInit(Vec<ExpressionID>, ElementPosition),                                        // list initialised in code. Example: [1 2 3 4 5]
+    ListAccess(ExpressionID, ExpressionID, ElementPosition),                             // accessing the element of a list. Example: l[3]
     VariableCall(String, ElementPosition),                                               // name of the variable
     ParameterCall(ExpressionID, String, ElementPosition),                                // name of a parameter of a structure or built-in that can be accessed
     Operation(Operator, Option<ExpressionID>, Option<ExpressionID>, ElementPosition),    // Operator to apply to one or 2 values from the Scope Expression stack (via index)
@@ -78,6 +79,65 @@ impl Expression {
 
                 Ok(Value::List(list_type, values))
             },
+
+
+
+
+            Expression::ListAccess(list_id, index_expr, p) => {
+                // evaluate the list
+                let list_expr = match program.as_ref().unwrap().get_expr(*list_id) {
+                    Ok(e) => e,
+                    Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
+                };
+
+                let list_value = list_expr.evaluate(scope, program)?;
+
+                let values_vec = match list_value {
+                    Value::List(_, v) => v,
+                    v => {
+                        let err_msg = format!("Tried to access a list element on a value of type {}", v.get_type());
+                        return Err(Error::new(ErrorMessage::RuntimeError(err_msg), Some(list_expr.get_pos())));
+                    }
+                };
+
+
+                // evaluate the index expression
+                let index_expr = match program.as_ref().unwrap().get_expr(*index_expr) {
+                    Ok(e) => e,
+                    Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
+                };
+
+                let index_value = index_expr.evaluate(scope, program)?;
+
+                let index = match index_value {
+                    Value::Number(x) => {
+                        if (x as i128) < 0 {
+                            let err_msg = format!("Cannot use a negative index ({}) to access a list", x as i128);
+                            return Err(Error::new(ErrorMessage::RuntimeError(err_msg), Some(index_expr.get_pos())));
+                        }
+                        x as usize
+                    },
+
+                    v => {
+                        let err_msg = format!("Tried to index a list with an expression of type {}", v.get_type());
+                        return Err(Error::new(ErrorMessage::RuntimeError(err_msg), Some(index_expr.get_pos())));
+                    }
+                };
+
+
+
+                // access the element
+
+                if index > values_vec.len() - 1 {
+                    let err_msg = format!("Tried to access the {}th element of a list with only {} elements", index, values_vec.len());
+                    return Err(Error::new(ErrorMessage::RuntimeError(err_msg), Some(index_expr.get_pos())));
+                }
+
+                Ok(values_vec[index].clone())
+            },
+
+
+
 
             // return the value stored in this variable
             Expression::VariableCall(name, p) => {
@@ -195,8 +255,14 @@ impl Expression {
                 // get the value stored in the variable
                 let value = expr.clone().evaluate(scope, program)?;
                 
-                // try to find if the method, applied to the type of the value
-                signature_clone.owner_type = Some(value.get_type());
+                // try to find if the method, applied to the type of the value, exists
+                // TODO: Make defining owned function both work for 'list' (means List(Unknown)) and 'list[type]'
+                signature_clone.owner_type = match value.get_type() {
+                    Type::List(t) => Some(Type::List(Box::new(Type::Unknown))),
+                    t => Some(t),
+                };
+
+
                 let method = match program.as_ref().unwrap().get_function(&signature_clone) {
                     Ok(f) => f,
                     Err(e) => {
@@ -282,6 +348,7 @@ impl Expression {
         match self {
             Expression::Literal(_, p) => p,
             Expression::ListInit(_, p) => p,
+            Expression::ListAccess(_, _, p) => p,
             Expression::VariableCall(_, p) => p,
             Expression::ParameterCall(_, _, p) => p,
             Expression::Operation(_, _, _, p) => p,
@@ -290,17 +357,3 @@ impl Expression {
         }.clone()
     }
 }
-
-
-
-
-
-/*
-
-    Literal(Value, ElementPosition),                                                     // value of the literal
-    ListInit(Vec<ExpressionID>, ElementPosition),                                        // list initialised in code. Example: [1 2 3 4 5]
-    VariableCall(String, ElementPosition),                                               // name of the variable
-    ParameterCall(ExpressionID, String, ElementPosition),                                // name of a parameter of a structure or built-in that can be accessed
-    Operation(Operator, Option<ExpressionID>, Option<ExpressionID>, ElementPosition),    // Operator to apply to one or 2 values from the Scope Expression stack (via index)
-    FunctionCall(FunctionSignature, Vec<ExpressionID>, ElementPosition),                 // name of the function and its list of expressions to be evaluated
-    MethodCall(ExpressionID, FunctionSignature, Vec<ExpressionID>, ElementPosition)      // call of a method of a Value */

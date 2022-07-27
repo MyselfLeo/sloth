@@ -50,6 +50,8 @@ impl SlothProgram {
         let s_id = program.new_scope(None);
         program.main_scope = Some(s_id.clone());
 
+        // add default builtins to the program
+        program.add_import(built_in::BuiltInImport::new("default".to_string(), None));
 
         program
     }

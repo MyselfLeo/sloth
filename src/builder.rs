@@ -254,8 +254,49 @@ fn parse_operation(iterator: &mut TokenIterator, program: &mut SlothProgram, war
 
 
 
+/// Parse the access of a list (l[3] for example)
+fn parse_access(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool, first_expr: (ExpressionID, ElementPosition)) -> Result<(ExpressionID, ElementPosition), Error> {
+    // The starting token must be an open square bracket
+    if let Some((Token::Separator(Separator::OpenSquareBracket), _)) = iterator.current() {}
+    else {panic!("Called parse_access but iterator is not a on an open square bracket")}
 
-/// In the case of a ParameterCall or a MethodCall (expr.attribute or expr.method()), this function parses the second part (after the period)
+    iterator.next();
+
+    // The next expression is the index
+    let (index_expr, expr_pos) = parse_expression(iterator, program, warning)?;
+
+    // Next token must be a close square bracket
+    let final_pos = match iterator.current() {
+        Some((Token::Separator(Separator::CloseSquareBracket), p)) => p,
+        Some((t, p)) =>  {
+            let err_msg = format!("Expected ']', got unexpected token '{}'", t.original_string());
+            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)));
+        },
+        None => return Err(eof_error(line!()))
+    };
+
+    let new_pos = first_expr.1.until(final_pos);
+    let expr = Expression::ListAccess(first_expr.0, index_expr, new_pos.clone());
+    let new_expr = (program.push_expr(expr), new_pos);
+
+
+    // If after parsing the expression, the iterator is on a Separator::Period, the expression is in fact not finished here.
+    // It is a variable call or a method call on the result of that expression/the value stored in the variable forming this expression
+    match iterator.next() {
+        Some((Token::Separator(Separator::Period), _)) => parse_second_expr(iterator, program, warning, new_expr),
+        Some((Token::Separator(Separator::OpenSquareBracket), _)) => parse_access(iterator, program, warning, new_expr),
+        None => Err(eof_error(line!())),
+        _ => Ok(new_expr)
+    }
+}
+
+
+
+
+
+
+
+/// In the case of a ParameterCall or a MethodCall (expr.attribute or expr.method()), this function parses the second part (after the period/)
 /// It is given the ExpressionID and ElementPosition of the first expression
 fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool, first_expr: (ExpressionID, ElementPosition)) -> Result<(ExpressionID, ElementPosition), Error> {
     // name of the variable or function to use
@@ -300,6 +341,7 @@ fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, w
     // It is a variable call or a method call on the result of that expression/the value stored in the variable forming this expression
     match iterator.current() {
         Some((Token::Separator(Separator::Period), _)) => parse_second_expr(iterator, program, warning, expr),
+        Some((Token::Separator(Separator::OpenSquareBracket), _)) => parse_access(iterator, program, warning, expr),
         None => Err(eof_error(line!())),
         _ => Ok(expr)
     }
@@ -428,6 +470,7 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
     // It is a variable call or a method call on the result of that expression/the value stored in the variable forming this expression
     match iterator.current() {
         Some((Token::Separator(Separator::Period), _)) => parse_second_expr(iterator, program, warning, first_expr),
+        Some((Token::Separator(Separator::OpenSquareBracket), _)) => parse_access(iterator, program, warning, first_expr),
         None => Err(eof_error(line!())),
         _ => Ok(first_expr)
     }

@@ -1,7 +1,9 @@
 builtin io;
 
 define main: -> num {
-    l = [];
-
+    index = 2;
+    l = ["world" "hello" "test"];
+    print(l "\n");
+    l.set(10 "yes");
     print(l "\n");
 }
