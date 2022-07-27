@@ -61,6 +61,7 @@ impl Value {
     /// Try to convert the given string (potentially a user input) into the desired type
     pub fn string_to_value(s: String, t: Type) -> Result<Value, String> {
         match t {
+            Type::Unknown => panic!("Cannot generate a value from type Unknown"),
             Type::String => Ok(Value::String(s)),
             Type::Number => {
                 match s.parse::<f64>() {

@@ -45,33 +45,36 @@ impl Expression {
             // a list
             Expression::ListInit(exprs, p) => {
                 let mut values: Vec<Value> = Vec::new();
-                let list_type: Type;
+                let mut list_type = Type::Unknown;
 
-                // get the type of the list from the first expression
-                let expr = match program.as_ref().unwrap().get_expr(exprs[0]) {
-                    Ok(e) => e,
-                    Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
-                };
-                values.push(expr.evaluate(scope, program)?);
-
-                list_type = values[0].get_type();
-
-
-                // Add the other elements to the value list, but checking the type of the value first
-                for id in exprs.iter().skip(1) {
-                    let expr = match program.as_ref().unwrap().get_expr(*id) {
+                if exprs.len() != 0 {
+                    // get the type of the list from the first expression
+                    let expr = match program.as_ref().unwrap().get_expr(exprs[0]) {
                         Ok(e) => e,
                         Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                     };
+                    values.push(expr.evaluate(scope, program)?);
 
-                    let value = expr.evaluate(scope, program)?;
+                    list_type = values[0].get_type();
 
-                    if value.get_type() == list_type {values.push(value);}
-                    else {
-                        let err_msg = format!("Created a list of type '{}' but this value is of type '{}'", list_type, value.get_type());
-                        return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), Some(expr.get_pos())));
+
+                    // Add the other elements to the value list, but checking the type of the value first
+                    for id in exprs.iter().skip(1) {
+                        let expr = match program.as_ref().unwrap().get_expr(*id) {
+                            Ok(e) => e,
+                            Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
+                        };
+
+                        let value = expr.evaluate(scope, program)?;
+
+                        if value.get_type() == list_type {values.push(value);}
+                        else {
+                            let err_msg = format!("Created a list of type '{}' but this value is of type '{}'", list_type, value.get_type());
+                            return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), Some(expr.get_pos())));
+                        }
                     }
                 }
+
 
                 Ok(Value::List(list_type, values))
             },
