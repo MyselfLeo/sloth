@@ -56,7 +56,7 @@ impl Callable for BuiltinDefaultListSet {
             },
 
             Some(v) => {
-                let err_msg = format!("Tried to index a list with an expression of type {}", v.get_type());
+                let err_msg = format!("Tried to index a list with an expression of type '{}'", v.get_type());
                 return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
             },
 
@@ -71,7 +71,7 @@ impl Callable for BuiltinDefaultListSet {
             Some(v) => {
                 if v.get_type() == list_type {v.clone()}
                 else {
-                    let err_msg = format!("Tried to set an element of a list of type {} as a value of type {}", list_type, v.get_type());
+                    let err_msg = format!("Tried to set an element of type '{}' in a list of type '{}'", v.get_type(), list_type);
                     return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
                 }
             },

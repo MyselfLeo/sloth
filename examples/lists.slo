@@ -2,8 +2,8 @@ builtin io;
 
 define main: -> num {
     index = 2;
-    l = ["world" "hello" "test"];
+    l = [0 1 2];
     print(l "\n");
-    l.set(10 "yes");
+    l.set(10 0);
     print(l "\n");
 }
