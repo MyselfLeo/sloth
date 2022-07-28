@@ -1,5 +1,5 @@
 use super::types::Type;
-use super::structure::StructDefinition;
+//use super::structure::StructDefinition;
 
 
 
@@ -9,7 +9,7 @@ pub enum Value {
     Boolean(bool),
     String(String),
     List(Type, Vec<Value>),
-    Struct(StructDefinition, Vec<Value>)
+    //Struct(StructDefinition, Vec<Value>)
 }
 
 
@@ -20,7 +20,7 @@ impl Value {
             Value::Boolean(_) => Type::Boolean,
             Value::String(_) => Type::String,
             Value::List(t, _) => Type::List(Box::new(t.clone())),
-            Value::Struct(struct_def, _) => Type::Struct(struct_def.name.clone())
+            //Value::Struct(struct_def, _) => Type::Struct(struct_def.name.clone())
         }
     }
 
@@ -40,7 +40,7 @@ impl Value {
                 for v in values {string_vec.push(v.to_string())}
                 format!("[{}]", string_vec.join(" ")).to_string()
             },
-            Value::Struct(s, _) => format!("'{}' object", s.name).to_string()
+            //Value::Struct(s, _) => format!("'{}' object", s.name).to_string()
         }
     }
 

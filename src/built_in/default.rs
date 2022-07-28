@@ -46,7 +46,7 @@ impl Callable for BuiltinDefaultListSet {
 
 
         // get the list type
-        let (list_type, mut list_vec) = match list {
+        let (mut list_type, mut list_vec) = match list {
             Value::List(t, v) => (t, v),
             _ => panic!("Called 'set' on a value which is not a list")
         };
@@ -91,7 +91,11 @@ impl Callable for BuiltinDefaultListSet {
 
 
         // modify the value and set the self variable
-        if index > list_vec.len() - 1 {list_vec.push(new_value)}
+        if list_vec.len() == 0 {
+            list_type = new_value.get_type();   // the list was empty before so it was of type Any. Now that there is an element, we change its type*
+            list_vec.push(new_value);
+        }
+        else if index > list_vec.len() - 1 {list_vec.push(new_value)}
         else {list_vec[index] = new_value}
         scope.set_variable("@self".to_string(), Value::List(list_type, list_vec));
 
@@ -99,6 +103,8 @@ impl Callable for BuiltinDefaultListSet {
         Ok(())
     }
 }
+
+
 
 
 
@@ -118,7 +124,7 @@ impl Callable for BuiltinDefaultListGet {
 
 
         // get the list value
-        let (_, mut list_vec) = match list {
+        let (_, list_vec) = match list {
             Value::List(t, v) => (t, v),
             _ => panic!("Called 'set' on a value which is not a list")
         };
