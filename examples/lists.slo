@@ -1,9 +1,6 @@
 builtin io;
 
 define main: -> num {
-    index = 2;
-    l = [0 1 2];
-    print(l "\n");
-    l.set(10 0);
-    print(l "\n");
+    l = [[1 2 3] [1 4 5 6 7 3] [1] [2] [3]];
+    print(l.get(2) "\n");
 }

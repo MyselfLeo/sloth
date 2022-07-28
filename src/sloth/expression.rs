@@ -25,7 +25,6 @@ impl ExpressionID {
 pub enum Expression {
     Literal(Value, ElementPosition),                                                     // value of the literal
     ListInit(Vec<ExpressionID>, ElementPosition),                                        // list initialised in code. Example: [1 2 3 4 5]
-    ListAccess(ExpressionID, ExpressionID, ElementPosition),                             // accessing the element of a list. Example: l[3]
     VariableCall(String, ElementPosition),                                               // name of the variable
     ParameterCall(ExpressionID, String, ElementPosition),                                // name of a parameter of a structure or built-in that can be accessed
     Operation(Operator, Option<ExpressionID>, Option<ExpressionID>, ElementPosition),    // Operator to apply to one or 2 values from the Scope Expression stack (via index)
@@ -46,7 +45,7 @@ impl Expression {
             // a list
             Expression::ListInit(exprs, p) => {
                 let mut values: Vec<Value> = Vec::new();
-                let mut list_type = Type::Unknown;
+                let mut list_type = Type::Any;
 
                 if exprs.len() != 0 {
                     // get the type of the list from the first expression
@@ -82,7 +81,9 @@ impl Expression {
 
 
 
-
+            // ListAccess is now a method (list.get(x)) instead of a syntax element (list[x]). It caused problems when parsing lists of lists, where the second sub-list was considered
+            // a ListAccess
+            /*
             Expression::ListAccess(list_id, index_expr, p) => {
                 // evaluate the list
                 let list_expr = match program.as_ref().unwrap().get_expr(*list_id) {
@@ -135,6 +136,7 @@ impl Expression {
 
                 Ok(values_vec[index].clone())
             },
+             */
 
 
 
@@ -256,9 +258,9 @@ impl Expression {
                 let value = expr.clone().evaluate(scope, program)?;
                 
                 // try to find if the method, applied to the type of the value, exists
-                // TODO: Make defining owned function both work for 'list' (means List(Unknown)) and 'list[type]'
+                // TODO: Make defining owned function both work for 'list' (means List(Any)) and 'list[type]'
                 signature_clone.owner_type = match value.get_type() {
-                    Type::List(_t) => Some(Type::List(Box::new(Type::Unknown))),
+                    Type::List(_t) => Some(Type::List(Box::new(Type::Any))),
                     t => Some(t),
                 };
 
@@ -348,7 +350,6 @@ impl Expression {
         match self {
             Expression::Literal(_, p) => p,
             Expression::ListInit(_, p) => p,
-            Expression::ListAccess(_, _, p) => p,
             Expression::VariableCall(_, p) => p,
             Expression::ParameterCall(_, _, p) => p,
             Expression::Operation(_, _, _, p) => p,

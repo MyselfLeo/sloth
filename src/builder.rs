@@ -253,7 +253,7 @@ fn parse_operation(iterator: &mut TokenIterator, program: &mut SlothProgram, war
 
 
 
-
+/*
 /// Parse the access of a list (l[3] for example)
 fn parse_access(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool, first_expr: (ExpressionID, ElementPosition)) -> Result<(ExpressionID, ElementPosition), Error> {
     // The starting token must be an open square bracket
@@ -289,6 +289,7 @@ fn parse_access(iterator: &mut TokenIterator, program: &mut SlothProgram, warnin
         _ => Ok(new_expr)
     }
 }
+*/
 
 
 
@@ -341,7 +342,7 @@ fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, w
     // It is a variable call or a method call on the result of that expression/the value stored in the variable forming this expression
     match iterator.current() {
         Some((Token::Separator(Separator::Period), _)) => parse_second_expr(iterator, program, warning, expr),
-        Some((Token::Separator(Separator::OpenSquareBracket), _)) => parse_access(iterator, program, warning, expr),
+        //Some((Token::Separator(Separator::OpenSquareBracket), _)) => parse_access(iterator, program, warning, expr),
         None => Err(eof_error(line!())),
         _ => Ok(expr)
     }
@@ -469,7 +470,7 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
     // It is a variable call or a method call on the result of that expression/the value stored in the variable forming this expression
     match iterator.current() {
         Some((Token::Separator(Separator::Period), _)) => parse_second_expr(iterator, program, warning, first_expr),
-        Some((Token::Separator(Separator::OpenSquareBracket), _)) => parse_access(iterator, program, warning, first_expr),
+        //Some((Token::Separator(Separator::OpenSquareBracket), _)) => parse_access(iterator, program, warning, first_expr),
         None => Err(eof_error(line!())),
         _ => Ok(first_expr)
     }

@@ -14,8 +14,8 @@ fn get_type_stringified(type_str: String, option: bool) -> proc_macro2::TokenStr
             "num" => quote! {Some(Type::Number)}.into(),
             "bool" => quote! {Some(Type::Boolean)}.into(),
             "string" => quote! {Some(Type::String)}.into(),
-            "list" => quote! {Some(Type::List(Box::new(Type::Unknown)))}.into(),
-            "unknown" => quote! {Some(Type::Unknown)}.into(),
+            "list" => quote! {Some(Type::List(Box::new(Type::Any)))}.into(),
+            "any" => quote! {Some(Type::Any)}.into(),
             "" => quote! {None}.into(),
             s => quote! {Some(Type::Struct(#s))}.into()
         }
@@ -25,8 +25,8 @@ fn get_type_stringified(type_str: String, option: bool) -> proc_macro2::TokenStr
             "num" => quote! {Type::Number}.into(),
             "bool" => quote! {Type::Boolean}.into(),
             "string" => quote! {Type::String}.into(),
-            "list" => quote! {Type::List(Box::new(Type::Unknown))}.into(),
-            "unknown" => quote! {Type::Unknown}.into(),
+            "list" => quote! {Type::List(Box::new(Type::Any))}.into(),
+            "any" => quote! {Type::Any}.into(),
             s => quote! {Type::Struct(#s)}.into()
         }
     }
