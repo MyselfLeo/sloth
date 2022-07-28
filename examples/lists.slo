@@ -2,10 +2,10 @@ builtin io;
 
 define main: num -> num {
     l = [];
-    
+
     i = 0;
     while < i @0 {
-        l.set(i read("Entrez prénom " i ": "));
+        l.push(read("Entrez prénom " + 1 i ": "));
         i = + i 1;
     };
 

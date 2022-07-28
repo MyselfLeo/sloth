@@ -17,9 +17,10 @@ use sloth_derive::SlothFunction;
 
 
 
-pub const BUILTINS: [&str; 2] = [
+pub const BUILTINS: [&str; 3] = [
     "set",
-    "get"
+    "get",
+    "push"
 ];
 
 
@@ -28,6 +29,7 @@ pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
     match f_name.as_str() {
         "set" => Box::new(BuiltinDefaultListSet {}),
         "get" => Box::new(BuiltinDefaultListGet {}),
+        "push" => Box::new(BuiltinDefaultListPush {}),
         n => panic!("Requested unknown built-in '{}'", n)
     }
 }
@@ -103,6 +105,55 @@ impl Callable for BuiltinDefaultListSet {
         Ok(())
     }
 }
+
+
+
+
+
+
+
+
+
+#[derive(SlothFunction)]
+#[name = "push"] #[module = "default"] #[output = "num"] #[owner = "list"]
+pub struct BuiltinDefaultListPush {}
+impl Callable for BuiltinDefaultListPush {
+    unsafe fn call(&self, scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
+        let list = scope.get_variable("@self".to_string(), program).unwrap();
+        let inputs = scope.get_inputs();
+
+        if inputs.len() == 0 {
+            let err_msg = "The 'push' method requires one input, the value to push to the list".to_string();
+            return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
+        }
+        else if inputs.len() > 1 {
+            let err_msg = "The 'push' method requires only one input, the value to push to the list".to_string();
+            return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
+        }
+
+        // get the list type
+        let (mut list_type, mut list_vec) = match list {
+            Value::List(t, v) => (t, v),
+            _ => panic!("Called 'push' on a value which is not a list")
+        };
+
+
+        // the new value must be the same type as list_type
+        let new_value = inputs[0].clone();
+
+        // modify the value and set the self variable
+        if list_vec.len() == 0 {
+            // the list was empty before so it was of type Any. Now that there is an element, we change its type
+            list_type = new_value.get_type();
+        }
+        list_vec.push(new_value);
+        scope.set_variable("@self".to_string(), Value::List(list_type, list_vec));
+
+        scope.set_variable("@return".to_string(), Value::Number(0.0));
+        Ok(())
+    }
+}
+
 
 
 
