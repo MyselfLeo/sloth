@@ -1,3 +1,8 @@
+/// default builtins, included in every program.
+/// It contains the functions needed by the lists
+
+
+
 use crate::errors::{Error, ErrorMessage};
 use crate::sloth::function::Callable;
 use crate::sloth::function::{SlothFunction, FunctionSignature};

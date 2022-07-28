@@ -263,7 +263,7 @@ fn parse_access(iterator: &mut TokenIterator, program: &mut SlothProgram, warnin
     iterator.next();
 
     // The next expression is the index
-    let (index_expr, expr_pos) = parse_expression(iterator, program, warning)?;
+    let (index_expr, _) = parse_expression(iterator, program, warning)?;
 
     // Next token must be a close square bracket
     let final_pos = match iterator.current() {
@@ -367,7 +367,7 @@ fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, w
 fn parse_list(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<(Expression, ElementPosition), Error> {
 
     let starting_pos;
-    let mut last_pos;
+    let last_pos;
     // The starting token must be an open square bracket
     if let Some((Token::Separator(Separator::OpenSquareBracket), p)) = iterator.current() {starting_pos = p;}
     else {panic!("Called parse_list but iterator is not a on an open square bracket")}
@@ -381,9 +381,8 @@ fn parse_list(iterator: &mut TokenIterator, program: &mut SlothProgram, warning:
 
     // Until we meet a closed square bracket, we parse each expressions
     while match iterator.current() {Some((Token::Separator(Separator::CloseSquareBracket), _)) => false, Some(_) => true, None => return Err(eof_error(line!()))} {
-        let (expr_id, p) = parse_expression(iterator, program, warning)?;
+        let (expr_id, _) = parse_expression(iterator, program, warning)?;
         exprs.push(expr_id);
-        last_pos = p;
     }
 
     // At this point, the iterator should be on a closed square bracket
