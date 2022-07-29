@@ -27,6 +27,8 @@ The `num` here is the return type of the function. We'll see it after, but for n
 However, its inputs can vary based on what you need. Compared to other programming languages, you don't need to parse the command-line inputs yourself: the interpreter does it for you. Example:
 
 ```
+builtin io; # We'll talk about that later
+
 define main: num -> num {
     print(@0 "\n");
 }
@@ -48,3 +50,24 @@ $ sloth input.slo "test"
 
 </p>
 </details>
+
+
+
+## Your first program
+
+You saw the `print` function, that means we can now truly master programming with Sloth by programming... Hello world!
+
+```
+builtin io;
+
+define main: -> num {
+    print("Hello, world!\n");
+}
+```
+
+Nice! You must have a lot of questions:
+> What is "builtin io;"?
+> Why is there no `return` keyword?
+> What is `@0`?
+
+We'll cover those questions later, mostly in the section dedicated to _functions and methods_.
