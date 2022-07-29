@@ -1,6 +1,6 @@
 # 🦥 Sloth - The weird, slow and a bit moldy programming language
 
-**Sloth** is an interpreted programming language, implemented in _Rust_. Its syntax is inspired by C-like languages, Python, and Lisp-like languages.  
+**Sloth** is an interpreted programming language, implemented in _Rust_. Its syntax is inspired by C-like languages, Rust, Python, and Lisp-like languages.  
 It does not have a precise goal, except maybe existing, and it is quite slow, so you may not want to use it for something other than experimentation.
 
 ## Syntax example ([examples/factorial.slo](https://github.com/MyselfLeo/sloth/blob/master/examples/factorial.slo))
