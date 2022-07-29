@@ -66,8 +66,8 @@ define main: -> num {
 ```
 
 Nice! You must have a lot of questions:
-> What is "builtin io;"?
-> Why is there no `return` keyword?
-> What is `@0`?
+> What is "builtin io;"?  
+> Why is there no `return` keyword?  
+> What is `@0`?  
 
 We'll cover those questions later, mostly in the section dedicated to _functions and methods_.
