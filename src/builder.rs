@@ -253,9 +253,51 @@ fn parse_operation(iterator: &mut TokenIterator, program: &mut SlothProgram, war
 
 
 
+/*
+/// Parse the access of a list (l[3] for example)
+fn parse_access(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool, first_expr: (ExpressionID, ElementPosition)) -> Result<(ExpressionID, ElementPosition), Error> {
+    // The starting token must be an open square bracket
+    if let Some((Token::Separator(Separator::OpenSquareBracket), _)) = iterator.current() {}
+    else {panic!("Called parse_access but iterator is not a on an open square bracket")}
+
+    iterator.next();
+
+    // The next expression is the index
+    let (index_expr, _) = parse_expression(iterator, program, warning)?;
+
+    // Next token must be a close square bracket
+    let final_pos = match iterator.current() {
+        Some((Token::Separator(Separator::CloseSquareBracket), p)) => p,
+        Some((t, p)) =>  {
+            let err_msg = format!("Expected ']', got unexpected token '{}'", t.original_string());
+            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)));
+        },
+        None => return Err(eof_error(line!()))
+    };
+
+    let new_pos = first_expr.1.until(final_pos);
+    let expr = Expression::ListAccess(first_expr.0, index_expr, new_pos.clone());
+    let new_expr = (program.push_expr(expr), new_pos);
 
 
-/// In the case of a ParameterCall or a MethodCall (expr.attribute or expr.method()), this function parses the second part (after the period)
+    // If after parsing the expression, the iterator is on a Separator::Period, the expression is in fact not finished here.
+    // It is a variable call or a method call on the result of that expression/the value stored in the variable forming this expression
+    match iterator.next() {
+        Some((Token::Separator(Separator::Period), _)) => parse_second_expr(iterator, program, warning, new_expr),
+        Some((Token::Separator(Separator::OpenSquareBracket), _)) => parse_access(iterator, program, warning, new_expr),
+        None => Err(eof_error(line!())),
+        _ => Ok(new_expr)
+    }
+}
+*/
+
+
+
+
+
+
+
+/// In the case of a ParameterCall or a MethodCall (expr.attribute or expr.method()), this function parses the second part (after the period/)
 /// It is given the ExpressionID and ElementPosition of the first expression
 fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool, first_expr: (ExpressionID, ElementPosition)) -> Result<(ExpressionID, ElementPosition), Error> {
     // name of the variable or function to use
@@ -285,7 +327,7 @@ fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, w
         },
         
         // Parameter call
-        Some((t, p)) => {
+        Some((_, p)) => {
             let expr_pos = first_expr.1.until(p);
             let param_call = Expression::ParameterCall(first_expr.0, ident, expr_pos.clone());
             (program.push_expr(param_call), expr_pos)
@@ -300,6 +342,7 @@ fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, w
     // It is a variable call or a method call on the result of that expression/the value stored in the variable forming this expression
     match iterator.current() {
         Some((Token::Separator(Separator::Period), _)) => parse_second_expr(iterator, program, warning, expr),
+        //Some((Token::Separator(Separator::OpenSquareBracket), _)) => parse_access(iterator, program, warning, expr),
         None => Err(eof_error(line!())),
         _ => Ok(expr)
     }
@@ -310,6 +353,48 @@ fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, w
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+/// Parse a list
+fn parse_list(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<(Expression, ElementPosition), Error> {
+
+    let starting_pos;
+    let last_pos;
+    // The starting token must be an open square bracket
+    if let Some((Token::Separator(Separator::OpenSquareBracket), p)) = iterator.current() {starting_pos = p;}
+    else {panic!("Called parse_list but iterator is not a on an open square bracket")}
+
+
+    let mut exprs: Vec<ExpressionID> = Vec::new();
+
+    
+    iterator.next();
+
+
+    // Until we meet a closed square bracket, we parse each expressions
+    while match iterator.current() {Some((Token::Separator(Separator::CloseSquareBracket), _)) => false, Some(_) => true, None => return Err(eof_error(line!()))} {
+        let (expr_id, _) = parse_expression(iterator, program, warning)?;
+        exprs.push(expr_id);
+    }
+
+    // At this point, the iterator should be on a closed square bracket
+    if let Some((Token::Separator(Separator::CloseSquareBracket), p)) = iterator.current() {last_pos = p;}
+    else {panic!("parse_list do not finish on a ']'")}
+
+    iterator.next();
+    let pos = starting_pos.until(last_pos);
+
+    Ok((Expression::ListInit(exprs, pos.clone()), pos))
+}
 
 
 
@@ -340,7 +425,11 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
             (Expression::Literal(Value::from_raw_token(s.clone()), first_position.clone()), first_position.clone())
         },
 
-        // TODO: lists
+    
+        // The token is an open square bracket. It's the start of a list
+        Some((Token::Separator(Separator::OpenSquareBracket), _)) => parse_list(iterator, program, warning)?,
+
+
 
         // The token is an identifier. CHeck the next token to see if its a function call, a variable call or a list access (lists not implemented yet)
         Some((Token::Identifier(s), first_position)) =>  {
@@ -381,6 +470,7 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
     // It is a variable call or a method call on the result of that expression/the value stored in the variable forming this expression
     match iterator.current() {
         Some((Token::Separator(Separator::Period), _)) => parse_second_expr(iterator, program, warning, first_expr),
+        //Some((Token::Separator(Separator::OpenSquareBracket), _)) => parse_access(iterator, program, warning, first_expr),
         None => Err(eof_error(line!())),
         _ => Ok(first_expr)
     }
@@ -943,11 +1033,11 @@ fn parse_builtin(iterator: &mut TokenIterator, program: &mut SlothProgram, warni
 
 
 
-pub fn build(tokens: TokenizedProgram, warning: bool) -> Result<SlothProgram, Error> {
+pub fn build(tokens: TokenizedProgram, warning: bool, import_default_builtins: bool) -> Result<SlothProgram, Error> {
     let filename = tokens.filename.clone();
     let mut iterator = TokenIterator::new(tokens);
 
-    let mut program = SlothProgram::new(filename);
+    let mut program = SlothProgram::new(filename, import_default_builtins);
 
 
     

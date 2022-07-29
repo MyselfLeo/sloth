@@ -15,12 +15,19 @@ use crate::built_in;
 
 
 
+const DEFAULT_SUBMODULE_IMPORTS: [&str; 1] = ["lists"];
+
+
+
+
+
+
 /// Main structure of a Sloth program. Stores global definitions (function definition, structs definition, scopes)
 /// Note: Variables are stored in the scopes
 pub struct SlothProgram {
-    filename: String,
+    _filename: String,
     functions: BTreeMap<FunctionSignature, Box<dyn SlothFunction>>,
-    structures: BTreeMap<String, StructDefinition>,
+    _structures: BTreeMap<String, StructDefinition>,
     scopes: HashMap<ScopeID, Scope>,
     expressions: HashMap<ExpressionID, Expression>,
     scope_nb: u64,
@@ -32,11 +39,11 @@ pub struct SlothProgram {
 }
 
 impl SlothProgram {
-    pub fn new(filename: String) -> SlothProgram {
+    pub fn new(filename: String, import_default_builtins: bool) -> SlothProgram {
         let mut program = SlothProgram {
-            filename,
+            _filename: filename,
             functions: BTreeMap::new(),
-            structures: BTreeMap::new(),
+            _structures: BTreeMap::new(),
             scopes: HashMap::new(), 
             expressions: HashMap::new(),
             scope_nb: 0,
@@ -51,9 +58,18 @@ impl SlothProgram {
         program.main_scope = Some(s_id.clone());
 
 
+        if import_default_builtins {
+            for submod in DEFAULT_SUBMODULE_IMPORTS {
+                program.add_import(built_in::BuiltInImport::new(submod.to_string(), None));
+            }
+        }
+
+
         program
     }
 
+
+    
     /// Add a function to the Function Hashmap.
     /// Can return an optional warning message if a previously defined function was overwritten
     pub fn push_function(&mut self, function: Box<dyn SlothFunction>) -> Option<String> {
@@ -68,12 +84,6 @@ impl SlothProgram {
 
     /// Return a clone of the requested function definition
     pub fn get_function(&self, signature: &FunctionSignature) -> Result<&Box<dyn SlothFunction>, String> {
-        //println!("[DEBUG] Looking for {:?}", signature);
-
-        /*for (f, _) in &self.functions {
-            println!("[DEBUG]     I have {:?}", f)
-        }*/
-
         match self.functions.get(&signature) {
             None => {}
             Some(v) => {return Ok(v);}

@@ -11,7 +11,6 @@ const CRATE_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub enum ErrorMessage {
     SyntaxError(String),
     NoEntryPoint(String),
-    InvalidEntryPoint(String),
     FileNotFound(String),
     InvalidArguments(String),
     UnexpectedExpression(String),
@@ -29,7 +28,6 @@ impl std::fmt::Display for ErrorMessage {
         match self {
             ErrorMessage::SyntaxError(e) => write!(f, "SYNTAX ERROR: {}", e),
             ErrorMessage::NoEntryPoint(e) => write!(f, "NO ENTRY POINT: {}", e),
-            ErrorMessage::InvalidEntryPoint(e) => write!(f, "INVALID ENTRY POINT: {}", e),
             ErrorMessage::FileNotFound(e) => write!(f, "FILE NOT FOUND: {}", e),
             ErrorMessage::InvalidArguments(e) => write!(f, "INVALID ARGUMENTS: {}", e),
             ErrorMessage::UnexpectedExpression(e) => write!(f, "UNEXPECTED EXPRESSION: {}", e),

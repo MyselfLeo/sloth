@@ -76,27 +76,37 @@ fn add(lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String> {
         (Value::String(x), Value::Boolean(y)) => Ok(Value::String(x + &y.to_string())),
         (Value::Boolean(x), Value::String(y)) => Ok(Value::String(x.to_string() + &y)),
 
-        /*
-        // list operations
-        (Value::List(l), y) => {
-            let mut new = l.clone();
-            
-            // support for List + List
-            if let Value::List(j) = y {
-                let mut buff = j.clone();
-                new.append(&mut buff);
-            }
-            else {new.push(y);}
+        // List merging
+        (Value::List(t1, v1), Value::List(t2, v2)) => {
+            if t1 != t2 {return Err(format!("Tried to merge a list of type {} to a list of type {}", t2, t1))}
 
-            Value::List(new)
+            let mut n = v1.clone();
+            let mut other = v2.clone();
+            n.append(&mut other);
+            Ok(Value::List(t1, n))
         },
 
-        (x, Value::List(l)) => {
-            let mut new = l.clone();
-            new.insert(0, x);
-            Value::List(new)
+
+        // Appending to a list
+        (Value::List(t1, v1), v) => {
+            let value_type = v.get_type();
+            if t1 != value_type {return Err(format!("Tried to append a value of type {} to a list of type {}", value_type, t1))}
+
+            let mut n = v1.clone();
+            n.push(v);
+            Ok(Value::List(t1, n))
         },
-         */
+
+
+        // Prepending to a list
+        (v, Value::List(t1, v1)) => {
+            let value_type = v.get_type();
+            if t1 != value_type {return Err(format!("Tried to prepend a value of type {} to a list of type {}", value_type, t1))}
+
+            let mut n = v1.clone();
+            n.insert(0, v);
+            Ok(Value::List(t1, n))
+        },
 
 
 

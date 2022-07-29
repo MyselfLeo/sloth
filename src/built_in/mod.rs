@@ -2,13 +2,15 @@ use crate::sloth::function::SlothFunction;
 pub mod io;
 pub mod numbers;
 pub mod strings;
+pub mod lists;
 
 
 
-pub const SUBMODULES: [&str; 3] = [
+pub const SUBMODULES: [&str; 4] = [
     "io",
     "numbers",
-    "strings"
+    "strings",
+    "lists"
 ];
 
 
@@ -47,6 +49,7 @@ impl BuiltInImport {
                     "io" => io::BUILTINS.to_vec(),
                     "numbers" => numbers::BUILTINS.to_vec(),
                     "strings" => strings::BUILTINS.to_vec(),
+                    "lists" => lists::BUILTINS.to_vec(),
                     _ => panic!("Trying to access builtins of submodule '{}', which do not exists", self.submodule)
                 };
 
@@ -91,6 +94,7 @@ pub fn collapse_imports(imports: &Vec<BuiltInImport>) -> Result<(Vec<Box<dyn Slo
                     "io" => io::BUILTINS.to_vec(),
                     "numbers" => numbers::BUILTINS.to_vec(),
                     "strings" => strings::BUILTINS.to_vec(),
+                    "lists" => lists::BUILTINS.to_vec(),
                     _ => panic!()
                 };
 
@@ -111,6 +115,7 @@ pub fn collapse_imports(imports: &Vec<BuiltInImport>) -> Result<(Vec<Box<dyn Slo
                     "io" => io::get_function(bi),
                     "numbers" => numbers::get_function(bi),
                     "strings" => strings::get_function(bi),
+                    "lists" => lists::get_function(bi),
                     _ => panic!()
                 };
                 funcs.push(f);

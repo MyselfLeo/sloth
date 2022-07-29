@@ -19,7 +19,7 @@ use sloth_derive::SlothFunction;
 
 pub const BUILTINS: [&str; 2] = [
     "print",
-    "read"
+    "read",
 ];
 
 
@@ -76,7 +76,6 @@ impl Callable for BuiltinIoRead {
 
         for (i, v) in inputs.iter().enumerate() {
             text += &format!("{}", v).replace("\\n", "\n");
-            if i < inputs.len() - 1 {text += " "}
         }
         print!("{}", text);
 

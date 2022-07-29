@@ -1,12 +1,7 @@
-#[allow(dead_code)]
 mod tokenizer;
-#[allow(dead_code)]
 mod errors;
-#[allow(dead_code)]
 mod sloth;
-#[allow(dead_code)]
 mod built_in;
-#[allow(dead_code)]
 mod builder;
 
 use clap::Parser;
@@ -43,6 +38,10 @@ struct Args {
     #[clap(long, value_parser)]
     nowarn: bool,
 
+    /// Don't import default builtins
+    #[clap(long, value_parser)]
+    nodefault: bool,
+
     /// Arguments for the Sloth program
     #[clap(value_parser)]
     arguments: Vec<String>,
@@ -62,7 +61,7 @@ fn main() {
             if args.tokens {tokens.print_tokens()}
             else {
                 // build the program
-                let mut program: SlothProgram = match builder::build(tokens, !args.nowarn) {
+                let mut program: SlothProgram = match builder::build(tokens, !args.nowarn, !args.nodefault) {
                     Err(e) => {e.abort(); return},
                     Ok(p) => p,
                 };
