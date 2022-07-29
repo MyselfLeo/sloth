@@ -15,6 +15,13 @@ use crate::built_in;
 
 
 
+const DEFAULT_SUBMODULE_IMPORTS: [&str; 1] = ["lists"];
+
+
+
+
+
+
 /// Main structure of a Sloth program. Stores global definitions (function definition, structs definition, scopes)
 /// Note: Variables are stored in the scopes
 pub struct SlothProgram {
@@ -32,7 +39,7 @@ pub struct SlothProgram {
 }
 
 impl SlothProgram {
-    pub fn new(filename: String) -> SlothProgram {
+    pub fn new(filename: String, import_default_builtins: bool) -> SlothProgram {
         let mut program = SlothProgram {
             _filename: filename,
             functions: BTreeMap::new(),
@@ -50,12 +57,19 @@ impl SlothProgram {
         let s_id = program.new_scope(None);
         program.main_scope = Some(s_id.clone());
 
-        // add default builtins to the program
-        program.add_import(built_in::BuiltInImport::new("default".to_string(), None));
+
+        if import_default_builtins {
+            for submod in DEFAULT_SUBMODULE_IMPORTS {
+                program.add_import(built_in::BuiltInImport::new(submod.to_string(), None));
+            }
+        }
+
 
         program
     }
 
+
+    
     /// Add a function to the Function Hashmap.
     /// Can return an optional warning message if a previously defined function was overwritten
     pub fn push_function(&mut self, function: Box<dyn SlothFunction>) -> Option<String> {

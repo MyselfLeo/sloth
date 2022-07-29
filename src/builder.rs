@@ -1033,11 +1033,11 @@ fn parse_builtin(iterator: &mut TokenIterator, program: &mut SlothProgram, warni
 
 
 
-pub fn build(tokens: TokenizedProgram, warning: bool) -> Result<SlothProgram, Error> {
+pub fn build(tokens: TokenizedProgram, warning: bool, import_default_builtins: bool) -> Result<SlothProgram, Error> {
     let filename = tokens.filename.clone();
     let mut iterator = TokenIterator::new(tokens);
 
-    let mut program = SlothProgram::new(filename);
+    let mut program = SlothProgram::new(filename, import_default_builtins);
 
 
     

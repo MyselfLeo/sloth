@@ -1,8 +1,3 @@
-/// default builtins, included in every program.
-/// It contains the functions needed by the lists
-
-
-
 use crate::errors::{Error, ErrorMessage};
 use crate::sloth::function::Callable;
 use crate::sloth::function::{SlothFunction, FunctionSignature};
@@ -17,10 +12,12 @@ use sloth_derive::SlothFunction;
 
 
 
-pub const BUILTINS: [&str; 3] = [
+pub const BUILTINS: [&str; 5] = [
     "set",
     "get",
-    "push"
+    "push",
+    "pull",
+    "len"
 ];
 
 
@@ -30,6 +27,8 @@ pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
         "set" => Box::new(BuiltinDefaultListSet {}),
         "get" => Box::new(BuiltinDefaultListGet {}),
         "push" => Box::new(BuiltinDefaultListPush {}),
+        "pull" => Box::new(BuiltinDefaultListPull {}),
+        "len" => Box::new(BuiltinDefaultListLen {}),
         n => panic!("Requested unknown built-in '{}'", n)
     }
 }
@@ -39,7 +38,7 @@ pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
 
 
 #[derive(SlothFunction)]
-#[name = "set"] #[module = "default"] #[output = "num"] #[owner = "list"]
+#[name = "set"] #[module = "lists"] #[output = "num"] #[owner = "list"]
 pub struct BuiltinDefaultListSet {}
 impl Callable for BuiltinDefaultListSet {
     unsafe fn call(&self, scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
@@ -115,7 +114,7 @@ impl Callable for BuiltinDefaultListSet {
 
 
 #[derive(SlothFunction)]
-#[name = "push"] #[module = "default"] #[output = "num"] #[owner = "list"]
+#[name = "push"] #[module = "lists"] #[output = "num"] #[owner = "list"]
 pub struct BuiltinDefaultListPush {}
 impl Callable for BuiltinDefaultListPush {
     unsafe fn call(&self, scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
@@ -160,13 +159,69 @@ impl Callable for BuiltinDefaultListPush {
 
 
 
+#[derive(SlothFunction)]
+#[name = "pull"] #[module = "lists"] #[output = "any"] #[owner = "list"]
+pub struct BuiltinDefaultListPull {}
+impl Callable for BuiltinDefaultListPull {
+    unsafe fn call(&self, scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
+        let list = scope.get_variable("@self".to_string(), program).unwrap();
+        let inputs = scope.get_inputs();
+
+
+        // get the list value
+        let (t, mut list_vec) = match list {
+            Value::List(t, v) => (t, v),
+            _ => panic!("Called 'pull' on a value which is not a list")
+        };
+
+        // first value is the index of the value to pull
+        let index = match inputs.get(0) {
+            Some(Value::Number(x)) => {
+                if (*x as i128) < 0 {
+                    let err_msg = format!("Cannot use a negative index ({}) to access a list", *x as i128);
+                    return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
+                }
+                else {*x as usize}
+            },
+            Some(v) => {
+                let err_msg = format!("Tried to index a list with an expression of type '{}'", v.get_type());
+                return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
+            },
+
+            None => {
+                let err_msg = "The 'get' method requires the index of the element to get".to_string();
+                return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
+            },
+        };
+
+        
+        if index > list_vec.len() -1 {
+            let err_msg = format!("Tried to access the {}th element of a list with only {} elements", index, list_vec.len());
+            return Err(Error::new(ErrorMessage::RuntimeError(err_msg), None));
+        }
+
+        // Remove the requested value from the vec
+        let pulled_value = list_vec.remove(index).clone();
+
+        // modify the self variable and the return variable
+        scope.set_variable("@self".to_string(), Value::List(t, list_vec));
+        scope.set_variable("@return".to_string(), pulled_value);
+        Ok(())
+    }
+}
+
+
+
+
+
+
 
 
 
 
 
 #[derive(SlothFunction)]
-#[name = "get"] #[module = "default"] #[output = "any"] #[owner = "list"]
+#[name = "get"] #[module = "lists"] #[output = "any"] #[owner = "list"]
 pub struct BuiltinDefaultListGet {}
 impl Callable for BuiltinDefaultListGet {
     unsafe fn call(&self, scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
@@ -209,6 +264,33 @@ impl Callable for BuiltinDefaultListGet {
             return Err(Error::new(ErrorMessage::RuntimeError(err_msg), None));
         }
         scope.set_variable("@return".to_string(), list_vec[index].clone());
+        Ok(())
+    }
+}
+
+
+
+
+
+
+
+
+
+
+#[derive(SlothFunction)]
+#[name = "len"] #[module = "lists"] #[output = "num"] #[owner = "list"]
+pub struct BuiltinDefaultListLen {}
+impl Callable for BuiltinDefaultListLen {
+    unsafe fn call(&self, scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
+        let list = scope.get_variable("@self".to_string(), program).unwrap();
+
+        // get the list value
+        let (_, list_vec) = match list {
+            Value::List(t, v) => (t, v),
+            _ => panic!("Called 'set' on a value which is not a list")
+        };
+    
+        scope.set_variable("@return".to_string(), Value::Number(list_vec.len() as f64));
         Ok(())
     }
 }

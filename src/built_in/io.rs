@@ -19,7 +19,7 @@ use sloth_derive::SlothFunction;
 
 pub const BUILTINS: [&str; 2] = [
     "print",
-    "read"
+    "read",
 ];
 
 
