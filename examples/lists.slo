@@ -1,9 +1,0 @@
-builtin io:print;
-
-define main: -> num {
-    l = [1 2 3 4 5 6 7 8];
-    print(l " (" l.len() ")\n");
-    l2 = l.pull(2);
-    print(l2 "\n");
-    print(l " (" l.len() ")\n");
-}

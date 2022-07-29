@@ -1,7 +1,5 @@
-builtin io;
-
+builtin io; # Import the builtin functions from the module 'io'. This includes 'print'
 
 define main: -> num {
-    input = read("Enter your name: ");
-    @return = print("Hello, " + input "!\n");
+    print("Hello, world!\n");
 }

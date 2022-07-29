@@ -1,19 +1,23 @@
 builtin io;
 
-# Return the square of the number it is used on
+# This example shows how to define methods for types
+
+# Non destructive (return the new value)
 define square for num: -> num {
     @return = * @self @self;
 }
 
 
-define double for num: -> num {
-    @self = * 2 @self;
-    @return = 0;
+# Destructive (change the value, don't return anything)
+define set_to_square for num: -> num {
+    @self = * @self @self;
 }
 
 
+
+
 define main: num -> num {
-    test = @0;
-    @0.double();
-    print(test "\n");
+    print("Square of " @0 ": " @0.square() "\n");
+    @0.set_to_square();
+    print("Value of @0 after 'set_to_square': " @0 "\n");
 }
