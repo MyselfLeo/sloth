@@ -33,6 +33,7 @@ define main: num -> num {
 
 <details>
 <summary>Result</summary>
+<p>
 ```
 $ sloth input.slo
 >>> INVALID ARGUMENTS: Given 0 command-line argument(s), but the main function requires 1 argument(s):  num
@@ -43,4 +44,5 @@ $ sloth input.slo 12
 $ sloth input.slo "test
 >>> INVALID ARGUMENTS: Error while parsing command-line arguments: Cannot convert 'test' into a Number value
 ```
+</p>
 </details>
