@@ -23,7 +23,7 @@ define main: -> num {
 ```
 
 The `num` here is the return type of the function. We'll see it after, but for now, remember that **the main function is required to return a Number (num) value.**  
-However, its inputs can vary based on what you need. Compared to other programming languages, you don't need to parse the command-line inputs yourself: the interpreter does it for you:
+However, its inputs can vary based on what you need. Compared to other programming languages, you don't need to parse the command-line inputs yourself: the interpreter does it for you. Example:
 
 ```
 # input.slo
@@ -36,8 +36,10 @@ define main: num -> num {
 ```
 $ sloth input.slo
 >>> INVALID ARGUMENTS: Given 0 command-line argument(s), but the main function requires 1 argument(s):  num
+
 $ sloth input.slo 12
 >>> 12
+
 $ sloth input.slo "test
 >>> INVALID ARGUMENTS: Error while parsing command-line arguments: Cannot convert 'test' into a Number value
 ```
