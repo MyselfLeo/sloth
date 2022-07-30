@@ -28,7 +28,7 @@ The syntax, logic and specifications of Sloth are described in the documentation
 
 Install using **[cargo](https://github.com/rust-lang/cargo)**:
 ```
-$ cargo install sloth
+$ cargo install slothlang
 ```
 
 ## License
