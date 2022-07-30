@@ -26,7 +26,11 @@ The syntax, logic and specifications of Sloth are described in the documentation
 
 ## Installation
 
-Sloth is currently in development and cannot be downloaded yet. However, being a Rust program, it is very likely that it will be available using **[cargo](https://github.com/rust-lang/cargo)**.
+Install using **[cargo](https://github.com/rust-lang/cargo)**:
+```
+$ cargo install sloth
+```
 
-## Credit
-© Copyright MyselfLeo, all right reserved 🦥
+## License
+
+Sloth is licensed under the [Apache-2.0 License](LICENSE.txt).
