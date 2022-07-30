@@ -253,115 +253,6 @@ fn parse_operation(iterator: &mut TokenIterator, program: &mut SlothProgram, war
 
 
 
-/*
-/// Parse the access of a list (l[3] for example)
-fn parse_access(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool, first_expr: (ExpressionID, ElementPosition)) -> Result<(ExpressionID, ElementPosition), Error> {
-    // The starting token must be an open square bracket
-    if let Some((Token::Separator(Separator::OpenSquareBracket), _)) = iterator.current() {}
-    else {panic!("Called parse_access but iterator is not a on an open square bracket")}
-
-    iterator.next();
-
-    // The next expression is the index
-    let (index_expr, _) = parse_expression(iterator, program, warning)?;
-
-    // Next token must be a close square bracket
-    let final_pos = match iterator.current() {
-        Some((Token::Separator(Separator::CloseSquareBracket), p)) => p,
-        Some((t, p)) =>  {
-            let err_msg = format!("Expected ']', got unexpected token '{}'", t.original_string());
-            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)));
-        },
-        None => return Err(eof_error(line!()))
-    };
-
-    let new_pos = first_expr.1.until(final_pos);
-    let expr = Expression::ListAccess(first_expr.0, index_expr, new_pos.clone());
-    let new_expr = (program.push_expr(expr), new_pos);
-
-
-    // If after parsing the expression, the iterator is on a Separator::Period, the expression is in fact not finished here.
-    // It is a variable call or a method call on the result of that expression/the value stored in the variable forming this expression
-    match iterator.next() {
-        Some((Token::Separator(Separator::Period), _)) => parse_second_expr(iterator, program, warning, new_expr),
-        Some((Token::Separator(Separator::OpenSquareBracket), _)) => parse_access(iterator, program, warning, new_expr),
-        None => Err(eof_error(line!())),
-        _ => Ok(new_expr)
-    }
-}
-*/
-
-
-
-
-
-
-
-/// In the case of a ParameterCall or a MethodCall (expr.attribute or expr.method()), this function parses the second part (after the period/)
-/// It is given the ExpressionID and ElementPosition of the first expression
-fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool, first_expr: (ExpressionID, ElementPosition)) -> Result<(ExpressionID, ElementPosition), Error> {
-    // name of the variable or function to use
-    let ident = match iterator.next() {
-        Some((Token::Identifier(s), _)) => s,
-        Some((t, p)) => {
-            let err_msg = format!("Expected identifier, got unexpected token '{}'", t.original_string());
-            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)));
-        },
-        None => return Err(eof_error(line!()))
-    };
-
-
-
-    // Check whether the call is a method call or a parameter call
-    let expr = match iterator.peek(1) {
-        // method call
-        Some((Token::Separator(Separator::OpenParenthesis), _)) | Some((Token::Separator(Separator::Colon), _)) => {
-            let function = parse_functioncall(iterator, program, warning)?;
-            // Transforms the FunctionCall expression given by the parse_functioncall function into a MethodCall
-            if let Expression::FunctionCall(signature, input_exprs, pos) = function {
-                let expr_pos = first_expr.1.until(pos);
-                let method_call = Expression::MethodCall(first_expr.0, signature, input_exprs, expr_pos.clone());
-                (program.push_expr(method_call), expr_pos)
-            }
-            else {panic!("Function 'parse_functioncall' did not return an Expression::Functioncall value")}
-        },
-        
-        // Parameter call
-        Some((_, p)) => {
-            let expr_pos = first_expr.1.until(p);
-            let param_call = Expression::ParameterCall(first_expr.0, ident, expr_pos.clone());
-            (program.push_expr(param_call), expr_pos)
-        },
-
-        None => return Err(eof_error(line!()))
-    };
-
-
-
-    // If after parsing the expression, the iterator is on a Separator::Period, the expression is in fact not finished here.
-    // It is a variable call or a method call on the result of that expression/the value stored in the variable forming this expression
-    match iterator.current() {
-        Some((Token::Separator(Separator::Period), _)) => parse_second_expr(iterator, program, warning, expr),
-        //Some((Token::Separator(Separator::OpenSquareBracket), _)) => parse_access(iterator, program, warning, expr),
-        None => Err(eof_error(line!())),
-        _ => Ok(expr)
-    }
-
-
-
-}
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 /// Parse a list
@@ -408,6 +299,97 @@ fn parse_list(iterator: &mut TokenIterator, program: &mut SlothProgram, warning:
 
 
 
+/// In the case of a ParameterCall or a MethodCall (expr.attribute or expr.method()), this function parses the second part (after the period/)
+/// It is given the ExpressionID and ElementPosition of the first expression
+fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool, first_expr: (ExpressionID, ElementPosition), is_parenthesied: bool) -> Result<(ExpressionID, ElementPosition), Error> {
+    // name of the variable or function to use
+    let ident = match iterator.next() {
+        Some((Token::Identifier(s), _)) => s,
+        Some((t, p)) => {
+            let err_msg = format!("Expected identifier, got unexpected token '{}'", t.original_string());
+            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)));
+        },
+        None => return Err(eof_error(line!()))
+    };
+
+
+
+    // Check whether the call is a method call or a parameter call
+    let expr = match iterator.peek(1) {
+        // method call
+        Some((Token::Separator(Separator::OpenParenthesis), _)) | Some((Token::Separator(Separator::Colon), _)) => {
+            let function = parse_functioncall(iterator, program, warning)?;
+            // Transforms the FunctionCall expression given by the parse_functioncall function into a MethodCall
+            if let Expression::FunctionCall(signature, input_exprs, pos) = function {
+                let expr_pos = first_expr.1.until(pos);
+                let method_call = Expression::MethodCall(first_expr.0, signature, input_exprs, expr_pos.clone());
+                (program.push_expr(method_call), expr_pos)
+            }
+            else {panic!("Function 'parse_functioncall' did not return an Expression::Functioncall value")}
+        },
+        
+        // Parameter call
+        Some((_, p)) => {
+            let expr_pos = first_expr.1.until(p);
+            let param_call = Expression::ParameterCall(first_expr.0, ident, expr_pos.clone());
+            (program.push_expr(param_call), expr_pos)
+        },
+
+        None => return Err(eof_error(line!()))
+    };
+
+
+
+    // determines whether the expression if finished here or not.
+    match iterator.current() {
+        Some((Token::Separator(Separator::CloseParenthesis), p)) => {
+            if is_parenthesied {iterator.next(); Ok(expr)}
+            else {Ok(first_expr)}
+        },
+        Some((Token::Separator(Separator::Period), _)) => {
+            parse_second_expr(iterator, program, warning, first_expr, is_parenthesied)
+        },
+        Some((t, p)) => {
+            if !is_parenthesied {Ok(first_expr)}
+            else {
+                let err_msg = format!("Expected ')', got unexpected token '{}'", t.original_string());
+                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)));
+            }
+        },
+        None => Err(eof_error(line!())),
+    }
+
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -416,6 +398,18 @@ fn parse_list(iterator: &mut TokenIterator, program: &mut SlothProgram, warning:
 
 /// Parse an expression, push it to the program's expression stack and return its id
 fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<(ExpressionID, ElementPosition), Error> {
+
+    // If the first token is an open parenthesis, we expect the expression to end on a closed parenthesis.
+    let is_parenthesied = match iterator.current() {
+        Some((Token::Separator(Separator::OpenParenthesis), _)) => {
+            iterator.next();
+            true
+        }
+        _ => false
+    };
+    
+
+
     // we use the first token of the expression to find its type
     let (expr, expr_pos) = match iterator.current() {
 
@@ -461,18 +455,26 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
         None => return Err(eof_error(line!()))
     };
 
+    let first_expr = (program.push_expr(expr.clone()), expr_pos);
 
 
-    let first_expr = (program.push_expr(expr), expr_pos);
-
-
-    // If after parsing the expression, the iterator is on a Separator::Period, the expression is in fact not finished here.
-    // It is a variable call or a method call on the result of that expression/the value stored in the variable forming this expression
+    // determines whether the expression if finished here or not.
     match iterator.current() {
-        Some((Token::Separator(Separator::Period), _)) => parse_second_expr(iterator, program, warning, first_expr),
-        //Some((Token::Separator(Separator::OpenSquareBracket), _)) => parse_access(iterator, program, warning, first_expr),
+        Some((Token::Separator(Separator::CloseParenthesis), p)) => {
+            if is_parenthesied {iterator.next(); Ok(first_expr)}
+            else {Ok(first_expr)}
+        },
+        Some((Token::Separator(Separator::Period), _)) => {
+            parse_second_expr(iterator, program, warning, first_expr, is_parenthesied)
+        },
+        Some((t, p)) => {
+            if !is_parenthesied {Ok(first_expr)}
+            else {
+                let err_msg = format!("Expected ')', got unexpected token '{}'", t.original_string());
+                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)));
+            }
+        },
         None => Err(eof_error(line!())),
-        _ => Ok(first_expr)
     }
 }
 
