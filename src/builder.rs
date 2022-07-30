@@ -342,7 +342,7 @@ fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, w
 
     // determines whether the expression if finished here or not.
     match iterator.current() {
-        Some((Token::Separator(Separator::CloseParenthesis), p)) => {
+        Some((Token::Separator(Separator::CloseParenthesis), _)) => {
             if is_parenthesied {iterator.next(); Ok(expr)}
             else {Ok(first_expr)}
         },
@@ -460,7 +460,7 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
 
     // determines whether the expression if finished here or not.
     match iterator.current() {
-        Some((Token::Separator(Separator::CloseParenthesis), p)) => {
+        Some((Token::Separator(Separator::CloseParenthesis), _)) => {
             if is_parenthesied {iterator.next(); Ok(first_expr)}
             else {Ok(first_expr)}
         },
