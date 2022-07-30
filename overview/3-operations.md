@@ -5,7 +5,7 @@ Sloth's operation are written using the [Polish notation](https://en.wikipedia.o
 + 1 2       ->       3
 - 10 3      ->       7
 / 10 + 5 5  ->       1
-! true      ->       false
+!true       ->       false
 ```
 
 ## Operators

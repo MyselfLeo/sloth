@@ -6,7 +6,7 @@ use regex::Regex;
 
 
 const KEYWORDS: [&str; 12] = ["define", "num", "bool", "string", "list", "none", "->", "=", "if", "while", "builtin", "for"];
-const OPERATORS: [&str; 12] = ["+", "-", "*", "/", "<", ">", "<=", ">=", "==", "&", "?", "!"];
+const OPERATORS: [&str; 12] = ["+", "-", "*", "/", "<=", ">=", "==", "<", ">", "&", "?", "!"];                                  // The '<=' and '>=' must be before '<' and '>' so the parsing works
 const SEPARATORS: [&str; 11] = ["(", ")", "{", "}", "[", "]", ";", ":", ",", "|", "."];
 
 // Unlike SEPARATORS, those do not have a semantic meaning (only used for separating tokens)
@@ -290,6 +290,37 @@ impl TokenizedProgram {
                     }
 
                     else {
+                        // Check if the token_buffer starts with an operator and is not a keyword, because the op can be sticked to its operands: !true, >=value, etc.
+                        // if so, we separate it, create its own Token, etc. then continue with the rest of the buffer
+
+                        if !KEYWORDS.contains(&token_buffer.as_str()) {
+                            for op in OPERATORS {
+                                if token_buffer.starts_with(op) {
+                                    let op_pos = ElementPosition {
+                                        filename: filename.to_string(),
+                                        line: token_start.0,
+                                        first_column: token_start.1,
+                                        last_column: token_start.1 + op.len()
+                                    };
+    
+                                    token_start.1 += op.len();
+                                    token_buffer = token_buffer.strip_prefix(op).unwrap_or(&token_buffer).to_string();
+    
+                                    // push the OP token
+                                    match Token::from_str(op) {
+                                        Ok(s) => {
+                                            token_list.push(s);
+                                            position_list.push(op_pos);
+                                        },
+                                        Err(e) => {
+                                            return Err(Error::new(ErrorMessage::SyntaxError(e), Some(op_pos)));
+                                        },
+                                    };
+                                }
+                            }
+                        }
+
+
                         // Push previous token buffer to the list (if not empty), along with its position.
                         if !token_buffer.is_empty() {
                             let position = ElementPosition {
