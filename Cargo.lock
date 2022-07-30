@@ -193,17 +193,7 @@ version = "0.1.0"
 dependencies = [
  "clap",
  "regex",
- "sloth_derive",
  "text_io",
-]
-
-[[package]]
-name = "sloth_derive"
-version = "0.1.0"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
 ]
 
 [[package]]

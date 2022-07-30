@@ -1,4 +1,4 @@
-use crate::sloth::function::SlothFunction;
+use crate::{sloth::{function::{SlothFunction, FunctionSignature}, program::SlothProgram, scope::Scope, types::Type}, errors::Error};
 pub mod io;
 pub mod numbers;
 pub mod strings;
@@ -47,9 +47,9 @@ impl BuiltInImport {
                 // Get the list of builtins from the submodule
                 let builtins = match self.submodule.as_str() {
                     "io" => io::BUILTINS.to_vec(),
-                    "numbers" => numbers::BUILTINS.to_vec(),
-                    "strings" => strings::BUILTINS.to_vec(),
-                    "lists" => lists::BUILTINS.to_vec(),
+                    //"numbers" => numbers::BUILTINS.to_vec(),
+                    //"strings" => strings::BUILTINS.to_vec(),
+                    //"lists" => lists::BUILTINS.to_vec(),
                     _ => panic!("Trying to access builtins of submodule '{}', which do not exists", self.submodule)
                 };
 
@@ -125,4 +125,68 @@ pub fn collapse_imports(imports: &Vec<BuiltInImport>) -> Result<(Vec<Box<dyn Slo
     };
 
     Ok((funcs, ()))
+}
+
+
+
+
+
+
+
+
+
+/*pub trait SlothFunction {
+/// Return the type owning this function, or None if this is not a method
+fn get_owner_type(&self) -> Option<Type>;
+
+/// Return a FunctionID representing this function
+fn get_signature(&self) -> FunctionSignature;
+
+/// Return the module from which the function comes
+fn get_module(&self) -> Option<String>;
+
+/// Return the name of the function
+fn get_name(&self) -> String;
+
+/// Return the output type of the function
+fn get_output_type(&self) -> Type;
+
+/// Execute the function
+unsafe fn call(&self,  scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error>;
+}
+*/
+
+
+
+pub struct BuiltInFunction {
+    signature: FunctionSignature,
+    call_function: fn(&mut Scope, &mut SlothProgram) -> Result<(), Error>,
+}
+
+
+impl SlothFunction for BuiltInFunction {
+    fn get_owner_type(&self) -> Option<Type> {self.signature.owner_type.clone()}
+    fn get_signature(&self) -> FunctionSignature {self.signature.clone()}
+    fn get_module(&self) -> Option<String> {self.signature.module.clone()}
+    fn get_name(&self) -> String {self.signature.name.clone()}
+    fn get_output_type(&self) -> Type {self.signature.output_type.as_ref().unwrap().clone()}
+
+    unsafe fn call(&self, scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
+        (self.call_function)(scope, program)
+    }
+}
+
+
+impl BuiltInFunction {
+    pub fn new(name: &str, module: Option<&str>, owner_type: Option<Type>, output_type: Type, call_function: fn(&mut Scope, &mut SlothProgram) -> Result<(), Error>) -> BuiltInFunction {
+        let new_module = match module {
+            Some(s) => Some(s.to_string()),
+            None => None
+        };
+
+        BuiltInFunction {
+            signature: FunctionSignature{module: new_module, name: name.to_string(), owner_type, input_types: None, output_type: Some(output_type)},
+            call_function
+        }
+    }
 }
