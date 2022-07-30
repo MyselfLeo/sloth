@@ -1,4 +1,4 @@
-# 2 - Operations
+# 3 - Operations
 
 Sloth's operation are written using the [Polish notation](https://en.wikipedia.org/wiki/Polish_notation). No parenthesis are required, as each operator have a known number of operands. Here's some examples:
 ```
