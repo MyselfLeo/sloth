@@ -7,7 +7,7 @@ Sloth programs uses the extension `.slo`.
 
 Quick answer:
 ```
-$ sloth [OPTIONS] <PROGRAM PATH> [PROGRAM ARGUMENTS]
+$ slothlang [OPTIONS] <PROGRAM PATH> [PROGRAM ARGUMENTS]
 ```
 
 You can get the list of options available using `sloth --help`.
@@ -38,13 +38,13 @@ define main: num -> num {
 <p>
 
 ```
-$ sloth input.slo
+$ slothlang input.slo
 >>> INVALID ARGUMENTS: Given 0 command-line argument(s), but the main function requires 1 argument(s):  num
 
-$ sloth input.slo 12
+$ slothlang input.slo 12
 >>> 12
 
-$ sloth input.slo "test"
+$ slothlang input.slo "test"
 >>> INVALID ARGUMENTS: Error while parsing command-line arguments: Cannot convert 'test' into a Number value
 ```
 
