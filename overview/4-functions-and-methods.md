@@ -37,3 +37,11 @@ define pow for num: num -> num {
 - `num -> num` The function takes a _Number_ value as an input, and return a _Number_ value as its output.
 - Note that the `@return` variable is used like any other variable. Only its value at the end of the function execution is important.
 - `@self` is the value on which is called the method. If the method was called on a variable (`value.pow(3)` instead of `3.pow(3)`), then modifying the value in `@self` would also modify the value on which it was called.
+
+
+## Note
+As you can see, functions and methods are easy to define in Sloth. The tricky part is to ensure that the value in the `@return` value is the correct one at the end of the execution.
+
+## What does '@return' contains at the start of the function execution?
+
+**The default value of the output type.** It means that if your writing a function that should not return anything, you can just set the return type to `num` and the function will automatically return _0_. This includes the `main` function, that **must** return a `num` value, it being the return code of your program. Without touching the `@return` value in your code, your program will always exit with code `0`.
