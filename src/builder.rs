@@ -730,13 +730,24 @@ fn parse_while(iterator: &mut TokenIterator, program: &mut SlothProgram, warning
 
 fn get_type_from_str(str: &str) -> Result<Type, String> {
     match str {
+        "any" => Ok(Type::Any),
         "num" => Ok(Type::Number),
         "bool" => Ok(Type::Boolean),
         "string" => Ok(Type::String),
         s => {
-            let identifier_re = Regex::new(r"^([a-zA-Z_][a-zA-Z0-9_]*)$").unwrap();
-            if identifier_re.is_match(s) {Ok(Type::Struct(s.to_string()))}
-            else {Err(format!("Expected structure name, got '{}'", s))}
+            // Check if it is a list type
+            let list_type_re = Regex::new(r"^list\[([a-zA-Z\[\]]+)\]$").unwrap();
+            match list_type_re.captures(s) {
+
+                Some(v) => get_type_from_str(v.get(1).unwrap().as_str()),
+                None => {
+                    // Not a list type, so return it as a struct type
+                    let identifier_re = Regex::new(r"^([a-zA-Z_][a-zA-Z0-9_]*)$").unwrap();
+                    if identifier_re.is_match(s) {Ok(Type::Struct(s.to_string()))}
+                    else {Err(format!("Expected structure name, got '{}'", s))}
+                }
+
+            }
         }
     }
 }
