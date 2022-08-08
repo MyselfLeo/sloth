@@ -332,6 +332,7 @@ fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, w
         Some((_, p)) => {
             let expr_pos = first_expr.1.until(p);
             let param_call = Expression::ParameterCall(first_expr.0, ident, expr_pos.clone());
+            iterator.next();
             (program.push_expr(param_call), expr_pos)
         },
 
@@ -344,13 +345,13 @@ fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, w
     match iterator.current() {
         Some((Token::Separator(Separator::CloseParenthesis), _)) => {
             if is_parenthesied {iterator.next(); Ok(expr)}
-            else {Ok(first_expr)}
+            else {Ok(expr)}
         },
         Some((Token::Separator(Separator::Period), _)) => {
             parse_second_expr(iterator, program, warning, first_expr, is_parenthesied)
         },
         Some((t, p)) => {
-            if !is_parenthesied {Ok(first_expr)}
+            if !is_parenthesied {Ok(expr)}
             else {
                 let err_msg = format!("Expected ')', got unexpected token '{}'", t.original_string());
                 return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)));
@@ -398,7 +399,6 @@ fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, w
 
 /// Parse an expression, push it to the program's expression stack and return its id
 fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<(ExpressionID, ElementPosition), Error> {
-
     // If the first token is an open parenthesis, we expect the expression to end on a closed parenthesis.
     let is_parenthesied = match iterator.current() {
         Some((Token::Separator(Separator::OpenParenthesis), _)) => {

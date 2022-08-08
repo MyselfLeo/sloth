@@ -103,8 +103,15 @@ impl Statement {
 
 
 
+pub enum IdentifierWrapperType {
+    Value,
+    Function
+}
 
 
-struct AssignmentTarget {
+
+/// Facilitate the access to elements from their name
+pub struct IdentifierWrapper {
+    element_type: IdentifierWrapperType,
     ident_sequence: Vec<String>
 }
