@@ -102,7 +102,7 @@ impl Statement {
 
 
 
-
+#[derive(Clone, Debug, PartialEq)]
 pub enum IdentifierWrapperType {
     Value,
     Function
@@ -114,4 +114,59 @@ pub enum IdentifierWrapperType {
 pub struct IdentifierWrapper {
     element_type: IdentifierWrapperType,
     ident_sequence: Vec<String>
+}
+
+
+impl IdentifierWrapper {
+
+    pub fn new(element_type: IdentifierWrapperType, ident_sequence: Vec<String>) -> IdentifierWrapper {
+        IdentifierWrapper {element_type, ident_sequence}
+    }
+
+
+
+
+    pub fn get_value(&self, scope: &mut Scope, program: &mut SlothProgram) -> Result<Value, String> {
+        if self.ident_sequence.len() == 0 {panic!("IdentifierWrapper has a length of 0")}
+        if self.element_type != IdentifierWrapperType::Value {panic!("Called get_value on an IdentifierWrapper that is not a Value")}
+
+        // Get the value of each ident element successively to get the final value
+        let mut value = scope.get_variable(self.ident_sequence[0].clone(), program)?;
+        for (i, ident) in self.ident_sequence.iter().enumerate() {
+            if i > 0 {value = value.get_field(ident)?;}
+        }
+
+        Ok(value)
+    }
+
+
+    fn update_value_rec(parent_value: Value, changed_value: Value, sequence: &mut Vec<String>) -> Result<Value, String> {
+        if sequence.is_empty() {return Ok(changed_value)}
+
+        let mut parent_value = parent_value.clone();
+
+        let child_name = sequence[0].clone();
+        sequence.remove(0);
+
+        let mut child_value = parent_value.get_field(&child_name)?; 
+        child_value = Self::update_value_rec(child_value, changed_value, sequence)?;
+        
+        parent_value.set_field(&child_name, child_value)?;
+
+        Ok(parent_value)
+    }
+
+
+    pub fn set_value(&self, value: Value, scope: &mut Scope, program: &mut SlothProgram) -> Result<(), String> {
+        if self.element_type != IdentifierWrapperType::Value {panic!("Called set_value on an IdentifierWrapper that is not a Value")}
+
+        let parent_variable_name = self.ident_sequence[0].clone();
+        let first_value = scope.get_variable(parent_variable_name.clone(), program)?;
+
+        let mut sequence = self.ident_sequence.clone();
+        
+        scope.set_variable(parent_variable_name, Self::update_value_rec(first_value, value, &mut sequence)?);
+
+        Ok(())
+    }
 }
