@@ -93,3 +93,18 @@ impl Statement {
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+struct AssignmentTarget {
+    ident_sequence: Vec<String>
+}
