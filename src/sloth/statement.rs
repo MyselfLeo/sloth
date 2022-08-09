@@ -102,25 +102,17 @@ impl Statement {
 
 
 
-#[derive(Clone, Debug, PartialEq)]
-pub enum IdentifierWrapperType {
-    Value,
-    Function
-}
 
-
-
-/// Facilitate the access to elements from their name
+/// Facilitate the access to values stored in other values from their name
 pub struct IdentifierWrapper {
-    element_type: IdentifierWrapperType,
     ident_sequence: Vec<String>
 }
 
 
 impl IdentifierWrapper {
 
-    pub fn new(element_type: IdentifierWrapperType, ident_sequence: Vec<String>) -> IdentifierWrapper {
-        IdentifierWrapper {element_type, ident_sequence}
+    pub fn new(ident_sequence: Vec<String>) -> IdentifierWrapper {
+        IdentifierWrapper {ident_sequence}
     }
 
 
@@ -128,7 +120,6 @@ impl IdentifierWrapper {
 
     pub fn get_value(&self, scope: &mut Scope, program: &mut SlothProgram) -> Result<Value, String> {
         if self.ident_sequence.len() == 0 {panic!("IdentifierWrapper has a length of 0")}
-        if self.element_type != IdentifierWrapperType::Value {panic!("Called get_value on an IdentifierWrapper that is not a Value")}
 
         // Get the value of each ident element successively to get the final value
         let mut value = scope.get_variable(self.ident_sequence[0].clone(), program)?;
@@ -158,9 +149,7 @@ impl IdentifierWrapper {
 
 
     pub fn set_value(&self, value: Value, scope: &mut Scope, program: &mut SlothProgram) -> Result<(), String> {
-        if self.element_type != IdentifierWrapperType::Value {panic!("Called set_value on an IdentifierWrapper that is not a Value")}
-
-        let parent_variable_name = self.ident_sequence[0].clone();
+                let parent_variable_name = self.ident_sequence[0].clone();
         let first_value = scope.get_variable(parent_variable_name.clone(), program)?;
 
         let mut sequence = self.ident_sequence.clone();
