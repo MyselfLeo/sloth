@@ -92,6 +92,18 @@ impl Value {
                 }
             },
 
+            Value::List(_, list_values) => {
+                match field_name.parse::<usize>() {
+                    Ok(i) => {
+                        match list_values.get(i) {
+                            Some(v) => Ok(v.clone()),
+                            None => {Err(format!("Tried to access the {}th element of a list with only {} elements", i, list_values.len()))}
+                        }
+                    },
+                    Err(_) => {Err(format!("Cannot index a list with '{}'", field_name))}
+                }
+            },
+
             v => Err(format!("Type '{}' doesn't have a field '{}'", v.get_type(), field_name))
         }
     }
@@ -109,6 +121,22 @@ impl Value {
                         Ok(())
                     },
                     None => {Err(format!("Structure '{}' doesn't have a field '{}'", s.name, field_name))}
+                }
+            },
+
+            Value::List(t, list_values) => {
+                match field_name.parse::<usize>() {
+                    Ok(i) => {
+                        // Check type of new value
+                        let value_type = value.get_type();
+                        if *t != value_type {return Err(format!("Tried to set an element of type '{}' in a list of type '{}'", value_type, t))}
+                        
+                        if i > list_values.len() - 1 {list_values.push(value);}
+                        else {list_values[i] = value;}
+
+                        Ok(())
+                    },
+                    Err(_) => {Err(format!("Cannot index a list with '{}'", field_name))}
                 }
             },
 

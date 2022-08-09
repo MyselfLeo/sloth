@@ -535,6 +535,13 @@ fn parse_assignment(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
 
 
 
+/// Parse an identifier chaine, like "var1.field1.field2[value]"
+
+
+
+
+
+
 
 
 
