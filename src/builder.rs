@@ -3,7 +3,7 @@ use crate::sloth::expression::{ExpressionID, Expression};
 use crate::sloth::function::{CustomFunction, FunctionSignature};
 use crate::sloth::operator::{Operator};
 use crate::sloth::program::SlothProgram;
-use crate::sloth::statement::Statement;
+use crate::sloth::statement::{Statement, IdentifierWrapper, IdentifierElement};
 use crate::sloth::types::Type;
 use crate::sloth::value::Value;
 use crate::tokenizer::{TokenizedProgram, Token, ElementPosition, Separator};
@@ -425,8 +425,8 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
 
 
 
-        // The token is an identifier. CHeck the next token to see if its a function call, a variable call or a list access (lists not implemented yet)
-        Some((Token::Identifier(s), first_position)) =>  {
+        // The token is an identifier. CHeck the next token to see if its a function call, or variable call
+        Some((Token::Identifier(_), first_position)) =>  {
             match iterator.peek(1) {
                 Some((Token::Separator(Separator::OpenParenthesis), _)) | Some((Token::Separator(Separator::Colon), _)) => {
                     let func_call = parse_functioncall(iterator, program, warning)?;
@@ -434,8 +434,8 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
                     else {panic!("parse_functioncall did not return an Expression::FunctionCall enum")}
                 },
                 _ => {
-                    iterator.next();
-                    (Expression::VariableCall(s.clone(), first_position.clone()), first_position.clone())
+                    let wrapper = parse_identifierwrapper(iterator, program, warning)?;
+                    (Expression::VariableCall(wrapper.0, first_position.clone()), wrapper.1)
                 }
             }
         },
@@ -488,29 +488,14 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
 
 
 /// Parse an assignment statement
-fn parse_assignment(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<Statement, Error> {
-    let var_name: String;
-    let start_pos: ElementPosition;
-
-    // Get variable name and starting position of the assignment
-     match iterator.current() {
-        Some((token, position)) => {
-            // Get the name of the variable to be assigned to
-            if let Token::Identifier(s) = token {
-                var_name = s.clone();
-                start_pos = position.clone();
-            }
-            else {
-                let err_msg = format!("Expected variable name, got unexpected token '{}'", token.original_string());
-                return Err(Error::new(ErrorMessage::InvalidIdentifier(err_msg), Some(position.clone())));
-            };
-        },
-        None => return Err(eof_error(line!()))
-    };
+fn parse_assignment(wrapper: (IdentifierWrapper, ElementPosition), iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<Statement, Error> {
     
-
+    // Get identifier wrapper
+    //let (id_wrapper, start_pos) = parse_identifierwrapper(iterator, program, warning)?;
+    let (id_wrapper, start_pos) = wrapper;
+    
     // The next token must be '='
-    match iterator.next() {
+    match iterator.current() {
         Some((token, position)) => {
             if token.original_string() != "=".to_string() {
                 let err_msg = format!("Expected '=', got unexpected token '{}'", token.original_string());
@@ -524,7 +509,8 @@ fn parse_assignment(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
     iterator.next();
     let (expression_id, expr_pos) = parse_expression(iterator, program, warning)?;
     let assignment_position = start_pos.until(expr_pos);
-    Ok(Statement::Assignment(var_name, expression_id, assignment_position))
+
+    Ok(Statement::Assignment(id_wrapper, expression_id, assignment_position))
 }
 
 
@@ -536,6 +522,78 @@ fn parse_assignment(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
 
 
 /// Parse an identifier chaine, like "var1.field1.field2[value]"
+fn parse_identifierwrapper(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<(IdentifierWrapper, ElementPosition), Error> {
+    
+    let first_pos;
+    let mut last_pos;
+    let mut sequence: Vec<IdentifierElement> = Vec::new();
+
+
+    // first token must be an identifier
+    match iterator.current() {
+        Some((Token::Identifier(n), p)) => {
+            sequence.push(IdentifierElement::Identifier(n));
+            first_pos = p.clone();
+            last_pos = p;
+        },
+        Some((t, p)) => {
+            let err_msg = format!("Expected identifier, got unexpected token '{}'", t.original_string());
+            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)))
+        },
+        None => return Err(eof_error(line!()))
+    }
+
+    // loop until the end of the wrapper. Each step is either a field access (.fieldname) or an indexation ([x])
+    loop {
+
+        // If the third next token is an open parenthesis, we can stop here as the rest is not part of the IdentifierWrapper, but is
+        // instead a method call.
+        match iterator.peek(3) {
+            Some((Token::Separator(Separator::OpenParenthesis), _)) => break,
+            _ => ()
+        }
+
+        match iterator.next() {
+            Some((Token::Separator(Separator::Period), _)) => {
+                // next token must be an identifier
+                match iterator.next() {
+                    Some((Token::Identifier(n), _)) => sequence.push(IdentifierElement::Identifier(n)),
+                    Some((t, p)) => {
+                        let err_msg = format!("Expected identifier, got unexpected token '{}'", t.original_string());
+                        return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)))
+                    },
+                    None => return Err(eof_error(line!()))
+                }
+            },
+
+
+            Some((Token::Separator(Separator::OpenSquareBracket), _)) => {
+                // next is the expression that will be used as an index
+                iterator.next();
+                let expr_id = parse_expression(iterator, program, warning)?;
+                // next token MUST be a closed parenthesis
+                match iterator.current() {
+                    Some((Token::Separator(Separator::CloseSquareBracket), _)) => sequence.push(IdentifierElement::Indexation(expr_id.0)),
+                    Some((t, p)) => {
+                        let err_msg = format!("Expected ']', got unexpected token '{}'", t.original_string());
+                        return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)))
+                    },
+                    None => return Err(eof_error(line!()))
+                }
+            },
+
+            Some((_, _)) => {break;},
+            None => return Err(eof_error(line!()))
+        };
+
+        last_pos = match iterator.current() {
+            Some((_, p)) => p,
+            None => return Err(eof_error(line!()))
+        }
+    };
+
+    Ok((IdentifierWrapper::new(sequence), first_pos.until(last_pos)))
+}
 
 
 
@@ -555,15 +613,31 @@ fn parse_statement(iterator: &mut TokenIterator, program: &mut SlothProgram, war
         Some((Token::Identifier(_), _)) => {
             match iterator.peek(1) {
                 Some((next_token, _)) => {
-                    // This is a variable assignment (IDENTIFIER = EXPRESSION;)
-                    if next_token.original_string() == "=".to_string() {
-                        parse_assignment(iterator, program, warning)?
+                    // Check if it's a simple function call
+                    if next_token.original_string() == ":".to_string() || next_token.original_string() == "(".to_string() {
+                        let func_call = parse_functioncall(iterator, program, warning)?;
+                        Statement::ExpressionCall(program.push_expr(func_call.clone()), func_call.get_pos())
                     }
 
-                    // This must be an expression call
                     else {
-                        let (expr_id, pos) = parse_expression(iterator, program, warning)?;
-                        Statement::ExpressionCall(expr_id, pos)
+                        // At this point we can parse the wrapper
+                        let wrapper = parse_identifierwrapper(iterator, program, warning)?;
+                        
+                        match iterator.current() {
+                            Some((token, _)) => {
+                                // Assignment
+                                if token.original_string() == "=".to_string() {
+                                    parse_assignment(wrapper, iterator, program, warning)?
+                                }
+
+                                // Expression call
+                                else {
+                                    Statement::ExpressionCall(program.push_expr(Expression::VariableCall(wrapper.0, wrapper.1.clone())), wrapper.1)
+                                }
+                            },
+
+                            None => return Err(eof_error(line!()))
+                        }
                     }
                 },
 

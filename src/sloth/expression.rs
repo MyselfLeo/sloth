@@ -1,4 +1,5 @@
 use super::function::FunctionSignature;
+use super::statement::IdentifierWrapper;
 use super::types::Type;
 use super::value::Value;
 use super::operator::{Operator, apply_op};
@@ -25,7 +26,7 @@ impl ExpressionID {
 pub enum Expression {
     Literal(Value, ElementPosition),                                                     // value of the literal
     ListInit(Vec<ExpressionID>, ElementPosition),                                        // list initialised in code. Example: [1 2 3 4 5]
-    VariableCall(String, ElementPosition),                                               // name of the variable
+    VariableCall(IdentifierWrapper, ElementPosition),                                    // identifierwrapper linking to the variable
     ParameterCall(ExpressionID, String, ElementPosition),                                // name of a parameter of a structure or built-in that can be accessed
     Operation(Operator, Option<ExpressionID>, Option<ExpressionID>, ElementPosition),    // Operator to apply to one or 2 values from the Scope Expression stack (via index)
     FunctionCall(FunctionSignature, Vec<ExpressionID>, ElementPosition),                 // name of the function and its list of expressions to be evaluated
@@ -142,8 +143,8 @@ impl Expression {
 
 
             // return the value stored in this variable
-            Expression::VariableCall(name, p) => {
-                match scope.get_variable(name.clone(), program.as_mut().unwrap()) {
+            Expression::VariableCall(wrapper, p) => {
+                match wrapper.get_value(scope, program.as_mut().unwrap()) {
                     Ok(v) => Ok(v),
                     Err(e) => Err(Error::new(ErrorMessage::UnexpectedExpression(e), Some(p.clone())))
                 }
@@ -312,13 +313,13 @@ impl Expression {
                 };
 
 
-                if let Expression::VariableCall(name, _) = expr {
+                if let Expression::VariableCall(wrapper, _) = expr {
                     // Set the variable on which was called the function to the new value of "@self"
                     let new_self = match func_scope.get_variable("@self".to_string(), program.as_mut().unwrap()) {
                         Ok(v) => (v),
                         Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                     };
-                    scope.set_variable(name, new_self);
+                    wrapper.set_value(new_self, scope, program.as_mut().unwrap());
                 }
 
 

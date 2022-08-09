@@ -8,10 +8,10 @@ use super::value::Value;
 /// Statements are instructions that modify a scope (variable assignment for example)
 #[derive(Clone, Debug)]
 pub enum Statement {
-    Assignment(String, ExpressionID, ElementPosition),      // Assignment of an expression evaluation to a variable
-    ExpressionCall(ExpressionID, ElementPosition),          // Evaluation of an expression, not storing it
-    If(ExpressionID, Vec<Statement>, ElementPosition),      // If block. Condition expr index and list of statements
-    While(ExpressionID, Vec<Statement>, ElementPosition),   // while look. same specs as if
+    Assignment(IdentifierWrapper, ExpressionID, ElementPosition),       // Assignment of an expression evaluation to a variable
+    ExpressionCall(ExpressionID, ElementPosition),                      // Evaluation of an expression, not storing it
+    If(ExpressionID, Vec<Statement>, ElementPosition),                  // If block. Condition expr index and list of statements
+    While(ExpressionID, Vec<Statement>, ElementPosition),               // while look. same specs as if
 }
 
 
@@ -23,16 +23,18 @@ impl Statement {
     // Apply the statement to the given scope
     pub unsafe fn apply(&self, scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
         match self {
-            Statement::Assignment(name, expr_id, p) => {
+            Statement::Assignment(wrapper, expr_id, p) => {
                 let expr = match program.get_expr(*expr_id) {
                     Ok(e) => e,
                     Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                 };
 
                 let value = expr.evaluate(scope, program)?;
-                scope.set_variable(name.clone(), value);
-
-                Ok(())
+                
+                match wrapper.set_value(value, scope, program) {
+                    Ok(()) => Ok(()),
+                    Err(e) => Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))
+                }
             },
 
             Statement::ExpressionCall(expr_id, p) => {
@@ -127,7 +129,7 @@ impl IdentifierElement {
 
 
 
-
+#[derive(Clone, Debug)]
 /// Facilitate the access to values stored in other values from their name
 pub struct IdentifierWrapper {
     ident_sequence: Vec<IdentifierElement>
@@ -185,9 +187,16 @@ impl IdentifierWrapper {
             IdentifierElement::Identifier(n) => n.clone(),
             IdentifierElement::Indexation(_) => {panic!("IdentifierWrapper sequence starts with an indexation")}
         };
+
+        if self.ident_sequence.len() == 1 {
+            scope.set_variable(parent_variable_name, value);
+            return Ok(())
+        }
+
         let first_value = scope.get_variable(parent_variable_name.clone(), program)?;
 
         let mut sequence = self.ident_sequence.clone();
+        sequence.remove(0);
         
         let new_value = Self::update_value_rec(first_value, value, &mut sequence, scope, program)?;
         scope.set_variable(parent_variable_name, new_value);

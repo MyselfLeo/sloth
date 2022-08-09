@@ -14,7 +14,7 @@ use crate::built_in;
 
 
 
-const DEFAULT_SUBMODULE_IMPORTS: [&str; 1] = ["lists"];
+const DEFAULT_SUBMODULE_IMPORTS: [&str; 0] = [];
 
 
 
