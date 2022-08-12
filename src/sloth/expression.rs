@@ -30,7 +30,8 @@ pub enum Expression {
     ParameterCall(ExpressionID, String, ElementPosition),                                // name of a parameter of a structure or built-in that can be accessed
     Operation(Operator, Option<ExpressionID>, Option<ExpressionID>, ElementPosition),    // Operator to apply to one or 2 values from the Scope Expression stack (via index)
     FunctionCall(FunctionSignature, Vec<ExpressionID>, ElementPosition),                 // name of the function and its list of expressions to be evaluated
-    MethodCall(ExpressionID, FunctionSignature, Vec<ExpressionID>, ElementPosition)      // call of a method of a Value
+    MethodCall(ExpressionID, FunctionSignature, Vec<ExpressionID>, ElementPosition),     // call of a method of a Value
+    ObjectConstruction(String, Vec<ExpressionID>, ElementPosition),                      // The construction of an Object, with the 'new' keyword
 }
 
 
@@ -281,7 +282,50 @@ impl Expression {
                     },
                     Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                 }
-            }
+            },
+
+
+
+
+
+            Expression::ObjectConstruction(name, fields, p) => {
+                // Get the structure definition from the program
+                let struct_def = match program.as_mut().unwrap().get_struct(&name) {
+                    Ok(v) => v,
+                    Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))
+                };
+
+
+                // Compare lenght of given fields to the struct def
+                if struct_def.fields_names.len() != fields.len() {
+                    let err_msg = format!("Structure '{}' expects {} fields, but it has been given {} fields", name, struct_def.fields_names.len(), fields.len());
+                    return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), Some(p.clone())))
+                }
+
+
+                let mut values = Vec::new();
+
+                // Evaluate each values given for the fields, compare them to the definition
+                for (i, expr_id) in fields.iter().enumerate() {
+                    let expr = match program.as_ref().unwrap().get_expr(*expr_id) {
+                        Ok(e) => e,
+                        Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
+                    };
+
+                    let value = expr.evaluate(scope, program)?;
+
+                    if value.get_type() != *struct_def.fields_types[i] {
+                        let err_msg = format!("Field '{}' of structure '{}' is of type '{}', but it has been given a value of type '{}'", struct_def.fields_names[i], name, struct_def.fields_types[i], value.get_type());
+                        return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), Some(p.clone())))
+                    }
+
+                    values.push(value);
+                }
+
+
+                // Return the value
+                Ok(Value::Struct(struct_def, values))
+            },
         }
     }
 
@@ -299,6 +343,7 @@ impl Expression {
             Expression::Operation(_, _, _, p) => p,
             Expression::FunctionCall(_, _, p) => p,
             Expression::MethodCall(_, _, _, p) => p,
-        }.clone()
+            Expression::ObjectConstruction(_, _, p) => p,
+        }.clone() 
     }
 }

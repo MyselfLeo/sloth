@@ -379,6 +379,60 @@ fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, w
 
 
 
+/// Parse the construction of an object
+fn parse_object_construction(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<(Expression, ElementPosition), Error> {
+    // Next token is the struct's name
+    let mut pos;
+
+    let struct_name = match iterator.next() {
+        Some((Token::Identifier(n), p)) => {
+            pos = p;
+            n
+        },
+        Some((t, p)) => {
+            let err_msg = format!("Expected structure name, got unexpected token '{}'", t.original_string());
+            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())))
+        },
+        None => return Err(eof_error(line!()))
+    };
+
+    // Next is an open parenthesis
+    match iterator.next() {
+        Some((Token::Separator(Separator::OpenParenthesis), _)) => (),
+        Some((t, p)) => {
+            let err_msg = format!("Expected '(', got unexpected token '{}'", t.original_string());
+            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())))
+        },
+        None => return Err(eof_error(line!()))
+    };
+
+
+    let mut expr_ids = Vec::new();
+
+    // Next is a sequence of expressions, until a closed parenthesis is met
+    iterator.next();
+    loop {
+        match iterator.current() {
+            Some((Token::Separator(Separator::CloseParenthesis), p)) => {
+                pos = pos.until(p);
+                break
+            },
+            _ => {
+                let (expr_id, _) = parse_expression(iterator, program, warning)?;
+                expr_ids.push(expr_id);
+            }
+        };
+    }
+
+    iterator.next();
+
+    Ok((Expression::ObjectConstruction(struct_name, expr_ids, pos.clone()), pos))
+}
+
+
+
+
+
 
 
 
@@ -448,6 +502,22 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
             else {panic!("parse_operation did not return an Expression::Operation enum")}
         },
 
+
+
+        // The token is the "new" keyword: it's the construction of a struct
+        Some((Token::Keyword(n), p)) => {
+            match n.as_str() {
+                "new" => parse_object_construction(iterator, program, warning)?,
+                _ => {
+                    let err_msg = format!("Unexpected keyword '{}'", n);
+                    return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)))
+                }
+            }
+        },
+
+
+
+
         Some((t, p)) => {
             let err_msg = format!("Unexpected expression start '{}'", t.original_string());
             return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)))
@@ -462,7 +532,11 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
     // determines whether the expression if finished here or not.
     match iterator.current() {
         Some((Token::Separator(Separator::CloseParenthesis), _)) => {
-            if is_parenthesied {iterator.next(); Ok(first_expr)}
+            if is_parenthesied {iterator.next();}
+            
+            if let Some((Token::Separator(Separator::Period), _)) = iterator.current() {
+                parse_second_expr(iterator, program, warning, first_expr, false)
+            }
             else {Ok(first_expr)}
         },
         Some((Token::Separator(Separator::Period), _)) => {
@@ -523,7 +597,6 @@ fn parse_assignment(wrapper: (IdentifierWrapper, ElementPosition), iterator: &mu
 
 /// Parse an identifier chaine, like "var1.field1.field2[value]"
 fn parse_identifierwrapper(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<(IdentifierWrapper, ElementPosition), Error> {
-    
     let first_pos;
     let mut last_pos;
     let mut sequence: Vec<IdentifierElement> = Vec::new();
@@ -549,7 +622,10 @@ fn parse_identifierwrapper(iterator: &mut TokenIterator, program: &mut SlothProg
         // If the third next token is an open parenthesis, we can stop here as the rest is not part of the IdentifierWrapper, but is
         // instead a method call.
         match iterator.peek(3) {
-            Some((Token::Separator(Separator::OpenParenthesis), _)) => break,
+            Some((Token::Separator(Separator::OpenParenthesis), _)) => {
+                iterator.next();
+                break
+            },
             _ => ()
         }
 

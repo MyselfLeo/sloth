@@ -135,8 +135,8 @@ impl SlothProgram {
 
 
     /// Return the structure definition of the given structure name
-    pub fn get_struct(&self, struct_name: String) -> Result<StructDefinition, String> {
-        match self.structures.get(&struct_name) {
+    pub fn get_struct(&self, struct_name: &String) -> Result<StructDefinition, String> {
+        match self.structures.get(struct_name) {
             None => {return Err(format!("Undefined structure '{}'", struct_name))}
             Some(v) => {return Ok(v.clone());}
         };
