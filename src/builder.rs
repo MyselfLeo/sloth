@@ -4,6 +4,7 @@ use crate::sloth::function::{CustomFunction, FunctionSignature};
 use crate::sloth::operator::{Operator};
 use crate::sloth::program::SlothProgram;
 use crate::sloth::statement::{Statement, IdentifierWrapper, IdentifierElement};
+use crate::sloth::structure::StructDefinition;
 use crate::sloth::types::Type;
 use crate::sloth::value::Value;
 use crate::tokenizer::{TokenizedProgram, Token, ElementPosition, Separator};
@@ -1127,6 +1128,151 @@ fn parse_builtin(iterator: &mut TokenIterator, program: &mut SlothProgram, warni
 
 
 
+
+/// Parse a structure definition, push it to the program
+fn parse_structure_def(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<(), Error> {
+    // must start with the "structure" keyword
+    match iterator.current() {
+        Some((t, p)) => {
+            if t.original_string() != "structure".to_string() {
+                let err_msg = format!("Expected 'structure' keyword, got '{}'", t.original_string());
+                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())));
+            }
+        }
+        None => return Err(eof_error(line!())),
+    };
+
+
+    let mut definition_pos;
+
+
+    // Next is the name of the structure. It must be an identifier
+    let struct_name = match iterator.next() {
+        Some((Token::Identifier(n), p)) => {
+            definition_pos = p;
+            n
+        },
+        Some((t, p)) => {
+            let err_msg = format!("Expected structure name (an identifier), got '{}'", t.original_string());
+            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())));
+        },
+        None => return Err(eof_error(line!())),
+    };
+
+
+    // Next is an open bracket
+    match iterator.next() {
+        Some((Token::Separator(Separator::OpenBracket), p)) => {
+            definition_pos = definition_pos.until(p);
+        },
+        Some((t, p)) => {
+            let err_msg = format!("Expected '{{', got unexpected token '{}'", t.original_string());
+            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())));
+        },
+        None => return Err(eof_error(line!())),
+    }
+
+
+    let mut fields_name: Vec<String> = Vec::new();
+    let mut fields_types: Vec<Box<Type>> = Vec::new();
+
+
+    // Next is each fields of this structure, until we met a closed bracket
+    loop {
+        match iterator.next() {
+            None => return Err(eof_error(line!())),
+            Some((Token::Separator(Separator::CloseBracket), _)) => {
+                iterator.next();
+                break
+            },
+
+            // name of the field, as an identifier
+            Some((Token::Identifier(name), first_pos)) => {
+
+                // check that the name is not already used
+                if fields_name.contains(&name) {
+                    let err_msg = format!("The name '{}' is already used for a field of the structure '{}'", name, struct_name);
+                    return Err(Error::new(ErrorMessage::DefinitionError(err_msg), Some(first_pos.clone())))
+                }
+
+
+                fields_name.push(name);
+
+                
+                // next token must be a colon
+                match iterator.next() {
+                    Some((Token::Separator(Separator::Colon), _)) => (),
+                    Some((t, p)) => {
+                        let err_msg = format!("Expected ':', got unexpected token '{}'", t.original_string());
+                        return Err(Error::new(ErrorMessage::DefinitionError(err_msg), Some(p.clone())))
+                    }
+                    None => return Err(eof_error(line!()))
+                }
+
+
+                let last_pos;
+
+                // the type of the field
+                let field_type = match iterator.next() {
+                    Some((t, p)) => {
+                        last_pos = p;
+
+                        match get_type_from_str(t.original_string().as_str()) {
+                            Ok(t) => t.clone(),
+                            Err(e) => return Err(Error::new(ErrorMessage::TypeError(e), Some(last_pos.clone())))
+                        }
+                    },
+                    None => return Err(eof_error(line!()))
+                };
+
+                fields_types.push(Box::new(field_type));
+
+
+
+
+                // A semicolon here is strongly recommended, but not necessary
+                match iterator.peek(1) {
+                    Some((Token::Separator(Separator::SemiColon), _)) => {iterator.next();},
+                    Some((_, _)) => {
+                        let warning = Warning::new("Use of a semicolon at the end of each field definition is highly recommended".to_string(), Some(first_pos.until(last_pos)));
+                        warning.warn();
+                    },
+                    None => return Err(eof_error(line!()))
+                }
+            },
+
+            Some((t, p)) => {
+                let err_msg = format!("Expected field name or '}}', got unexpected token '{}'", t.original_string());
+                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())))
+            }
+        }
+    }
+
+    match program.push_struct(StructDefinition::new(struct_name, fields_name, fields_types)) {
+        // warning raised by the program
+        Some(w) => {
+            let warning = Warning::new(w, Some(definition_pos));
+            warning.warn();
+        },
+        None => ()
+    };
+
+    Ok(())
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 pub fn build(tokens: TokenizedProgram, warning: bool, import_default_builtins: bool) -> Result<SlothProgram, Error> {
     let filename = tokens.filename.clone();
     let mut iterator = TokenIterator::new(tokens);
@@ -1151,7 +1297,7 @@ pub fn build(tokens: TokenizedProgram, warning: bool, import_default_builtins: b
                     parse_builtin(&mut iterator, &mut program, warning)?;
                 }
                 else if v.0.original_string() == "structure".to_string()  {
-                    unimplemented!()
+                    parse_structure_def(&mut iterator, &mut program, warning)?;
                 }
                 else {
                     let error_msg = format!("Expected function or structure definition, got unexpected token '{}'", v.0.original_string());

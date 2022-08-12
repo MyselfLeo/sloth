@@ -20,7 +20,8 @@ pub enum ErrorMessage {
     InvalidIdentifier(String),
     OperationErrror(String),
     ReturnValueError(String),
-    ImportError(String)
+    ImportError(String),
+    DefinitionError(String)
 }
 
 impl ErrorMessage {
@@ -38,6 +39,7 @@ impl ErrorMessage {
             ErrorMessage::OperationErrror(e) => e.clone(),
             ErrorMessage::ReturnValueError(e) => e.clone(),
             ErrorMessage::ImportError(e) => e.clone(),
+            ErrorMessage::DefinitionError(e) => e.clone(),
         }
     }
 }
@@ -57,6 +59,7 @@ impl std::fmt::Display for ErrorMessage {
             ErrorMessage::OperationErrror(e) => write!(f, "OPERATION ERROR: {}", e),
             ErrorMessage::ReturnValueError(e) => write!(f, "RETURN VALUE ERROR: {}", e),
             ErrorMessage::ImportError(e) => write!(f, "IMPORT ERROR: {}", e),
+            ErrorMessage::DefinitionError(e) => write!(f, "DEFINITION ERROR: {}", e),
         }
     }
 }
