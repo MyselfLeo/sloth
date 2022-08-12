@@ -82,65 +82,6 @@ impl Expression {
 
 
 
-            // ListAccess is now a method (list.get(x)) instead of a syntax element (list[x]). It caused problems when parsing lists of lists, where the second sub-list was considered
-            // a ListAccess
-            /*
-            Expression::ListAccess(list_id, index_expr, p) => {
-                // evaluate the list
-                let list_expr = match program.as_ref().unwrap().get_expr(*list_id) {
-                    Ok(e) => e,
-                    Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
-                };
-
-                let list_value = list_expr.evaluate(scope, program)?;
-
-                let values_vec = match list_value {
-                    Value::List(_, v) => v,
-                    v => {
-                        let err_msg = format!("Tried to access a list element on a value of type {}", v.get_type());
-                        return Err(Error::new(ErrorMessage::RuntimeError(err_msg), Some(list_expr.get_pos())));
-                    }
-                };
-
-
-                // evaluate the index expression
-                let index_expr = match program.as_ref().unwrap().get_expr(*index_expr) {
-                    Ok(e) => e,
-                    Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
-                };
-
-                let index_value = index_expr.evaluate(scope, program)?;
-
-                let index = match index_value {
-                    Value::Number(x) => {
-                        if (x as i128) < 0 {
-                            let err_msg = format!("Cannot use a negative index ({}) to access a list", x as i128);
-                            return Err(Error::new(ErrorMessage::RuntimeError(err_msg), Some(index_expr.get_pos())));
-                        }
-                        x as usize
-                    },
-
-                    v => {
-                        let err_msg = format!("Tried to index a list with an expression of type {}", v.get_type());
-                        return Err(Error::new(ErrorMessage::RuntimeError(err_msg), Some(index_expr.get_pos())));
-                    }
-                };
-
-
-
-                // access the element
-
-                if index > values_vec.len() - 1 {
-                    let err_msg = format!("Tried to access the {}th element of a list with only {} elements", index, values_vec.len());
-                    return Err(Error::new(ErrorMessage::RuntimeError(err_msg), Some(index_expr.get_pos())));
-                }
-
-                Ok(values_vec[index].clone())
-            },
-             */
-
-
-
 
             // return the value stored in this variable
             Expression::VariableCall(wrapper, p) => {
@@ -149,6 +90,8 @@ impl Expression {
                     Err(e) => Err(Error::new(ErrorMessage::UnexpectedExpression(e), Some(p.clone())))
                 }
             },
+
+
 
             // process the operation and return the result
             Expression::Operation(op, lhs, rhs, p) => {

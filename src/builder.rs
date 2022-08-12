@@ -426,7 +426,7 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
 
 
         // The token is an identifier. CHeck the next token to see if its a function call, or variable call
-        Some((Token::Identifier(_), first_position)) =>  {
+        Some((Token::Identifier(_), _)) =>  {
             match iterator.peek(1) {
                 Some((Token::Separator(Separator::OpenParenthesis), _)) | Some((Token::Separator(Separator::Colon), _)) => {
                     let func_call = parse_functioncall(iterator, program, warning)?;
@@ -435,7 +435,7 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
                 },
                 _ => {
                     let wrapper = parse_identifierwrapper(iterator, program, warning)?;
-                    (Expression::VariableCall(wrapper.0, first_position.clone()), wrapper.1)
+                    (Expression::VariableCall(wrapper.0, wrapper.1.clone()), wrapper.1)
                 }
             }
         },
@@ -491,7 +491,6 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
 fn parse_assignment(wrapper: (IdentifierWrapper, ElementPosition), iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<Statement, Error> {
     
     // Get identifier wrapper
-    //let (id_wrapper, start_pos) = parse_identifierwrapper(iterator, program, warning)?;
     let (id_wrapper, start_pos) = wrapper;
     
     // The next token must be '='
@@ -557,7 +556,10 @@ fn parse_identifierwrapper(iterator: &mut TokenIterator, program: &mut SlothProg
             Some((Token::Separator(Separator::Period), _)) => {
                 // next token must be an identifier
                 match iterator.next() {
-                    Some((Token::Identifier(n), _)) => sequence.push(IdentifierElement::Identifier(n)),
+                    Some((Token::Identifier(n), p)) => {
+                        sequence.push(IdentifierElement::Identifier(n));
+                        last_pos = p;
+                    },
                     Some((t, p)) => {
                         let err_msg = format!("Expected identifier, got unexpected token '{}'", t.original_string());
                         return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)))
@@ -573,7 +575,10 @@ fn parse_identifierwrapper(iterator: &mut TokenIterator, program: &mut SlothProg
                 let expr_id = parse_expression(iterator, program, warning)?;
                 // next token MUST be a closed parenthesis
                 match iterator.current() {
-                    Some((Token::Separator(Separator::CloseSquareBracket), _)) => sequence.push(IdentifierElement::Indexation(expr_id.0)),
+                    Some((Token::Separator(Separator::CloseSquareBracket), p)) => {
+                        sequence.push(IdentifierElement::Indexation(expr_id.0));
+                        last_pos = p;
+                    },
                     Some((t, p)) => {
                         let err_msg = format!("Expected ']', got unexpected token '{}'", t.original_string());
                         return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)))
@@ -585,11 +590,6 @@ fn parse_identifierwrapper(iterator: &mut TokenIterator, program: &mut SlothProg
             Some((_, _)) => {break;},
             None => return Err(eof_error(line!()))
         };
-
-        last_pos = match iterator.current() {
-            Some((_, p)) => p,
-            None => return Err(eof_error(line!()))
-        }
     };
 
     Ok((IdentifierWrapper::new(sequence), first_pos.until(last_pos)))
