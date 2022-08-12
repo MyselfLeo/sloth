@@ -1228,14 +1228,14 @@ fn parse_structure_def(iterator: &mut TokenIterator, program: &mut SlothProgram,
                 fields_types.push(Box::new(field_type));
 
 
-
-
                 // A semicolon here is strongly recommended, but not necessary
                 match iterator.peek(1) {
                     Some((Token::Separator(Separator::SemiColon), _)) => {iterator.next();},
                     Some((_, _)) => {
-                        let warning = Warning::new("Use of a semicolon at the end of each field definition is highly recommended".to_string(), Some(first_pos.until(last_pos)));
-                        warning.warn();
+                        if warning {
+                            let warning = Warning::new("Use of a semicolon at the end of each field definition is highly recommended".to_string(), Some(first_pos.until(last_pos)));
+                            warning.warn();
+                        }
                     },
                     None => return Err(eof_error(line!()))
                 }
@@ -1251,8 +1251,10 @@ fn parse_structure_def(iterator: &mut TokenIterator, program: &mut SlothProgram,
     match program.push_struct(StructDefinition::new(struct_name, fields_name, fields_types)) {
         // warning raised by the program
         Some(w) => {
-            let warning = Warning::new(w, Some(definition_pos));
-            warning.warn();
+            if warning {
+                let warning = Warning::new(w, Some(definition_pos));
+                warning.warn();
+            }
         },
         None => ()
     };
