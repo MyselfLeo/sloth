@@ -300,4 +300,13 @@ impl SlothProgram {
             println!("{:<15}{:?}", id.id, e);
         }
     }
+
+
+
+    /// Print to console the list of structures defined in the program
+    pub fn print_structs(self) {
+        for s in self.structures {
+            println!("{:<15}{:?}", s.0, s.1);
+        }
+    }
 }
