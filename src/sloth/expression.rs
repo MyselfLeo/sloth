@@ -257,13 +257,16 @@ impl Expression {
                 };
 
 
-                if let Expression::VariableCall(wrapper, _) = expr {
+                if let Expression::VariableCall(wrapper, p) = expr {
                     // Set the variable on which was called the function to the new value of "@self"
                     let new_self = match func_scope.get_variable("@self".to_string(), program.as_mut().unwrap()) {
                         Ok(v) => (v),
                         Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                     };
-                    wrapper.set_value(new_self, scope, program.as_mut().unwrap());
+                    match wrapper.set_value(new_self, scope, program.as_mut().unwrap()) {
+                        Ok(()) => (),
+                        Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))
+                    }
                 }
 
 
