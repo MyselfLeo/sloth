@@ -5,7 +5,7 @@ use crate::errors::{Error, ErrorMessage};
 use regex::Regex;
 
 
-const KEYWORDS: [&str; 12] = ["define", "num", "bool", "string", "list", "none", "->", "=", "if", "while", "builtin", "for"];
+const KEYWORDS: [&str; 13] = ["define", "num", "bool", "string", "list", "none", "->", "=", "if", "while", "builtin", "for", "new"];
 const OPERATORS: [&str; 12] = ["+", "-", "*", "/", "<=", ">=", "==", "<", ">", "&", "?", "!"];                                  // The '<=' and '>=' must be before '<' and '>' so the parsing works
 const SEPARATORS: [&str; 11] = ["(", ")", "{", "}", "[", "]", ";", ":", ",", "|", "."];
 

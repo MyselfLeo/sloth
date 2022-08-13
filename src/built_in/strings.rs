@@ -32,7 +32,7 @@ pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
 
         "len" => Box::new(
             BuiltInFunction::new(
-                "to_num",
+                "len",
                 Some("strings"),
                 Some(Type::String),
                 Type::Number,

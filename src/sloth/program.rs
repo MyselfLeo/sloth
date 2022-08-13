@@ -14,7 +14,7 @@ use crate::built_in;
 
 
 
-const DEFAULT_SUBMODULE_IMPORTS: [&str; 1] = ["lists"];
+const DEFAULT_SUBMODULE_IMPORTS: [&str; 0] = [];
 
 
 
@@ -26,7 +26,7 @@ const DEFAULT_SUBMODULE_IMPORTS: [&str; 1] = ["lists"];
 pub struct SlothProgram {
     _filename: String,
     functions: BTreeMap<FunctionSignature, Box<dyn SlothFunction>>,
-    _structures: BTreeMap<String, StructDefinition>,
+    structures: BTreeMap<String, StructDefinition>,
     scopes: HashMap<ScopeID, Scope>,
     expressions: HashMap<ExpressionID, Expression>,
     scope_nb: u64,
@@ -42,7 +42,7 @@ impl SlothProgram {
         let mut program = SlothProgram {
             _filename: filename,
             functions: BTreeMap::new(),
-            _structures: BTreeMap::new(),
+            structures: BTreeMap::new(),
             scopes: HashMap::new(), 
             expressions: HashMap::new(),
             scope_nb: 0,
@@ -111,6 +111,35 @@ impl SlothProgram {
             1 => self.get_function(&fitting_functions[0]),
             _ => {Err(format!("Ambiguous function name: '{}' is found in multiple modules. Consider specifying the module ( module:{}(input1 input2 ...) )", signature.name, signature.name))}
         }
+    }
+
+
+
+
+    // TODO: Make a StructureSignature (name + module) instead of just using the name
+
+
+
+    /// Push a new Structure definition to the program
+    /// Can return an optional warning message if a previously defined function was overwritten
+    pub fn push_struct(&mut self, structure: StructDefinition) -> Option<String> {
+        match self.structures.insert(structure.name.clone(), structure) {
+            Some(f) => {
+                let msg = format!("Redefinition of structure {}. Previous definition was overwritten", f.name);
+                Some(msg)
+            }
+            None => None
+        }
+    }
+
+
+
+    /// Return the structure definition of the given structure name
+    pub fn get_struct(&self, struct_name: &String) -> Result<StructDefinition, String> {
+        match self.structures.get(struct_name) {
+            None => {return Err(format!("Undefined structure '{}'", struct_name))}
+            Some(v) => {return Ok(v.clone());}
+        };
     }
 
 
@@ -269,6 +298,15 @@ impl SlothProgram {
         println!("{:15}{}", "EXPRESSION ID", "EXPRESSION");
         for (id, e) in self.expressions {
             println!("{:<15}{:?}", id.id, e);
+        }
+    }
+
+
+
+    /// Print to console the list of structures defined in the program
+    pub fn print_structs(self) {
+        for s in self.structures {
+            println!("{:<15}{:?}", s.0, s.1);
         }
     }
 }

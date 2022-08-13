@@ -1,5 +1,5 @@
 use super::types::Type;
-//use super::structure::StructDefinition;
+use super::structure::StructDefinition;
 
 
 
@@ -9,7 +9,7 @@ pub enum Value {
     Boolean(bool),
     String(String),
     List(Type, Vec<Value>),
-    //Struct(StructDefinition, Vec<Value>)
+    Struct(StructDefinition, Vec<Value>)
 }
 
 
@@ -20,7 +20,7 @@ impl Value {
             Value::Boolean(_) => Type::Boolean,
             Value::String(_) => Type::String,
             Value::List(t, _) => Type::List(Box::new(t.clone())),
-            //Value::Struct(struct_def, _) => Type::Struct(struct_def.name.clone())
+            Value::Struct(struct_def, _) => Type::Struct(struct_def.name.clone())
         }
     }
 
@@ -40,7 +40,7 @@ impl Value {
                 for v in values {string_vec.push(v.to_string())}
                 format!("[{}]", string_vec.join(" ")).to_string()
             },
-            //Value::Struct(s, _) => format!("'{}' object", s.name).to_string()
+            Value::Struct(s, _) => format!("'{}' object", s.name).to_string()
         }
     }
 
@@ -80,6 +80,70 @@ impl Value {
             Type::Struct(_n) => unimplemented!()
         }
     }
+
+
+
+    pub fn get_field(&self, field_name: &String) -> Result<Value, String> {
+        match self {
+            Value::Struct(s, f) => {
+                match s.fields_names.iter().position(|x| x == field_name) {
+                    Some(i) => Ok(f[i].clone()),
+                    None => {Err(format!("Structure '{}' doesn't have a field '{}'", s.name, field_name))}
+                }
+            },
+
+            Value::List(_, list_values) => {
+                match field_name.parse::<usize>() {
+                    Ok(i) => {
+                        match list_values.get(i) {
+                            Some(v) => Ok(v.clone()),
+                            None => {Err(format!("Tried to access the {}th element of a list with only {} elements", i, list_values.len()))}
+                        }
+                    },
+                    Err(_) => {Err(format!("Cannot index a list with '{}'", field_name))}
+                }
+            },
+
+            v => Err(format!("Type '{}' doesn't have a field '{}'", v.get_type(), field_name))
+        }
+    }
+
+    pub fn set_field(&mut self, field_name: &String, value: Value) -> Result<(), String> {
+        match self {
+            Value::Struct(s, f) => {
+                match s.fields_names.iter().position(|x| x == field_name) {
+                    Some(i) => {
+                        // Check type of new value
+                        let value_type = value.get_type();
+                        if *s.fields_types[i] != value_type {return Err(format!("Field '{}' expect a value of type '{}', got '{}' instead", field_name, s.fields_types[i], value_type))}
+                        
+                        f[i] = value.clone();
+                        Ok(())
+                    },
+                    None => {Err(format!("Structure '{}' doesn't have a field '{}'", s.name, field_name))}
+                }
+            },
+
+            Value::List(t, list_values) => {
+                match field_name.parse::<usize>() {
+                    Ok(i) => {
+                        // Check type of new value
+                        let value_type = value.get_type();
+                        if *t != value_type {return Err(format!("Tried to set an element of type '{}' in a list of type '{}'", value_type, t))}
+                        
+                        if i > list_values.len() - 1 {list_values.push(value);}
+                        else {list_values[i] = value;}
+
+                        Ok(())
+                    },
+                    Err(_) => {Err(format!("Cannot index a list with '{}'", field_name))}
+                }
+            },
+
+            v => Err(format!("Type '{}' doesn't have a field '{}'", v.get_type(), field_name))
+        }
+    }
+
 
 
 }

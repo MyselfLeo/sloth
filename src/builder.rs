@@ -3,7 +3,8 @@ use crate::sloth::expression::{ExpressionID, Expression};
 use crate::sloth::function::{CustomFunction, FunctionSignature};
 use crate::sloth::operator::{Operator};
 use crate::sloth::program::SlothProgram;
-use crate::sloth::statement::Statement;
+use crate::sloth::statement::{Statement, IdentifierWrapper, IdentifierElement};
+use crate::sloth::structure::StructDefinition;
 use crate::sloth::types::Type;
 use crate::sloth::value::Value;
 use crate::tokenizer::{TokenizedProgram, Token, ElementPosition, Separator};
@@ -332,6 +333,7 @@ fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, w
         Some((_, p)) => {
             let expr_pos = first_expr.1.until(p);
             let param_call = Expression::ParameterCall(first_expr.0, ident, expr_pos.clone());
+            iterator.next();
             (program.push_expr(param_call), expr_pos)
         },
 
@@ -344,13 +346,13 @@ fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, w
     match iterator.current() {
         Some((Token::Separator(Separator::CloseParenthesis), _)) => {
             if is_parenthesied {iterator.next(); Ok(expr)}
-            else {Ok(first_expr)}
+            else {Ok(expr)}
         },
         Some((Token::Separator(Separator::Period), _)) => {
             parse_second_expr(iterator, program, warning, first_expr, is_parenthesied)
         },
         Some((t, p)) => {
-            if !is_parenthesied {Ok(first_expr)}
+            if !is_parenthesied {Ok(expr)}
             else {
                 let err_msg = format!("Expected ')', got unexpected token '{}'", t.original_string());
                 return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)));
@@ -372,6 +374,60 @@ fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, w
 
 
 
+
+
+
+
+
+/// Parse the construction of an object
+fn parse_object_construction(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<(Expression, ElementPosition), Error> {
+    // Next token is the struct's name
+    let mut pos;
+
+    let struct_name = match iterator.next() {
+        Some((Token::Identifier(n), p)) => {
+            pos = p;
+            n
+        },
+        Some((t, p)) => {
+            let err_msg = format!("Expected structure name, got unexpected token '{}'", t.original_string());
+            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())))
+        },
+        None => return Err(eof_error(line!()))
+    };
+
+    // Next is an open parenthesis
+    match iterator.next() {
+        Some((Token::Separator(Separator::OpenParenthesis), _)) => (),
+        Some((t, p)) => {
+            let err_msg = format!("Expected '(', got unexpected token '{}'", t.original_string());
+            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())))
+        },
+        None => return Err(eof_error(line!()))
+    };
+
+
+    let mut expr_ids = Vec::new();
+
+    // Next is a sequence of expressions, until a closed parenthesis is met
+    iterator.next();
+    loop {
+        match iterator.current() {
+            Some((Token::Separator(Separator::CloseParenthesis), p)) => {
+                pos = pos.until(p);
+                break
+            },
+            _ => {
+                let (expr_id, _) = parse_expression(iterator, program, warning)?;
+                expr_ids.push(expr_id);
+            }
+        };
+    }
+
+    iterator.next();
+
+    Ok((Expression::ObjectConstruction(struct_name, expr_ids, pos.clone()), pos))
+}
 
 
 
@@ -398,7 +454,6 @@ fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, w
 
 /// Parse an expression, push it to the program's expression stack and return its id
 fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<(ExpressionID, ElementPosition), Error> {
-
     // If the first token is an open parenthesis, we expect the expression to end on a closed parenthesis.
     let is_parenthesied = match iterator.current() {
         Some((Token::Separator(Separator::OpenParenthesis), _)) => {
@@ -425,8 +480,8 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
 
 
 
-        // The token is an identifier. CHeck the next token to see if its a function call, a variable call or a list access (lists not implemented yet)
-        Some((Token::Identifier(s), first_position)) =>  {
+        // The token is an identifier. CHeck the next token to see if its a function call, or variable call
+        Some((Token::Identifier(_), _)) =>  {
             match iterator.peek(1) {
                 Some((Token::Separator(Separator::OpenParenthesis), _)) | Some((Token::Separator(Separator::Colon), _)) => {
                     let func_call = parse_functioncall(iterator, program, warning)?;
@@ -434,8 +489,8 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
                     else {panic!("parse_functioncall did not return an Expression::FunctionCall enum")}
                 },
                 _ => {
-                    iterator.next();
-                    (Expression::VariableCall(s.clone(), first_position.clone()), first_position.clone())
+                    let wrapper = parse_identifierwrapper(iterator, program, warning)?;
+                    (Expression::VariableCall(wrapper.0, wrapper.1.clone()), wrapper.1)
                 }
             }
         },
@@ -446,6 +501,22 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
             if let Expression::Operation(_, _, _, p) = operation.clone() {(operation, p)}
             else {panic!("parse_operation did not return an Expression::Operation enum")}
         },
+
+
+
+        // The token is the "new" keyword: it's the construction of a struct
+        Some((Token::Keyword(n), p)) => {
+            match n.as_str() {
+                "new" => parse_object_construction(iterator, program, warning)?,
+                _ => {
+                    let err_msg = format!("Unexpected keyword '{}'", n);
+                    return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)))
+                }
+            }
+        },
+
+
+
 
         Some((t, p)) => {
             let err_msg = format!("Unexpected expression start '{}'", t.original_string());
@@ -461,7 +532,11 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
     // determines whether the expression if finished here or not.
     match iterator.current() {
         Some((Token::Separator(Separator::CloseParenthesis), _)) => {
-            if is_parenthesied {iterator.next(); Ok(first_expr)}
+            if is_parenthesied {iterator.next();}
+            
+            if let Some((Token::Separator(Separator::Period), _)) = iterator.current() {
+                parse_second_expr(iterator, program, warning, first_expr, false)
+            }
             else {Ok(first_expr)}
         },
         Some((Token::Separator(Separator::Period), _)) => {
@@ -488,29 +563,13 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
 
 
 /// Parse an assignment statement
-fn parse_assignment(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<Statement, Error> {
-    let var_name: String;
-    let start_pos: ElementPosition;
-
-    // Get variable name and starting position of the assignment
-     match iterator.current() {
-        Some((token, position)) => {
-            // Get the name of the variable to be assigned to
-            if let Token::Identifier(s) = token {
-                var_name = s.clone();
-                start_pos = position.clone();
-            }
-            else {
-                let err_msg = format!("Expected variable name, got unexpected token '{}'", token.original_string());
-                return Err(Error::new(ErrorMessage::InvalidIdentifier(err_msg), Some(position.clone())));
-            };
-        },
-        None => return Err(eof_error(line!()))
-    };
+fn parse_assignment(wrapper: (IdentifierWrapper, ElementPosition), iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<Statement, Error> {
     
-
+    // Get identifier wrapper
+    let (id_wrapper, start_pos) = wrapper;
+    
     // The next token must be '='
-    match iterator.next() {
+    match iterator.current() {
         Some((token, position)) => {
             if token.original_string() != "=".to_string() {
                 let err_msg = format!("Expected '=', got unexpected token '{}'", token.original_string());
@@ -524,11 +583,94 @@ fn parse_assignment(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
     iterator.next();
     let (expression_id, expr_pos) = parse_expression(iterator, program, warning)?;
     let assignment_position = start_pos.until(expr_pos);
-    Ok(Statement::Assignment(var_name, expression_id, assignment_position))
+
+    Ok(Statement::Assignment(id_wrapper, expression_id, assignment_position))
 }
 
 
 
+
+
+
+
+
+
+/// Parse an identifier chaine, like "var1.field1.field2[value]"
+fn parse_identifierwrapper(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<(IdentifierWrapper, ElementPosition), Error> {
+    let first_pos;
+    let mut last_pos;
+    let mut sequence: Vec<IdentifierElement> = Vec::new();
+
+
+    // first token must be an identifier
+    match iterator.current() {
+        Some((Token::Identifier(n), p)) => {
+            sequence.push(IdentifierElement::Identifier(n));
+            first_pos = p.clone();
+            last_pos = p;
+        },
+        Some((t, p)) => {
+            let err_msg = format!("Expected identifier, got unexpected token '{}'", t.original_string());
+            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)))
+        },
+        None => return Err(eof_error(line!()))
+    }
+
+    // loop until the end of the wrapper. Each step is either a field access (.fieldname) or an indexation ([x])
+    loop {
+
+        // If the third next token is an open parenthesis, we can stop here as the rest is not part of the IdentifierWrapper, but is
+        // instead a method call.
+        match iterator.peek(3) {
+            Some((Token::Separator(Separator::OpenParenthesis), _)) => {
+                iterator.next();
+                break
+            },
+            _ => ()
+        }
+
+        match iterator.next() {
+            Some((Token::Separator(Separator::Period), _)) => {
+                // next token must be an identifier
+                match iterator.next() {
+                    Some((Token::Identifier(n), p)) => {
+                        sequence.push(IdentifierElement::Identifier(n));
+                        last_pos = p;
+                    },
+                    Some((t, p)) => {
+                        let err_msg = format!("Expected identifier, got unexpected token '{}'", t.original_string());
+                        return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)))
+                    },
+                    None => return Err(eof_error(line!()))
+                }
+            },
+
+
+            Some((Token::Separator(Separator::OpenSquareBracket), _)) => {
+                // next is the expression that will be used as an index
+                iterator.next();
+                let expr_id = parse_expression(iterator, program, warning)?;
+                // next token MUST be a closed parenthesis
+                match iterator.current() {
+                    Some((Token::Separator(Separator::CloseSquareBracket), p)) => {
+                        sequence.push(IdentifierElement::Indexation(expr_id.0));
+                        last_pos = p;
+                    },
+                    Some((t, p)) => {
+                        let err_msg = format!("Expected ']', got unexpected token '{}'", t.original_string());
+                        return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)))
+                    },
+                    None => return Err(eof_error(line!()))
+                }
+            },
+
+            Some((_, _)) => {break;},
+            None => return Err(eof_error(line!()))
+        };
+    };
+
+    Ok((IdentifierWrapper::new(sequence), first_pos.until(last_pos)))
+}
 
 
 
@@ -548,15 +690,31 @@ fn parse_statement(iterator: &mut TokenIterator, program: &mut SlothProgram, war
         Some((Token::Identifier(_), _)) => {
             match iterator.peek(1) {
                 Some((next_token, _)) => {
-                    // This is a variable assignment (IDENTIFIER = EXPRESSION;)
-                    if next_token.original_string() == "=".to_string() {
-                        parse_assignment(iterator, program, warning)?
+                    // Check if it's a simple function call
+                    if next_token.original_string() == ":".to_string() || next_token.original_string() == "(".to_string() {
+                        let func_call = parse_functioncall(iterator, program, warning)?;
+                        Statement::ExpressionCall(program.push_expr(func_call.clone()), func_call.get_pos())
                     }
 
-                    // This must be an expression call
                     else {
-                        let (expr_id, pos) = parse_expression(iterator, program, warning)?;
-                        Statement::ExpressionCall(expr_id, pos)
+                        // At this point we can parse the wrapper
+                        let wrapper = parse_identifierwrapper(iterator, program, warning)?;
+                        
+                        match iterator.current() {
+                            Some((token, _)) => {
+                                // Assignment
+                                if token.original_string() == "=".to_string() {
+                                    parse_assignment(wrapper, iterator, program, warning)?
+                                }
+
+                                // Expression call
+                                else {
+                                    Statement::ExpressionCall(program.push_expr(Expression::VariableCall(wrapper.0, wrapper.1.clone())), wrapper.1)
+                                }
+                            },
+
+                            None => return Err(eof_error(line!()))
+                        }
                     }
                 },
 
@@ -1046,6 +1204,153 @@ fn parse_builtin(iterator: &mut TokenIterator, program: &mut SlothProgram, warni
 
 
 
+
+/// Parse a structure definition, push it to the program
+fn parse_structure_def(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<(), Error> {
+    // must start with the "structure" keyword
+    match iterator.current() {
+        Some((t, p)) => {
+            if t.original_string() != "structure".to_string() {
+                let err_msg = format!("Expected 'structure' keyword, got '{}'", t.original_string());
+                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())));
+            }
+        }
+        None => return Err(eof_error(line!())),
+    };
+
+
+    let mut definition_pos;
+
+
+    // Next is the name of the structure. It must be an identifier
+    let struct_name = match iterator.next() {
+        Some((Token::Identifier(n), p)) => {
+            definition_pos = p;
+            n
+        },
+        Some((t, p)) => {
+            let err_msg = format!("Expected structure name (an identifier), got '{}'", t.original_string());
+            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())));
+        },
+        None => return Err(eof_error(line!())),
+    };
+
+
+    // Next is an open bracket
+    match iterator.next() {
+        Some((Token::Separator(Separator::OpenBracket), p)) => {
+            definition_pos = definition_pos.until(p);
+        },
+        Some((t, p)) => {
+            let err_msg = format!("Expected '{{', got unexpected token '{}'", t.original_string());
+            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())));
+        },
+        None => return Err(eof_error(line!())),
+    }
+
+
+    let mut fields_name: Vec<String> = Vec::new();
+    let mut fields_types: Vec<Box<Type>> = Vec::new();
+
+
+    // Next is each fields of this structure, until we met a closed bracket
+    loop {
+        match iterator.next() {
+            None => return Err(eof_error(line!())),
+            Some((Token::Separator(Separator::CloseBracket), _)) => {
+                iterator.next();
+                break
+            },
+
+            // name of the field, as an identifier
+            Some((Token::Identifier(name), first_pos)) => {
+
+                // check that the name is not already used
+                if fields_name.contains(&name) {
+                    let err_msg = format!("The name '{}' is already used for a field of the structure '{}'", name, struct_name);
+                    return Err(Error::new(ErrorMessage::DefinitionError(err_msg), Some(first_pos.clone())))
+                }
+
+
+                fields_name.push(name);
+
+                
+                // next token must be a colon
+                match iterator.next() {
+                    Some((Token::Separator(Separator::Colon), _)) => (),
+                    Some((t, p)) => {
+                        let err_msg = format!("Expected ':', got unexpected token '{}'", t.original_string());
+                        return Err(Error::new(ErrorMessage::DefinitionError(err_msg), Some(p.clone())))
+                    }
+                    None => return Err(eof_error(line!()))
+                }
+
+
+                let last_pos;
+
+                // the type of the field
+                let field_type = match iterator.next() {
+                    Some((t, p)) => {
+                        last_pos = p;
+
+                        match get_type_from_str(t.original_string().as_str()) {
+                            Ok(t) => t.clone(),
+                            Err(e) => return Err(Error::new(ErrorMessage::TypeError(e), Some(last_pos.clone())))
+                        }
+                    },
+                    None => return Err(eof_error(line!()))
+                };
+
+                fields_types.push(Box::new(field_type));
+
+
+                // A semicolon here is strongly recommended, but not necessary
+                match iterator.peek(1) {
+                    Some((Token::Separator(Separator::SemiColon), _)) => {iterator.next();},
+                    Some((_, _)) => {
+                        if warning {
+                            let warning = Warning::new("Use of a semicolon at the end of each field definition is highly recommended".to_string(), Some(first_pos.until(last_pos)));
+                            warning.warn();
+                        }
+                    },
+                    None => return Err(eof_error(line!()))
+                }
+            },
+
+            Some((t, p)) => {
+                let err_msg = format!("Expected field name or '}}', got unexpected token '{}'", t.original_string());
+                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())))
+            }
+        }
+    }
+
+    match program.push_struct(StructDefinition::new(struct_name, fields_name, fields_types)) {
+        // warning raised by the program
+        Some(w) => {
+            if warning {
+                let warning = Warning::new(w, Some(definition_pos));
+                warning.warn();
+            }
+        },
+        None => ()
+    };
+
+    Ok(())
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 pub fn build(tokens: TokenizedProgram, warning: bool, import_default_builtins: bool) -> Result<SlothProgram, Error> {
     let filename = tokens.filename.clone();
     let mut iterator = TokenIterator::new(tokens);
@@ -1070,7 +1375,7 @@ pub fn build(tokens: TokenizedProgram, warning: bool, import_default_builtins: b
                     parse_builtin(&mut iterator, &mut program, warning)?;
                 }
                 else if v.0.original_string() == "structure".to_string()  {
-                    unimplemented!()
+                    parse_structure_def(&mut iterator, &mut program, warning)?;
                 }
                 else {
                     let error_msg = format!("Expected function or structure definition, got unexpected token '{}'", v.0.original_string());

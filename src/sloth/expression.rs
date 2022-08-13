@@ -1,4 +1,5 @@
 use super::function::FunctionSignature;
+use super::statement::IdentifierWrapper;
 use super::types::Type;
 use super::value::Value;
 use super::operator::{Operator, apply_op};
@@ -25,11 +26,12 @@ impl ExpressionID {
 pub enum Expression {
     Literal(Value, ElementPosition),                                                     // value of the literal
     ListInit(Vec<ExpressionID>, ElementPosition),                                        // list initialised in code. Example: [1 2 3 4 5]
-    VariableCall(String, ElementPosition),                                               // name of the variable
+    VariableCall(IdentifierWrapper, ElementPosition),                                    // identifierwrapper linking to the variable
     ParameterCall(ExpressionID, String, ElementPosition),                                // name of a parameter of a structure or built-in that can be accessed
     Operation(Operator, Option<ExpressionID>, Option<ExpressionID>, ElementPosition),    // Operator to apply to one or 2 values from the Scope Expression stack (via index)
     FunctionCall(FunctionSignature, Vec<ExpressionID>, ElementPosition),                 // name of the function and its list of expressions to be evaluated
-    MethodCall(ExpressionID, FunctionSignature, Vec<ExpressionID>, ElementPosition)      // call of a method of a Value
+    MethodCall(ExpressionID, FunctionSignature, Vec<ExpressionID>, ElementPosition),     // call of a method of a Value
+    ObjectConstruction(String, Vec<ExpressionID>, ElementPosition),                      // The construction of an Object, with the 'new' keyword
 }
 
 
@@ -81,73 +83,16 @@ impl Expression {
 
 
 
-            // ListAccess is now a method (list.get(x)) instead of a syntax element (list[x]). It caused problems when parsing lists of lists, where the second sub-list was considered
-            // a ListAccess
-            /*
-            Expression::ListAccess(list_id, index_expr, p) => {
-                // evaluate the list
-                let list_expr = match program.as_ref().unwrap().get_expr(*list_id) {
-                    Ok(e) => e,
-                    Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
-                };
-
-                let list_value = list_expr.evaluate(scope, program)?;
-
-                let values_vec = match list_value {
-                    Value::List(_, v) => v,
-                    v => {
-                        let err_msg = format!("Tried to access a list element on a value of type {}", v.get_type());
-                        return Err(Error::new(ErrorMessage::RuntimeError(err_msg), Some(list_expr.get_pos())));
-                    }
-                };
-
-
-                // evaluate the index expression
-                let index_expr = match program.as_ref().unwrap().get_expr(*index_expr) {
-                    Ok(e) => e,
-                    Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
-                };
-
-                let index_value = index_expr.evaluate(scope, program)?;
-
-                let index = match index_value {
-                    Value::Number(x) => {
-                        if (x as i128) < 0 {
-                            let err_msg = format!("Cannot use a negative index ({}) to access a list", x as i128);
-                            return Err(Error::new(ErrorMessage::RuntimeError(err_msg), Some(index_expr.get_pos())));
-                        }
-                        x as usize
-                    },
-
-                    v => {
-                        let err_msg = format!("Tried to index a list with an expression of type {}", v.get_type());
-                        return Err(Error::new(ErrorMessage::RuntimeError(err_msg), Some(index_expr.get_pos())));
-                    }
-                };
-
-
-
-                // access the element
-
-                if index > values_vec.len() - 1 {
-                    let err_msg = format!("Tried to access the {}th element of a list with only {} elements", index, values_vec.len());
-                    return Err(Error::new(ErrorMessage::RuntimeError(err_msg), Some(index_expr.get_pos())));
-                }
-
-                Ok(values_vec[index].clone())
-            },
-             */
-
-
-
 
             // return the value stored in this variable
-            Expression::VariableCall(name, p) => {
-                match scope.get_variable(name.clone(), program.as_mut().unwrap()) {
+            Expression::VariableCall(wrapper, p) => {
+                match wrapper.get_value(scope, program.as_mut().unwrap()) {
                     Ok(v) => Ok(v),
                     Err(e) => Err(Error::new(ErrorMessage::UnexpectedExpression(e), Some(p.clone())))
                 }
             },
+
+
 
             // process the operation and return the result
             Expression::Operation(op, lhs, rhs, p) => {
@@ -312,13 +257,16 @@ impl Expression {
                 };
 
 
-                if let Expression::VariableCall(name, _) = expr {
+                if let Expression::VariableCall(wrapper, p) = expr {
                     // Set the variable on which was called the function to the new value of "@self"
                     let new_self = match func_scope.get_variable("@self".to_string(), program.as_mut().unwrap()) {
                         Ok(v) => (v),
                         Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                     };
-                    scope.set_variable(name, new_self);
+                    match wrapper.set_value(new_self, scope, program.as_mut().unwrap()) {
+                        Ok(()) => (),
+                        Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))
+                    }
                 }
 
 
@@ -337,7 +285,50 @@ impl Expression {
                     },
                     Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                 }
-            }
+            },
+
+
+
+
+
+            Expression::ObjectConstruction(name, fields, p) => {
+                // Get the structure definition from the program
+                let struct_def = match program.as_mut().unwrap().get_struct(&name) {
+                    Ok(v) => v,
+                    Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))
+                };
+
+
+                // Compare lenght of given fields to the struct def
+                if struct_def.fields_names.len() != fields.len() {
+                    let err_msg = format!("Structure '{}' expects {} fields, but it has been given {} fields", name, struct_def.fields_names.len(), fields.len());
+                    return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), Some(p.clone())))
+                }
+
+
+                let mut values = Vec::new();
+
+                // Evaluate each values given for the fields, compare them to the definition
+                for (i, expr_id) in fields.iter().enumerate() {
+                    let expr = match program.as_ref().unwrap().get_expr(*expr_id) {
+                        Ok(e) => e,
+                        Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
+                    };
+
+                    let value = expr.evaluate(scope, program)?;
+
+                    if value.get_type() != *struct_def.fields_types[i] {
+                        let err_msg = format!("Field '{}' of structure '{}' is of type '{}', but it has been given a value of type '{}'", struct_def.fields_names[i], name, struct_def.fields_types[i], value.get_type());
+                        return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), Some(p.clone())))
+                    }
+
+                    values.push(value);
+                }
+
+
+                // Return the value
+                Ok(Value::Struct(struct_def, values))
+            },
         }
     }
 
@@ -355,6 +346,7 @@ impl Expression {
             Expression::Operation(_, _, _, p) => p,
             Expression::FunctionCall(_, _, p) => p,
             Expression::MethodCall(_, _, _, p) => p,
-        }.clone()
+            Expression::ObjectConstruction(_, _, p) => p,
+        }.clone() 
     }
 }
