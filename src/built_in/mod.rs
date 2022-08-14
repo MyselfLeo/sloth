@@ -47,9 +47,9 @@ impl BuiltInImport {
                 // Get the list of builtins from the submodule
                 let builtins = match self.submodule.as_str() {
                     "io" => io::BUILTINS.to_vec(),
-                    //"numbers" => numbers::BUILTINS.to_vec(),
-                    //"strings" => strings::BUILTINS.to_vec(),
-                    //"lists" => lists::BUILTINS.to_vec(),
+                    "numbers" => numbers::BUILTINS.to_vec(),
+                    "strings" => strings::BUILTINS.to_vec(),
+                    "lists" => lists::BUILTINS.to_vec(),
                     _ => panic!("Trying to access builtins of submodule '{}', which do not exists", self.submodule)
                 };
 
