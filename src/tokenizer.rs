@@ -132,13 +132,14 @@ pub struct ElementPosition {
 
     // column index of the first and last character of the element
     pub first_column: usize,
-    pub last_column: usize
+    pub last_column: Option<usize>
 }
 
 impl std::fmt::Display for ElementPosition {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         // + 1 to every indices so it starts at 1
-        write!(f, "({}, line {}, {}-{})", self.filename, self.line + 1, self.first_column + 1, self.last_column + 1)
+        let last_column = match self.last_column {Some(n) => (n + 1).to_string(), None => "?".to_string()};
+        write!(f, "({}, line {}, {}-{})", self.filename, self.line + 1, self.first_column + 1, last_column)
     }
 }
 
@@ -150,11 +151,20 @@ impl ElementPosition {
     /// Return a new ElementPosition starting from the start of self until the end of other.
     /// They both needs to be on the same line
     pub fn until(&self, other: ElementPosition) -> ElementPosition {
-        if self.filename != other.filename || self.line != other.line {panic!("wtf?")}
-        ElementPosition {
-            filename: self.filename.clone(),
-            line: self.line, first_column: self.first_column,
-            last_column: other.last_column
+        if self.filename != other.filename {panic!("Tried to link two tokens from different files")}
+        if self.line != other.line {
+            ElementPosition {
+                filename: self.filename.clone(),
+                line: self.line, first_column: self.first_column,
+                last_column: other.last_column
+            }
+        }
+        else {
+            ElementPosition {
+                filename: self.filename.clone(),
+                line: self.line, first_column: self.first_column,
+                last_column: other.last_column
+            }
         }
     }
 }
@@ -223,7 +233,7 @@ impl TokenizedProgram {
                         filename: filename.to_string(),
                         line: string_start.0,
                         first_column: string_start.1,
-                        last_column: c_index
+                        last_column: Some(c_index)
                     };
 
                     match Token::from_str(&string_buffer) {
@@ -249,7 +259,7 @@ impl TokenizedProgram {
                             filename: filename.to_string(),
                             line: token_start.0,
                             first_column: token_start.1,
-                            last_column: c_index - 1
+                            last_column: Some(c_index - 1)
                         };
 
                         match Token::from_str(&token_buffer) {
@@ -300,7 +310,7 @@ impl TokenizedProgram {
                                         filename: filename.to_string(),
                                         line: token_start.0,
                                         first_column: token_start.1,
-                                        last_column: token_start.1 + op.len()
+                                        last_column: Some(token_start.1 + op.len())
                                     };
     
                                     token_start.1 += op.len();
@@ -327,7 +337,7 @@ impl TokenizedProgram {
                                 filename: filename.to_string(),
                                 line: token_start.0,
                                 first_column: token_start.1,
-                                last_column: c_index - 1
+                                last_column: Some(c_index - 1)
                             };
 
                             match Token::from_str(&token_buffer) {
@@ -349,7 +359,7 @@ impl TokenizedProgram {
                                 filename: filename.to_string(),
                                 line: line_index,
                                 first_column: c_index,
-                                last_column: c_index
+                                last_column: Some(c_index)
                             };
 
                             match Token::from_str(&c.to_string()) {
@@ -389,7 +399,7 @@ impl TokenizedProgram {
                     filename: filename.to_string(),
                     line: token_start.0,
                     first_column: token_start.1,
-                    last_column: line.len() - 1
+                    last_column: Some(line.len() - 1)
                 };
 
                 match Token::from_str(&token_buffer) {

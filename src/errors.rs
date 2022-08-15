@@ -96,7 +96,12 @@ impl Error {
                 println!("\x1b[31m| {}\x1b[0m {}", p.line + 1, lines[p.line]);
                 print!("\x1b[31m| \x1b[91m");
                 for _ in 0..p.first_column + line_index_str_len + 1 {print!(" ")}
-                for _ in 0..(p.last_column - p.first_column + 1) {print!("^")}
+
+                match p.last_column {
+                    Some(n) => for _ in 0..(n - p.first_column + 1) {print!("^")},
+                    None => for _ in 0..(lines[p.line].len() - p.first_column + 2) {print!("^")}
+                }
+                
                 println!("\x1b[0m");
             }
         }
@@ -137,7 +142,12 @@ impl Warning {
                 println!("\x1b[33m| {}\x1b[0m {}", p.line + 1, lines[p.line]);
                 print!("\x1b[33m| \x1b[93m");
                 for _ in 0..p.first_column + line_index_str_len + 1 {print!(" ")}
-                for _ in 0..(p.last_column - p.first_column + 1) {print!("^")}
+                
+                match p.last_column {
+                    Some(n) => for _ in 0..(n - p.first_column + 1) {print!("^")},
+                    None => for _ in 0..(lines[p.line].len() - p.first_column + 2) {print!("^")}
+                }
+                
                 println!("\x1b[0m");
             }
         }
