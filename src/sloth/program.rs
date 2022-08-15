@@ -227,8 +227,9 @@ impl SlothProgram {
 
     /// Import the requested builtins
     pub fn import_builtins(&mut self) -> Result<(), String> {
-        let (f, ()) = built_in::collapse_imports(&self.builtins)?;
+        let (f, s) = built_in::collapse_imports(self.builtins.clone())?;
         for function in f {self.push_function(function);}
+        for structure in s {self.push_struct(structure.clone(), structure.module);}
         Ok(())
     }
 

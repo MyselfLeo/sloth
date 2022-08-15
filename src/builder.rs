@@ -383,12 +383,17 @@ fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, w
 fn parse_object_construction(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<(Expression, ElementPosition), Error> {
     iterator.next();
 
+    let mut pos = None;
+
     let mut module_name: Option<String> = None;
     // If the peek(2) token is a colon, then the module name is given
     if let Some((Token::Separator(Separator::Colon), _)) = iterator.peek(1) {
 
         match iterator.current() {
-            Some((Token::Identifier(n), _)) => module_name = Some(n),
+            Some((Token::Identifier(n), p)) => {
+                pos = Some(p);
+                module_name = Some(n)
+            },
             Some((t, p)) => {
                 let err_msg = format!("Expected module name, got unexpected token '{}'", t.original_string());
                 return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())))
@@ -402,11 +407,9 @@ fn parse_object_construction(iterator: &mut TokenIterator, program: &mut SlothPr
 
 
     // Next token is the struct's name
-    let mut pos;
-
     let struct_name = match iterator.current() {
         Some((Token::Identifier(n), p)) => {
-            pos = p;
+            if pos.is_none() {pos = Some(p);}
             n
         },
         Some((t, p)) => {
@@ -434,7 +437,7 @@ fn parse_object_construction(iterator: &mut TokenIterator, program: &mut SlothPr
     loop {
         match iterator.current() {
             Some((Token::Separator(Separator::CloseParenthesis), p)) => {
-                pos = pos.until(p);
+                pos = Some(pos.unwrap().until(p));
                 break
             },
             _ => {
@@ -446,7 +449,7 @@ fn parse_object_construction(iterator: &mut TokenIterator, program: &mut SlothPr
 
     iterator.next();
 
-    Ok((Expression::ObjectConstruction(StructSignature::new(module_name, struct_name), expr_ids, pos.clone()), pos))
+    Ok((Expression::ObjectConstruction(StructSignature::new(module_name, struct_name), expr_ids, pos.clone().unwrap()), pos.unwrap()))
 }
 
 
@@ -1344,7 +1347,7 @@ fn parse_structure_def(iterator: &mut TokenIterator, program: &mut SlothProgram,
         }
     }
 
-    match program.push_struct(StructDefinition::new(struct_name, fields_name, fields_types), module_name.clone()) {
+    match program.push_struct(StructDefinition::new(struct_name, fields_name, fields_types, None), module_name.clone()) {
         // warning raised by the program
         Some(w) => {
             if warning {
