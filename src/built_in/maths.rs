@@ -10,10 +10,9 @@ use crate::sloth::structure::StructDefinition;
 
 
 
-pub const BUILTINS: [&str; 4] = [
+pub const BUILTINS: [&str; 3] = [
     "pow",
     "sqrt",
-    "Vector2",
     "norm"
 ];
 
@@ -25,7 +24,6 @@ pub fn get_type(builtin: &String) -> Result<BuiltinTypes, String> {
     match builtin.as_str() {
         "pow" => Ok(BuiltinTypes::Function),
         "sqrt" => Ok(BuiltinTypes::Function),
-        "Vector2" => Ok(BuiltinTypes::Structure),
         "norm" => Ok(BuiltinTypes::Function),
 
         _ => Err(format!("Builtin '{builtin}' not found in module 'maths'"))
@@ -81,18 +79,6 @@ pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
 /// Return a StructDefinition along with the list of requirements this structure has
 pub fn get_struct(s_name: String) -> (StructDefinition, Vec<String>) {
     match s_name.as_str() {
-
-
-        "Vector2" => (
-            StructDefinition::new(
-                "Vector2".to_string(),
-                vec!["x".to_string(), "y".to_string()],
-                vec![Box::new(Type::Number), Box::new(Type::Number)],
-                Some("maths".to_string())
-            ),
-
-            vec!["norm".to_string()]
-        ),
 
 
 
