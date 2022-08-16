@@ -1,3 +1,6 @@
+use std::path::{Path, PathBuf};
+use std::str::FromStr;
+
 use crate::built_in::BuiltInImport;
 use crate::sloth::expression::{ExpressionID, Expression};
 use crate::sloth::function::{CustomFunction, FunctionSignature};
@@ -7,7 +10,7 @@ use crate::sloth::statement::{Statement, IdentifierWrapper, IdentifierElement};
 use crate::sloth::structure::{StructDefinition, StructSignature};
 use crate::sloth::types::Type;
 use crate::sloth::value::Value;
-use crate::tokenizer::{TokenizedProgram, Token, ElementPosition, Separator};
+use crate::tokenizer::{TokenizedProgram, Token, ElementPosition, Separator, self};
 use crate::errors::{Error, ErrorMessage, Warning};
 use regex::Regex;
 
@@ -971,29 +974,6 @@ fn parse_type(iterator: &mut TokenIterator, program: &mut SlothProgram, module_n
 
 
 
-fn get_type_from_str(str: &str) -> Result<Type, String> {
-    match str {
-        "any" => Ok(Type::Any),
-        "num" => Ok(Type::Number),
-        "bool" => Ok(Type::Boolean),
-        "string" => Ok(Type::String),
-        s => {
-            // Check if it is a list type
-            let list_type_re = Regex::new(r"^list\[([a-zA-Z\[\]]+)\]$").unwrap();
-            match list_type_re.captures(s) {
-
-                Some(v) => get_type_from_str(v.get(1).unwrap().as_str()),
-                None => {
-                    // Not a list type, so return it as a struct type
-                    let identifier_re = Regex::new(r"^([a-zA-Z_][a-zA-Z0-9_]*)$").unwrap();
-                    if identifier_re.is_match(s) {Ok(Type::Struct(s.to_string()))}
-                    else {Err(format!("Expected structure name, got '{}'", s))}
-                }
-
-            }
-        }
-    }
-}
 
 
 
@@ -1002,13 +982,7 @@ fn get_type_from_str(str: &str) -> Result<Type, String> {
 
 
 
-
-
-
-
-
-
-/// Parse a function and add it to the program's function stack
+/// Parse a function
 fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram, module_name: &Option<String>, warning: bool) -> Result<(), Error> {
     // must start with the "define" keyword
     match iterator.current() {
@@ -1121,19 +1095,29 @@ fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram, modu
     };
 
 
-    // Create the function and push it to the program
-    let function = CustomFunction {
-        signature: FunctionSignature::new(
-            module_name.clone(),
-            f_name.clone(),
-            owner_type,
-            Some(input_types),
-            Some(output_type)
-        ),
 
-        instructions: statements
-    };
-    program.push_function(Box::new(function));
+    // At this stage, if the function is named "main" and module_name is Some(...), we don't push the function
+    // as an imported module can't have a main function. Raise a warning
+
+    if !(f_name == "main" && module_name.is_some()) {
+         // Create the function and push it to the program
+        let function = CustomFunction {
+            signature: FunctionSignature::new(
+                module_name.clone(),
+                f_name.clone(),
+                owner_type,
+                Some(input_types),
+                Some(output_type)
+            ),
+
+            instructions: statements
+        };
+        program.push_function(Box::new(function));
+    }
+    else if warning {
+        let warn = Warning::new(format!("Ignoring 'main' function of imported module '{}'. You may want to remove it", module_name.clone().unwrap()), None);
+        warn.warn()
+    }
 
 
     iterator.next();
@@ -1400,21 +1384,86 @@ fn parse_structure_def(iterator: &mut TokenIterator, program: &mut SlothProgram,
 
 
 
+/// Parse an "import" statement, i.e the import of another .slo file. Different from the "builtin" statement which '''imports''' builtin functions and structures
+fn parse_import(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool, origin_path: PathBuf) -> Result<(), Error> {
+    let first_pos = match iterator.current() {
+        Some((_, p)) => p.clone(),
+        None => return Err(eof_error(line!()))
+    };
+
+    // Next token is a literal string with the name of the file to import
+    let (path, last_pos) = match iterator.next() {
+        Some((Token::Literal(s), p)) => {
+            // get path from literal
+            match Value::from_raw_token(s.clone()) {
+                Value::String(_) => {
+                    // Cleans the literal, as it will have ' " 'before and after
+                    let mut name = s.strip_prefix("\"").unwrap();
+                    name = name.strip_suffix("\"").unwrap();
+
+                    let working_dir = origin_path.parent().unwrap().to_path_buf();
+
+                    let mut file = working_dir.clone();
+                    file.push(name);
+
+                    if origin_path == file {
+                        let err_msg = format!("File '{}' imports itself", iterator.current().unwrap().1.filename);
+                        return Err(Error::new(ErrorMessage::ImportError(err_msg), Some(p.clone())))
+                    }
+
+                    (file, p)
+                },
+                _ => {
+                    let err_msg = format!("Expected filename, got unexpected token '{}'", s);
+                    return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())))
+                }
+            }
+        },
+        Some((t, p)) => {
+            let err_msg = format!("Expected filename, got unexpected token '{}'", t.original_string());
+            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())))
+        },
+        None => return Err(eof_error(line!()))
+    };
+
+    // parse the file for the program
+    parse_file(path, program, warning, false)?;
+
+
+    // A semicolon here is strongly recommended, but not necessary
+    match iterator.next() {
+        Some((Token::Separator(Separator::SemiColon), _)) => {iterator.next();},
+        Some((_, _)) => {
+            if warning {
+                let warning = Warning::new("Use of a semicolon at the end of each field definition is highly recommended".to_string(), Some(first_pos.until(last_pos)));
+                warning.warn();
+            }
+        },
+        None => return Err(eof_error(line!()))
+    }
+
+    Ok(())
+}
 
 
 
 
 
 
-pub fn build(tokens: TokenizedProgram, module_name: Option<String>, warning: bool, import_default_builtins: bool) -> Result<SlothProgram, Error> {
-    let filename = tokens.filename.clone();
+
+
+
+
+
+/// Parse a whole file, populating the program object
+pub fn parse_file(filename: PathBuf, program: &mut SlothProgram, warning: bool, is_main: bool) -> Result<(), Error> {
+    let tokens = tokenizer::TokenizedProgram::from_file(filename.to_str().unwrap())?;
     let mut iterator = TokenIterator::new(tokens);
 
-    let mut program = SlothProgram::new(filename, import_default_builtins);
-
-
-    
-
+    let module_name = match is_main {
+        true => None,
+        false => Some(filename.file_stem().unwrap().to_str().unwrap().to_string()),
+    };
 
     // main building loop, going over each tokens
     loop {
@@ -1424,13 +1473,16 @@ pub fn build(tokens: TokenizedProgram, module_name: Option<String>, warning: boo
             None => break,
             Some(v) => {
                 if v.0.original_string() == "define".to_string() {
-                    parse_function(&mut iterator, &mut program, &module_name, warning)?;
+                    parse_function(&mut iterator, program, &module_name, warning)?;
                 }
                 else if v.0.original_string() == "builtin".to_string() {
-                    parse_builtin(&mut iterator, &mut program, warning)?;
+                    parse_builtin(&mut iterator, program, warning)?;
                 }
                 else if v.0.original_string() == "structure".to_string()  {
-                    parse_structure_def(&mut iterator, &mut program, &module_name, warning)?;
+                    parse_structure_def(&mut iterator, program, &module_name, warning)?;
+                }
+                else if v.0.original_string() == "import".to_string() {
+                    parse_import(&mut iterator, program, warning, filename.clone())?;
                 }
                 else {
                     let error_msg = format!("Expected function or structure definition, got unexpected token '{}'", v.0.original_string());
@@ -1439,10 +1491,30 @@ pub fn build(tokens: TokenizedProgram, module_name: Option<String>, warning: boo
 
             }
         }
-    }
+    };
+
+    Ok(())
+}
+
+
+
+
+
+
+
+
+
+
+
+pub fn from(filename: String, warning: bool, import_default_builtins: bool) -> Result<SlothProgram, Error> {
+    let path = PathBuf::from(&filename);
+    let mut program = SlothProgram::new(path.file_stem().unwrap().to_str().unwrap().to_string(), import_default_builtins);
+    parse_file(path, &mut program, warning, true)?;
 
     match program.import_builtins() {
-        Ok(()) => Ok(program),
-        Err(e) => Err(Error::new(ErrorMessage::ImportError(e), None))
-    }
+        Ok(()) => (),
+        Err(e) => return Err(Error::new(ErrorMessage::ImportError(e), None))
+    };
+
+    Ok(program)
 }

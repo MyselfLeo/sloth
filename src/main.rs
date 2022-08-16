@@ -54,43 +54,41 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
-
     let filename = args.file;
-    let tokens = tokenizer::TokenizedProgram::from_file(&filename);
 
-    match tokens {
-        Err(e) => e.abort(),
-        Ok(tokens) => {
 
-            if args.tokens {tokens.print_tokens()}
-            else {
-                // build the program
-                let mut program: SlothProgram = match builder::build(tokens, None, !args.nowarn, !args.nodefault) {
-                    Err(e) => {e.abort(); return},
-                    Ok(p) => p,
-                };
+    if args.tokens {
+        let tokens = match tokenizer::TokenizedProgram::from_file(&filename) {
+            Ok(t) => t,
+            Err(e) => {
+                e.abort();
+                return
+            }
+        };
+        tokens.print_tokens()
+    }
 
-                
-                if args.functions {program.print_functions()}
+    else {
+        // build the program
+        let mut program: SlothProgram = match builder::from(filename, !args.nowarn, !args.nodefault) {
+            Err(e) => {e.abort(); return},
+            Ok(p) => p,
+        };
 
-                else if args.expr {program.print_exprs()}
-
-                else if args.structures {program.print_structs()}
-
-                else {
-                    unsafe {
-                        let return_value = program.run(args.arguments);
-
-                        match return_value {
-                            Err(e) => e.abort(),
-                            Ok(v) => match v {
-                                Value::Number(x) => {
-                                    if args.code {println!("Exited with return code {}", x)};
-                                    std::process::exit(x as i32)
-                                },
-                                _ => panic!("The main function must return a Number value")
-                            }
-                        }
+        if args.functions {program.print_functions()}
+        else if args.expr {program.print_exprs()}
+        else if args.structures {program.print_structs()}
+        else {
+            unsafe {
+                let return_value = program.run(args.arguments);
+                match return_value {
+                    Err(e) => e.abort(),
+                    Ok(v) => match v {
+                        Value::Number(x) => {
+                            if args.code {println!("Exited with return code {}", x)};
+                            std::process::exit(x as i32)
+                        },
+                        _ => panic!("The main function must return a Number value")
                     }
                 }
             }

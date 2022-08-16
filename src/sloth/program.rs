@@ -88,9 +88,11 @@ impl SlothProgram {
             Some(v) => {return Ok(v);}
         };
 
+
         if signature.module.is_some() {
             return Err(format!("No function named '{}' in the module '{}'", signature.name, signature.module.clone().unwrap()));
         }
+
 
         let mut fitting_functions: Vec<FunctionSignature> = Vec::new();
 
@@ -100,7 +102,7 @@ impl SlothProgram {
             && (sign.input_types == signature.input_types || sign.input_types.is_none() || signature.input_types.is_none())
             && (sign.output_type == signature.output_type || signature.output_type.is_none()) {fitting_functions.push(sign.clone());}
         }
-;
+
         match fitting_functions.len() {
             0 => {
                 match &signature.owner_type {
@@ -237,7 +239,6 @@ impl SlothProgram {
     /// Find the 'main' function, check its validity, execute it with the given arguments and return what the main function returned
     pub unsafe fn run(&mut self, s_args: Vec<String>) -> Result<Value, Error> {
         let main_func_id = FunctionSignature::new(None, "main".to_string(), None, None, Some(Type::Number));
-
 
         // Check if the main function exists and is well defined
         let main_func = match self.get_function(&main_func_id) {
