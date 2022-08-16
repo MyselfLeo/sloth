@@ -1,16 +1,28 @@
-use crate::{sloth::{function::{SlothFunction, FunctionSignature}, program::SlothProgram, scope::Scope, types::Type}, errors::Error};
+use crate::{sloth::{function::{SlothFunction, FunctionSignature}, program::SlothProgram, scope::Scope, types::Type, structure::StructDefinition}, errors::Error};
 pub mod io;
 pub mod numbers;
 pub mod strings;
 pub mod lists;
+pub mod maths;
 
 
 
-pub const SUBMODULES: [&str; 4] = [
+
+
+pub enum BuiltinTypes {
+    Function,
+    Structure
+}
+
+
+
+
+pub const MODULES: [&str; 5] = [
     "io",
     "numbers",
     "strings",
-    "lists"
+    "lists",
+    "maths",
 ];
 
 
@@ -19,25 +31,25 @@ pub const SUBMODULES: [&str; 4] = [
 
 
 /// Struct representing the import of a builtin.
-/// It contains the submodule being imported, and a list of builtins from this submodule
-/// or the whole submodule if the list is None
-/// Note: This struct CAN represent builtins that do not exists (either a fake submodule or fake builtin)
+/// It contains the module being imported, and a list of builtins from this module
+/// or the whole module if the list is None
+/// Note: This struct CAN represent builtins that do not exists (either a fake module or fake builtin)
 #[derive(Clone, PartialEq)]
 pub struct BuiltInImport {
-    submodule: String,
+    module: String,
     builtins: Option<Vec<String>>
 }
 
 impl BuiltInImport {
-    pub fn new(submodule: String, builtins: Option<Vec<String>>) -> BuiltInImport {
-        BuiltInImport {submodule, builtins}
+    pub fn new(module: String, builtins: Option<Vec<String>>) -> BuiltInImport {
+        BuiltInImport {module, builtins}
     }
 
 
-    /// Check if the import is valid (submodule and each builtins exists). If it isn't, return an error msg
+    /// Check if the import is valid (module and each builtins exists). If it isn't, return an error msg
     pub fn is_valid(&self) -> Result<(), String> {
-        if !SUBMODULES.contains(&self.submodule.as_str()) {
-            return Err(format!("Built-in submodule '{}' does not exists", self.submodule))
+        if !MODULES.contains(&self.module.as_str()) {
+            return Err(format!("Built-in module '{}' does not exists", self.module))
         }
 
         match &self.builtins {
@@ -45,25 +57,26 @@ impl BuiltInImport {
 
             Some(v) => {
                 // Get the list of builtins from the submodule
-                let builtins = match self.submodule.as_str() {
+                let builtins = match self.module.as_str() {
                     "io" => io::BUILTINS.to_vec(),
                     "numbers" => numbers::BUILTINS.to_vec(),
                     "strings" => strings::BUILTINS.to_vec(),
                     "lists" => lists::BUILTINS.to_vec(),
-                    _ => panic!("Trying to access builtins of submodule '{}', which do not exists", self.submodule)
+                    "maths" => maths::BUILTINS.to_vec(),
+                    _ => panic!("Trying to access builtins of module '{}', which do not exists", self.module)
                 };
 
                 // Check that each builtins requested is in the submodule
                 for import in v {
                     if !builtins.contains(&import.as_str()) {
-                        return Err(format!("Built-in '{}' does not exists in the submodule '{}'", import, self.submodule))
+                        return Err(format!("Built-in '{}' does not exists in the module '{}'", import, self.module))
                     }
                 }
 
                 Ok(())
             }
         }
-    }
+    } 
 }
 
 
@@ -78,23 +91,29 @@ impl BuiltInImport {
 /// Take a vec of imports and collaspes them into 2 vectors: one of functions and one
 /// of structures (to be imported to the program's scope)
 /// This function takes care of duplicates in the imports
-pub fn collapse_imports(imports: &Vec<BuiltInImport>) -> Result<(Vec<Box<dyn SlothFunction>>, ()), String> {
+pub fn collapse_imports(mut imports: Vec<BuiltInImport>) -> Result<(Vec<Box<dyn SlothFunction>>, Vec<StructDefinition>), String> {
     let mut imported: Vec<String> = Vec::new();                  // Keeps track of which imports are already in the 2 vectors
     let mut funcs: Vec<Box<dyn SlothFunction>> = Vec::new();
-    // todo: add support for structures
+    let mut structs: Vec<StructDefinition> = Vec::new();
 
-    for import in imports {
-        import.is_valid()?;
 
-        // Get each built in requested, or every builtins of the submodule
+    let mut i = 0;
+
+
+    while i < imports.len() {
+
+        let import = imports[i].clone();
+
+        // Get each builtin requested from the module, or every builtins of the module
         let builtins = match &import.builtins {
             Some(v) => v.clone(),
             None => {
-                let list = match import.submodule.as_str() {
+                let list = match import.module.as_str() {
                     "io" => io::BUILTINS.to_vec(),
                     "numbers" => numbers::BUILTINS.to_vec(),
                     "strings" => strings::BUILTINS.to_vec(),
                     "lists" => lists::BUILTINS.to_vec(),
+                    "maths" => maths::BUILTINS.to_vec(),
                     _ => panic!()
                 };
 
@@ -107,24 +126,59 @@ pub fn collapse_imports(imports: &Vec<BuiltInImport>) -> Result<(Vec<Box<dyn Slo
 
 
         for bi in builtins {
-            let import_id = format!("{}:{}", import.submodule, bi);
+            let import_id = format!("{}:{}", import.module, bi);
             if !imported.contains(&import_id) {
 
-                // todo: add structure support
-                let f = match import.submodule.as_str() {
-                    "io" => io::get_function(bi),
-                    "numbers" => numbers::get_function(bi),
-                    "strings" => strings::get_function(bi),
-                    "lists" => lists::get_function(bi),
+
+                let builtin_type = match import.module.as_str() {
+                    "io" => io::get_type(&bi),
+                    "numbers" => numbers::get_type(&bi),
+                    "strings" => strings::get_type(&bi),
+                    "lists" => lists::get_type(&bi),
+                    "maths" => maths::get_type(&bi),
                     _ => panic!()
+                }?;
+
+
+                match builtin_type {
+                    BuiltinTypes::Function => {
+                        let f = match import.module.as_str() {
+                            "io" => io::get_function(bi),
+                            "numbers" => numbers::get_function(bi),
+                            "strings" => strings::get_function(bi),
+                            "lists" => lists::get_function(bi),
+                            "maths" => maths::get_function(bi),
+                            _ => panic!()
+                        };
+                        funcs.push(f);
+                    },
+
+                    BuiltinTypes::Structure => {
+                        let (structure_def, requirements) = match import.module.as_str() {
+                            "io" => io::get_struct(bi),
+                            "numbers" => numbers::get_struct(bi),
+                            "strings" => strings::get_struct(bi),
+                            "lists" => lists::get_struct(bi),
+                            "maths" => maths::get_struct(bi),
+                            _ => panic!()
+                        };
+
+                        structs.push(structure_def);
+
+                        // add the requirements to the stack to be imported
+                        imports.push(BuiltInImport::new(import.module.clone(), Some(requirements)))
+                    },
                 };
-                funcs.push(f);
+                
+                
                 imported.push(import_id);
             }
         }
+
+        i += 1;
     };
 
-    Ok((funcs, ()))
+    Ok((funcs, structs))
 }
 
 
@@ -135,26 +189,9 @@ pub fn collapse_imports(imports: &Vec<BuiltInImport>) -> Result<(Vec<Box<dyn Slo
 
 
 
-/*pub trait SlothFunction {
-/// Return the type owning this function, or None if this is not a method
-fn get_owner_type(&self) -> Option<Type>;
 
-/// Return a FunctionID representing this function
-fn get_signature(&self) -> FunctionSignature;
 
-/// Return the module from which the function comes
-fn get_module(&self) -> Option<String>;
 
-/// Return the name of the function
-fn get_name(&self) -> String;
-
-/// Return the output type of the function
-fn get_output_type(&self) -> Type;
-
-/// Execute the function
-unsafe fn call(&self,  scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error>;
-}
-*/
 
 
 

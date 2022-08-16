@@ -40,7 +40,11 @@ impl Value {
                 for v in values {string_vec.push(v.to_string())}
                 format!("[{}]", string_vec.join(" ")).to_string()
             },
-            Value::Struct(s, _) => format!("'{}' object", s.name).to_string()
+            Value::Struct(s, fields) => {
+                let mut string_vec: Vec<String> = Vec::new();
+                for f in fields {string_vec.push(f.to_string())}
+                format!("{}({})", s.name, string_vec.join(" ")).to_string()
+            }
         }
     }
 

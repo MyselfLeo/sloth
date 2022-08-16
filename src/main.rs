@@ -65,7 +65,7 @@ fn main() {
             if args.tokens {tokens.print_tokens()}
             else {
                 // build the program
-                let mut program: SlothProgram = match builder::build(tokens, !args.nowarn, !args.nodefault) {
+                let mut program: SlothProgram = match builder::build(tokens, None, !args.nowarn, !args.nodefault) {
                     Err(e) => {e.abort(); return},
                     Ok(p) => p,
                 };

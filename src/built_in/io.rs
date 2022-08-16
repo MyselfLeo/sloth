@@ -1,9 +1,10 @@
+use crate::sloth::structure::StructDefinition;
 use crate::{errors::Error, sloth::types::Type};
 use crate::sloth::function::SlothFunction;
 use crate::sloth::program::SlothProgram;
 use crate::sloth::scope::Scope;
 use crate::sloth::value::Value;
-use super::BuiltInFunction;
+use super::{BuiltInFunction, BuiltinTypes};
 use std::io::{self, Write};
 use text_io::read;
 
@@ -15,6 +16,17 @@ pub const BUILTINS: [&str; 2] = [
     "print",
     "read",
 ];
+
+
+/// Return whether each builtin is a function or a structure
+pub fn get_type(builtin: &String) -> Result<BuiltinTypes, String> {
+    match builtin.as_str() {
+        "print" => Ok(BuiltinTypes::Function),
+        "read" => Ok(BuiltinTypes::Function),
+
+        _ => Err(format!("Builtin '{builtin}' not found in module 'io'"))
+    }
+}
 
 
 
@@ -44,6 +56,37 @@ pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
         n => panic!("Requested unknown built-in '{}'", n)
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+/// Return a StructDefinition along with the list of requirements this structure has
+pub fn get_struct(s_name: String) -> (StructDefinition, Vec<String>) {
+    match s_name.as_str() {
+        s => panic!("Requested unknown built-in structure '{}'", s)
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

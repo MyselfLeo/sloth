@@ -6,7 +6,7 @@ use crate::tokenizer::ElementPosition;
 use super::function::{SlothFunction, FunctionSignature};
 use super::scope::{Scope, ScopeID};
 use super::expression::{Expression, ExpressionID};
-use super::structure::StructDefinition;
+use super::structure::{StructSignature, StructDefinition};
 use super::types::Type;
 use super::value::Value;
 use crate::built_in;
@@ -26,7 +26,7 @@ const DEFAULT_SUBMODULE_IMPORTS: [&str; 0] = [];
 pub struct SlothProgram {
     _filename: String,
     functions: BTreeMap<FunctionSignature, Box<dyn SlothFunction>>,
-    structures: BTreeMap<String, StructDefinition>,
+    structures: HashMap<StructSignature, StructDefinition>,
     scopes: HashMap<ScopeID, Scope>,
     expressions: HashMap<ExpressionID, Expression>,
     scope_nb: u64,
@@ -42,7 +42,7 @@ impl SlothProgram {
         let mut program = SlothProgram {
             _filename: filename,
             functions: BTreeMap::new(),
-            structures: BTreeMap::new(),
+            structures: HashMap::new(),
             scopes: HashMap::new(), 
             expressions: HashMap::new(),
             scope_nb: 0,
@@ -122,8 +122,9 @@ impl SlothProgram {
 
     /// Push a new Structure definition to the program
     /// Can return an optional warning message if a previously defined function was overwritten
-    pub fn push_struct(&mut self, structure: StructDefinition) -> Option<String> {
-        match self.structures.insert(structure.name.clone(), structure) {
+    pub fn push_struct(&mut self, structure: StructDefinition, module_name: Option<String>) -> Option<String> {
+        let signature = StructSignature::new(module_name, structure.name.clone());
+        match self.structures.insert(signature.clone(), structure) {
             Some(f) => {
                 let msg = format!("Redefinition of structure {}. Previous definition was overwritten", f.name);
                 Some(msg)
@@ -135,11 +136,33 @@ impl SlothProgram {
 
 
     /// Return the structure definition of the given structure name
-    pub fn get_struct(&self, struct_name: &String) -> Result<StructDefinition, String> {
-        match self.structures.get(struct_name) {
-            None => {return Err(format!("Undefined structure '{}'", struct_name))}
+    pub fn get_struct(&self, signature: &StructSignature) -> Result<StructDefinition, String> {
+        // A perfect fit is found
+        match self.structures.get(signature) {
+            None => (),
             Some(v) => {return Ok(v.clone());}
         };
+
+        match &signature.module {
+            Some(m) => {
+                return Err(format!("Structure '{}' does not exists in module '{}'", signature.name, m))
+            },
+
+            None => {
+                // Get the list of structures with the given name
+                let mut matching_def = Vec::new();
+                for (sign, def) in &self.structures {
+                    if sign.name == signature.name {matching_def.push(def.clone())}
+                };
+
+                match matching_def.len() {
+                    1 => return Ok(matching_def[0].clone()),
+                    0 => return Err(format!("Structure '{}' does not exists", signature.name)),
+                    n => return Err(format!("{} instances of structure '{}' found in the scope. Precise the module like that: module:StructureName {{...}}", n, signature.name))
+                }
+            }
+
+        }
     }
 
 
@@ -204,8 +227,9 @@ impl SlothProgram {
 
     /// Import the requested builtins
     pub fn import_builtins(&mut self) -> Result<(), String> {
-        let (f, ()) = built_in::collapse_imports(&self.builtins)?;
+        let (f, s) = built_in::collapse_imports(self.builtins.clone())?;
         for function in f {self.push_function(function);}
+        for structure in s {self.push_struct(structure.clone(), structure.module);}
         Ok(())
     }
 
@@ -226,7 +250,7 @@ impl SlothProgram {
         // Convert given arguments to Values, push them to the Expression Stack and store its Expression ids
         let mut args_id: Vec<ExpressionID> = Vec::new();
 
-        let dummy_pos = ElementPosition {filename: "".to_string(), line: 0, first_column: 0, last_column: 0};
+        let dummy_pos = ElementPosition {filename: "".to_string(), line: 0, first_column: 0, last_column: Some(0)};
 
         if s_args.len() != main_inputs.len() {
             // Create a string representing the required arguments types, like "num, bool, string"
@@ -306,7 +330,7 @@ impl SlothProgram {
     /// Print to console the list of structures defined in the program
     pub fn print_structs(self) {
         for s in self.structures {
-            println!("{:<15}{:?}", s.0, s.1);
+            println!("{:<15}{:?}", s.0.name, s.1);
         }
     }
 }

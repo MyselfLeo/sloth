@@ -4,7 +4,7 @@ use crate::sloth::function::{CustomFunction, FunctionSignature};
 use crate::sloth::operator::{Operator};
 use crate::sloth::program::SlothProgram;
 use crate::sloth::statement::{Statement, IdentifierWrapper, IdentifierElement};
-use crate::sloth::structure::StructDefinition;
+use crate::sloth::structure::{StructDefinition, StructSignature};
 use crate::sloth::types::Type;
 use crate::sloth::value::Value;
 use crate::tokenizer::{TokenizedProgram, Token, ElementPosition, Separator};
@@ -381,12 +381,35 @@ fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, w
 
 /// Parse the construction of an object
 fn parse_object_construction(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<(Expression, ElementPosition), Error> {
-    // Next token is the struct's name
-    let mut pos;
+    iterator.next();
 
-    let struct_name = match iterator.next() {
+    let mut pos = None;
+
+    let mut module_name: Option<String> = None;
+    // If the peek(2) token is a colon, then the module name is given
+    if let Some((Token::Separator(Separator::Colon), _)) = iterator.peek(1) {
+
+        match iterator.current() {
+            Some((Token::Identifier(n), p)) => {
+                pos = Some(p);
+                module_name = Some(n)
+            },
+            Some((t, p)) => {
+                let err_msg = format!("Expected module name, got unexpected token '{}'", t.original_string());
+                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())))
+            },
+            None => return Err(eof_error(line!()))
+        }
+        // go over the colon, set the iterator to the structure name
+        iterator.next();
+        iterator.next();
+    }
+
+
+    // Next token is the struct's name
+    let struct_name = match iterator.current() {
         Some((Token::Identifier(n), p)) => {
-            pos = p;
+            if pos.is_none() {pos = Some(p);}
             n
         },
         Some((t, p)) => {
@@ -414,7 +437,7 @@ fn parse_object_construction(iterator: &mut TokenIterator, program: &mut SlothPr
     loop {
         match iterator.current() {
             Some((Token::Separator(Separator::CloseParenthesis), p)) => {
-                pos = pos.until(p);
+                pos = Some(pos.unwrap().until(p));
                 break
             },
             _ => {
@@ -426,7 +449,7 @@ fn parse_object_construction(iterator: &mut TokenIterator, program: &mut SlothPr
 
     iterator.next();
 
-    Ok((Expression::ObjectConstruction(struct_name, expr_ids, pos.clone()), pos))
+    Ok((Expression::ObjectConstruction(StructSignature::new(module_name, struct_name), expr_ids, pos.clone().unwrap()), pos.unwrap()))
 }
 
 
@@ -879,6 +902,68 @@ fn parse_while(iterator: &mut TokenIterator, program: &mut SlothProgram, warning
 
 
 
+fn parse_type(iterator: &mut TokenIterator, program: &mut SlothProgram, module_name: &Option<String>, warning: bool) -> Result<(Type, ElementPosition), Error> {
+    let first_pos;
+    let mut last_pos;
+
+    let first_type_name = match iterator.current() {
+        Some((Token::Identifier(n), p)) => {
+            first_pos = p.clone();
+            last_pos = p;
+            n
+        },
+        Some((t, p)) => {
+            let err_msg = format!("Expected type, got unexpected token '{}'", t.original_string());
+            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())))
+        },
+        None => return Err(eof_error(line!()))
+    };
+
+    let return_type = match first_type_name.as_str() {
+        "any" => Type::Any,
+        "num" => Type::Number,
+        "bool" => Type::Boolean,
+        "string" => Type::String,
+        "list" => {
+            // parse the list type
+            match iterator.next() {
+                Some((Token::Separator(Separator::OpenSquareBracket), _)) => (),
+                Some((t, p)) => {
+                    let err_msg = format!("Expected '[', got unexpected token '{}'", t.original_string());
+                    return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())))
+                },
+                None => return Err(eof_error(line!()))
+            };
+
+            iterator.next();
+            let (list_type, _) = parse_type(iterator, program, module_name, warning)?;
+            
+            match iterator.current() {
+                Some((Token::Separator(Separator::CloseSquareBracket), p)) => last_pos = p,
+                Some((t, p)) => {
+                    let err_msg = format!("Expected ']', got unexpected token '{}'", t.original_string());
+                    return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())))
+                },
+                None => return Err(eof_error(line!()))
+            };
+
+            Type::List(Box::new(list_type))
+        },
+        _ => {Type::Struct(first_type_name)}
+    };
+
+
+    iterator.next();
+
+    Ok((return_type, first_pos.until(last_pos)))
+}
+
+
+
+
+
+
+
 
 
 
@@ -924,7 +1009,7 @@ fn get_type_from_str(str: &str) -> Result<Type, String> {
 
 
 /// Parse a function and add it to the program's function stack
-fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<(), Error> {
+fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram, module_name: &Option<String>, warning: bool) -> Result<(), Error> {
     // must start with the "define" keyword
     match iterator.current() {
         Some((t, p)) => {
@@ -954,16 +1039,10 @@ fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram, warn
         Some((Token::Keyword(kw), _)) => {
             if kw == "for".to_string() {
                 iterator.next();
+                iterator.next();
 
                 // next token must be the type name
-                Some(match iterator.next() {
-                    Some((t, p)) => match get_type_from_str(&t.original_string()) {
-                        Ok(t) => t,
-                        Err(s) => return Err(Error::new(ErrorMessage::TypeError(s), Some(p)))
-                    },
-
-                    None => return Err(eof_error(line!())),
-                })
+                Some(parse_type(iterator, program, module_name, warning)?.0)
             }
             else {None}
         },
@@ -990,26 +1069,19 @@ fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram, warn
     // Parse the input types of the function
     let mut input_types: Vec<Type> = Vec::new();
 
-    while match iterator.peek(1) {
+    iterator.next();
+
+    while match iterator.current() {
         Some((Token::Keyword(kw), _)) => {kw != "->".to_string()},
         Some(_) => true,
         None => return Err(eof_error(line!())),
     } {
-        // Check the value of the keyword
-        match iterator.next() {
-            Some((t, p)) => match get_type_from_str(t.original_string().as_str()) {
-                Ok(t) => input_types.push(t),
-                Err(e) => return Err(Error::new(ErrorMessage::TypeError(e), Some(p)))
-            },
-            // This should not happen as it's already checked with peek(). But just in case
-            None => return Err(eof_error(line!()))
-        }
-
+        input_types.push(parse_type(iterator, program, module_name, warning)?.0)
     }
 
 
     // The next token must be '->'
-    match iterator.next() {
+    match iterator.current() {
         Some((t, p)) => {
             if t.original_string() != "->".to_string() {
                 let err_msg = format!("Expected '->', got '{}'", t.original_string());
@@ -1021,17 +1093,12 @@ fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram, warn
 
 
     // The next token is the return value
-    let output_type = match iterator.next() {
-        Some((t, p)) => match get_type_from_str(t.original_string().as_str()) {
-            Ok(t) => t,
-            Err(e) => return Err(Error::new(ErrorMessage::TypeError(e), Some(p)))
-        },
-        None => return Err(eof_error(line!()))
-    };
+    iterator.next();
+    let (output_type, _) = parse_type(iterator, program, module_name, warning)?;
 
 
     // next token must be an open bracket
-    let next = iterator.next();
+    let next = iterator.current();
     if let Some((Token::Separator(Separator::OpenBracket), _)) = next {}
     else if let Some((t, p)) = next {
         let err_msg = format!("Expected '{{', got unexpected token '{}'", t.original_string());
@@ -1057,7 +1124,7 @@ fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram, warn
     // Create the function and push it to the program
     let function = CustomFunction {
         signature: FunctionSignature::new(
-            None,
+            module_name.clone(),
             f_name.clone(),
             owner_type,
             Some(input_types),
@@ -1206,7 +1273,7 @@ fn parse_builtin(iterator: &mut TokenIterator, program: &mut SlothProgram, warni
 
 
 /// Parse a structure definition, push it to the program
-fn parse_structure_def(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<(), Error> {
+fn parse_structure_def(iterator: &mut TokenIterator, program: &mut SlothProgram, module_name: &Option<String>, warning: bool) -> Result<(), Error> {
     // must start with the "structure" keyword
     match iterator.current() {
         Some((t, p)) => {
@@ -1252,10 +1319,11 @@ fn parse_structure_def(iterator: &mut TokenIterator, program: &mut SlothProgram,
     let mut fields_name: Vec<String> = Vec::new();
     let mut fields_types: Vec<Box<Type>> = Vec::new();
 
+    iterator.next();
 
     // Next is each fields of this structure, until we met a closed bracket
     loop {
-        match iterator.next() {
+        match iterator.current() {
             None => return Err(eof_error(line!())),
             Some((Token::Separator(Separator::CloseBracket), _)) => {
                 iterator.next();
@@ -1285,31 +1353,18 @@ fn parse_structure_def(iterator: &mut TokenIterator, program: &mut SlothProgram,
                     None => return Err(eof_error(line!()))
                 }
 
-
-                let last_pos;
-
                 // the type of the field
-                let field_type = match iterator.next() {
-                    Some((t, p)) => {
-                        last_pos = p;
-
-                        match get_type_from_str(t.original_string().as_str()) {
-                            Ok(t) => t.clone(),
-                            Err(e) => return Err(Error::new(ErrorMessage::TypeError(e), Some(last_pos.clone())))
-                        }
-                    },
-                    None => return Err(eof_error(line!()))
-                };
-
+                iterator.next();
+                let (field_type, type_pos) = parse_type(iterator, program, module_name, warning)?;
                 fields_types.push(Box::new(field_type));
 
 
                 // A semicolon here is strongly recommended, but not necessary
-                match iterator.peek(1) {
+                match iterator.current() {
                     Some((Token::Separator(Separator::SemiColon), _)) => {iterator.next();},
                     Some((_, _)) => {
                         if warning {
-                            let warning = Warning::new("Use of a semicolon at the end of each field definition is highly recommended".to_string(), Some(first_pos.until(last_pos)));
+                            let warning = Warning::new("Use of a semicolon at the end of each field definition is highly recommended".to_string(), Some(first_pos.until(type_pos)));
                             warning.warn();
                         }
                     },
@@ -1324,7 +1379,7 @@ fn parse_structure_def(iterator: &mut TokenIterator, program: &mut SlothProgram,
         }
     }
 
-    match program.push_struct(StructDefinition::new(struct_name, fields_name, fields_types)) {
+    match program.push_struct(StructDefinition::new(struct_name, fields_name, fields_types, None), module_name.clone()) {
         // warning raised by the program
         Some(w) => {
             if warning {
@@ -1351,7 +1406,7 @@ fn parse_structure_def(iterator: &mut TokenIterator, program: &mut SlothProgram,
 
 
 
-pub fn build(tokens: TokenizedProgram, warning: bool, import_default_builtins: bool) -> Result<SlothProgram, Error> {
+pub fn build(tokens: TokenizedProgram, module_name: Option<String>, warning: bool, import_default_builtins: bool) -> Result<SlothProgram, Error> {
     let filename = tokens.filename.clone();
     let mut iterator = TokenIterator::new(tokens);
 
@@ -1369,13 +1424,13 @@ pub fn build(tokens: TokenizedProgram, warning: bool, import_default_builtins: b
             None => break,
             Some(v) => {
                 if v.0.original_string() == "define".to_string() {
-                    parse_function(&mut iterator, &mut program, warning)?;
+                    parse_function(&mut iterator, &mut program, &module_name, warning)?;
                 }
                 else if v.0.original_string() == "builtin".to_string() {
                     parse_builtin(&mut iterator, &mut program, warning)?;
                 }
                 else if v.0.original_string() == "structure".to_string()  {
-                    parse_structure_def(&mut iterator, &mut program, warning)?;
+                    parse_structure_def(&mut iterator, &mut program, &module_name, warning)?;
                 }
                 else {
                     let error_msg = format!("Expected function or structure definition, got unexpected token '{}'", v.0.original_string());

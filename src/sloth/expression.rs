@@ -1,5 +1,6 @@
 use super::function::FunctionSignature;
 use super::statement::IdentifierWrapper;
+use super::structure::StructSignature;
 use super::types::Type;
 use super::value::Value;
 use super::operator::{Operator, apply_op};
@@ -31,7 +32,7 @@ pub enum Expression {
     Operation(Operator, Option<ExpressionID>, Option<ExpressionID>, ElementPosition),    // Operator to apply to one or 2 values from the Scope Expression stack (via index)
     FunctionCall(FunctionSignature, Vec<ExpressionID>, ElementPosition),                 // name of the function and its list of expressions to be evaluated
     MethodCall(ExpressionID, FunctionSignature, Vec<ExpressionID>, ElementPosition),     // call of a method of a Value
-    ObjectConstruction(String, Vec<ExpressionID>, ElementPosition),                      // The construction of an Object, with the 'new' keyword
+    ObjectConstruction(StructSignature, Vec<ExpressionID>, ElementPosition),             // The construction of an Object, with the 'new' keyword
 }
 
 
@@ -291,9 +292,9 @@ impl Expression {
 
 
 
-            Expression::ObjectConstruction(name, fields, p) => {
+            Expression::ObjectConstruction(signature, fields, p) => {
                 // Get the structure definition from the program
-                let struct_def = match program.as_mut().unwrap().get_struct(&name) {
+                let struct_def = match program.as_mut().unwrap().get_struct(signature) {
                     Ok(v) => v,
                     Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))
                 };
@@ -301,7 +302,7 @@ impl Expression {
 
                 // Compare lenght of given fields to the struct def
                 if struct_def.fields_names.len() != fields.len() {
-                    let err_msg = format!("Structure '{}' expects {} fields, but it has been given {} fields", name, struct_def.fields_names.len(), fields.len());
+                    let err_msg = format!("Structure '{}' expects {} fields, but it has been given {} fields", signature.name, struct_def.fields_names.len(), fields.len());
                     return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), Some(p.clone())))
                 }
 
@@ -318,7 +319,7 @@ impl Expression {
                     let value = expr.evaluate(scope, program)?;
 
                     if value.get_type() != *struct_def.fields_types[i] {
-                        let err_msg = format!("Field '{}' of structure '{}' is of type '{}', but it has been given a value of type '{}'", struct_def.fields_names[i], name, struct_def.fields_types[i], value.get_type());
+                        let err_msg = format!("Field '{}' of structure '{}' is of type '{}', but it has been given a value of type '{}'", struct_def.fields_names[i], signature.name, struct_def.fields_types[i], value.get_type());
                         return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), Some(p.clone())))
                     }
 
