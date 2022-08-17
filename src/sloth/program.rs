@@ -14,7 +14,7 @@ use crate::built_in;
 
 
 
-const DEFAULT_SUBMODULE_IMPORTS: [&str; 0] = [];
+const DEFAULT_BUILTIN_IMPORTS: [&str; 1] = ["io"];
 
 
 
@@ -58,8 +58,8 @@ impl SlothProgram {
 
 
         if import_default_builtins {
-            for submod in DEFAULT_SUBMODULE_IMPORTS {
-                program.add_import(built_in::BuiltInImport::new(submod.to_string(), None));
+            for import in DEFAULT_BUILTIN_IMPORTS {
+                program.add_import(built_in::BuiltInImport::new(import.to_string(), None));
             }
         }
 

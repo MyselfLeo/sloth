@@ -14,7 +14,7 @@ use sloth::value::Value;
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
-    /// Path to the .slo file to execute
+    /// Path of the .slo file to execute
     #[clap(value_parser)]
     file: String,
 
@@ -38,7 +38,7 @@ struct Args {
     #[clap(long, value_parser)]
     code: bool,
 
-    /// Disable the warnings
+    /// Disable warnings
     #[clap(long, value_parser)]
     nowarn: bool,
 
