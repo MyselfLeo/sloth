@@ -1,5 +1,5 @@
 use super::types::Type;
-use super::structure::StructDefinition;
+use super::structure::SlothObject;
 
 
 
@@ -9,7 +9,7 @@ pub enum Value {
     Boolean(bool),
     String(String),
     List(Type, Vec<Value>),
-    Struct(StructDefinition, Vec<Value>)
+    Object(Box<dyn SlothObject>)
 }
 
 

@@ -1,4 +1,7 @@
 use crate::sloth::types::Type;
+use crate::sloth::value::Value;
+
+
 
 
 #[derive(Clone, Debug, Hash, PartialEq, Eq)]
@@ -12,6 +15,33 @@ impl StructSignature {
         StructSignature { module, name }
     }
 }
+
+
+
+
+
+
+
+
+pub trait SlothObject: std::fmt::Debug {
+    fn get_signature(&self) -> StructSignature;
+    fn get_field(&self, field_name: String) -> Result<Value, String>;
+    fn set_field(&mut self, field_name: String, value: Value) -> Result<(), String>;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
