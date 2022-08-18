@@ -312,7 +312,7 @@ impl Expression {
                 let mut result_values = HashMap::new();
 
                 // Evaluate each values given for the fields, compare them to the definition
-                for (expr_id, (fname, ftype)) in std::iter::zip(given_fields, struct_def.fields) {
+                for (expr_id, (fname, ftype)) in std::iter::zip(given_fields, struct_def.fields.clone()) {
                     let expr = match program.as_ref().unwrap().get_expr(*expr_id) {
                         Ok(e) => e,
                         Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
@@ -330,7 +330,7 @@ impl Expression {
 
 
                 // Return the value
-                Ok(Value::Object(Box::new(StructureObject::new(signature.clone(), struct_def, result_values))))
+                Ok(Value::Object(Box::new(StructureObject::new(struct_def, result_values))))
             },
         }
     }

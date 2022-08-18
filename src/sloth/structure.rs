@@ -26,21 +26,22 @@ impl StructSignature {
 /// The fields throught which the user can interact with the Object
 #[derive(Clone, Debug, PartialEq)]
 pub struct StructDefinition {
-    pub fields: HashMap<String, Type>,
+    pub signature: StructSignature,
+    pub fields: Vec<(String, Type)>,
 }
 
 
 impl StructDefinition {
-    pub fn new(fields: HashMap<String, Type>) -> StructDefinition {
-        StructDefinition {fields}
+    pub fn new(signature: StructSignature, fields: Vec<(String, Type)>) -> StructDefinition {
+        StructDefinition {signature, fields}
     }
 
     /// should not be called without knowing the field exists first
     pub fn get_field_type(&self, field_name: &String) -> Result<Type, String> {
-        match self.fields.get(field_name) {
-            Some(t) => Ok(t.clone()),
-            None => panic!("get_field_type() called on a non-existant field")
+        for (n, t) in &self.fields {
+            if n == field_name {return Ok(t.clone())}
         }
+        panic!("get_field_type() called on a non-existant field")
     }
 }
 
@@ -70,6 +71,7 @@ impl Clone for Box<dyn SlothObject> {
     }
 }
 
+
 impl PartialEq for Box<dyn SlothObject> {
     fn eq(&self, other: &Self) -> bool {
         self.get_signature() == other.get_signature()
@@ -87,14 +89,13 @@ impl PartialEq for Box<dyn SlothObject> {
 #[derive(Debug, Clone)]
 /// Object created from a structure defined in Sloth.
 pub struct StructureObject {
-    signature: StructSignature,
     definition: StructDefinition,
     fields: HashMap<String, Value>,
 }
 
 impl StructureObject {
-    pub fn new(signature: StructSignature, definition: StructDefinition, fields: HashMap<String, Value>) -> StructureObject {
-        StructureObject { signature, definition, fields }
+    pub fn new(definition: StructDefinition, fields: HashMap<String, Value>) -> StructureObject {
+        StructureObject {definition, fields }
     }
 }
 
@@ -104,11 +105,11 @@ impl SlothObject for StructureObject {
     }
 
     fn get_signature(&self) -> StructSignature {
-        self.signature
+        self.definition.signature.clone()
     }
 
     fn get_definition(&self) -> StructDefinition {
-        self.definition
+        self.definition.clone()
     }
 
     fn get_field(&self, field_name: &String) -> Result<Value, String> {
@@ -124,13 +125,20 @@ impl SlothObject for StructureObject {
             Err(format!("Field '{}' expects a value of type '{}', got a value of type '{}' instead", field_name, t, value.get_type()))
         }
         else {
-            self.fields.insert(*field_name, value);
+            self.fields.insert(field_name.clone(), value);
             Ok(())
         }
     }
 
     fn get_fields(&self) -> (Vec<String>, Vec<Value>) {
-        todo!()
+        let mut res = (Vec::new(), Vec::new());
+
+        for (k, v) in &self.fields {
+            res.0.push(k.clone());
+            res.1.push(v.clone());
+        }
+
+        res
     }
 }
 

@@ -10,10 +10,9 @@ use crate::sloth::structure::StructDefinition;
 
 
 
-pub const BUILTINS: [&str; 3] = [
+pub const BUILTINS: [&str; 2] = [
     "pow",
-    "sqrt",
-    "norm"
+    "sqrt"
 ];
 
 
@@ -24,7 +23,6 @@ pub fn get_type(builtin: &String) -> Result<BuiltinTypes, String> {
     match builtin.as_str() {
         "pow" => Ok(BuiltinTypes::Function),
         "sqrt" => Ok(BuiltinTypes::Function),
-        "norm" => Ok(BuiltinTypes::Function),
 
         _ => Err(format!("Builtin '{builtin}' not found in module 'maths'"))
     }
@@ -54,16 +52,6 @@ pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
                 Some(Type::Number),
                 Type::Number,
                 sqrt
-            )
-        ),
-
-        "norm" => Box::new(
-            BuiltInFunction::new(
-                "norm",
-                Some("maths"),
-                Some(Type::Struct("Vector2".to_string())),
-                Type::Number,
-                norm
             )
         ),
 
@@ -159,34 +147,6 @@ fn sqrt(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
             Value::Number(x.sqrt())
         },
         _ => panic!("Implementation of method 'sqrt' for type 'num' was called on a value of another type")
-    };
-
-    scope.set_variable("@return".to_string(), result);
-    Ok(())
-}
-
-
-
-
-
-
-
-
-
-fn norm(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
-    let value = scope.get_variable("@self".to_string(), program).unwrap();
-
-    let result = match value {
-        Value::Struct(def, fields) => {
-            if def.module == Some("maths".to_string()) && def.name == "Vector2".to_string() {
-                match (&fields[0], &fields[1]) {
-                    (Value::Number(x), Value::Number(y)) => Value::Number((x.powi(2) + y.powi(2)).sqrt()),
-                    (_, _) => panic!("Fields of object Vector2 where not Number and Number")
-                }
-            }
-            else {panic!("Implementation of method 'norm' for type 'Vector2' was called on a value of another type")}
-        },
-        _ => panic!("Implementation of method 'norm' for type 'Vector2' was called on a value of another type")
     };
 
     scope.set_variable("@return".to_string(), result);

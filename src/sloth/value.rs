@@ -3,7 +3,7 @@ use super::structure::SlothObject;
 
 
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug)]
 pub enum Value {
     Number(f64),
     Boolean(bool),
@@ -11,6 +11,25 @@ pub enum Value {
     List(Type, Vec<Value>),
     Object(Box<dyn SlothObject>)
 }
+
+impl PartialEq for Value {
+    fn ne(&self, other: &Self) -> bool {
+        !self.eq(other)
+    }
+
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Number(l0), Self::Number(r0)) => l0 == r0,
+            (Self::Boolean(l0), Self::Boolean(r0)) => l0 == r0,
+            (Self::String(l0), Self::String(r0)) => l0 == r0,
+            (Self::List(l0, l1), Self::List(r0, r1)) => l0 == r0 && l1 == r1,
+            (Self::Object(l0), Self::Object(r0)) => l0 == r0,
+            (_, _) => false
+        }
+    }
+}
+
+
 
 
 impl Value {

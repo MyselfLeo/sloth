@@ -1,3 +1,4 @@
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
@@ -1300,8 +1301,7 @@ fn parse_structure_def(iterator: &mut TokenIterator, program: &mut SlothProgram,
     }
 
 
-    let mut fields_name: Vec<String> = Vec::new();
-    let mut fields_types: Vec<Box<Type>> = Vec::new();
+    let mut struct_fields: (Vec<String>, Vec<Type>) = (Vec::new(), Vec::new());
 
     iterator.next();
 
@@ -1315,16 +1315,15 @@ fn parse_structure_def(iterator: &mut TokenIterator, program: &mut SlothProgram,
             },
 
             // name of the field, as an identifier
-            Some((Token::Identifier(name), first_pos)) => {
+            Some((Token::Identifier(field_name), first_pos)) => {
 
                 // check that the name is not already used
-                if fields_name.contains(&name) {
-                    let err_msg = format!("The name '{}' is already used for a field of the structure '{}'", name, struct_name);
+                if struct_fields.0.contains(&field_name) {
+                    let err_msg = format!("The name '{}' is already used for a field of the structure '{}'", field_name, struct_name);
                     return Err(Error::new(ErrorMessage::DefinitionError(err_msg), Some(first_pos.clone())))
                 }
 
 
-                fields_name.push(name);
 
                 
                 // next token must be a colon
@@ -1340,8 +1339,9 @@ fn parse_structure_def(iterator: &mut TokenIterator, program: &mut SlothProgram,
                 // the type of the field
                 iterator.next();
                 let (field_type, type_pos) = parse_type(iterator, program, module_name, warning)?;
-                fields_types.push(Box::new(field_type));
 
+                struct_fields.0.push(field_name);
+                struct_fields.1.push(field_type);
 
                 // A semicolon here is strongly recommended, but not necessary
                 match iterator.current() {
@@ -1363,7 +1363,16 @@ fn parse_structure_def(iterator: &mut TokenIterator, program: &mut SlothProgram,
         }
     }
 
-    match program.push_struct(StructDefinition::new(struct_name, fields_name, fields_types, None), module_name.clone()) {
+    let signature = StructSignature::new(module_name.clone(), struct_name.clone());
+
+    let mut fields: Vec<(String, Type)> = Vec::new();
+
+    for (n, t) in std::iter::zip(struct_fields.0, struct_fields.1) {
+        fields.push((n, t));
+    }
+
+
+    match program.push_struct(struct_name, module_name.clone(), StructDefinition::new(signature, fields)) {
         // warning raised by the program
         Some(w) => {
             if warning {
