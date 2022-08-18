@@ -118,17 +118,16 @@ impl SlothProgram {
 
 
 
-    // TODO: Make a StructureSignature (name + module) instead of just using the name
 
 
 
-    /// Push a new Structure definition to the program
+    /// Push a new StructDefinition to the program
     /// Can return an optional warning message if a previously defined function was overwritten
-    pub fn push_struct(&mut self, structure: StructDefinition, module_name: Option<String>) -> Option<String> {
-        let signature = StructSignature::new(module_name, structure.name.clone());
+    pub fn push_struct(&mut self, struct_name: String, struct_module: Option<String>, structure: StructDefinition) -> Option<String> {
+        let signature = StructSignature::new(struct_module, struct_name);
         match self.structures.insert(signature.clone(), structure) {
             Some(f) => {
-                let msg = format!("Redefinition of structure {}. Previous definition was overwritten", f.name);
+                let msg = format!("Redefinition of structure {}. Previous definition was overwritten", struct_name);
                 Some(msg)
             }
             None => None

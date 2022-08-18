@@ -20,7 +20,7 @@ impl Value {
             Value::Boolean(_) => Type::Boolean,
             Value::String(_) => Type::String,
             Value::List(t, _) => Type::List(Box::new(t.clone())),
-            Value::Struct(struct_def, _) => Type::Struct(struct_def.name.clone())
+            Value::Object(object) => Type::Struct(object.get_signature().name)
         }
     }
 
@@ -40,10 +40,10 @@ impl Value {
                 for v in values {string_vec.push(v.to_string())}
                 format!("[{}]", string_vec.join(" ")).to_string()
             },
-            Value::Struct(s, fields) => {
+            Value::Object(object) => {
                 let mut string_vec: Vec<String> = Vec::new();
-                for f in fields {string_vec.push(f.to_string())}
-                format!("{}({})", s.name, string_vec.join(" ")).to_string()
+                for f in object.get_fields().1 {string_vec.push(f.to_string())}
+                format!("{}({})", object.get_signature().name, string_vec.join(" ")).to_string()
             }
         }
     }
@@ -89,12 +89,7 @@ impl Value {
 
     pub fn get_field(&self, field_name: &String) -> Result<Value, String> {
         match self {
-            Value::Struct(s, f) => {
-                match s.fields_names.iter().position(|x| x == field_name) {
-                    Some(i) => Ok(f[i].clone()),
-                    None => {Err(format!("Structure '{}' doesn't have a field '{}'", s.name, field_name))}
-                }
-            },
+            Value::Object(object) => object.get_field(field_name),
 
             Value::List(_, list_values) => {
                 match field_name.parse::<usize>() {
@@ -114,19 +109,7 @@ impl Value {
 
     pub fn set_field(&mut self, field_name: &String, value: Value) -> Result<(), String> {
         match self {
-            Value::Struct(s, f) => {
-                match s.fields_names.iter().position(|x| x == field_name) {
-                    Some(i) => {
-                        // Check type of new value
-                        let value_type = value.get_type();
-                        if *s.fields_types[i] != value_type {return Err(format!("Field '{}' expect a value of type '{}', got '{}' instead", field_name, s.fields_types[i], value_type))}
-                        
-                        f[i] = value.clone();
-                        Ok(())
-                    },
-                    None => {Err(format!("Structure '{}' doesn't have a field '{}'", s.name, field_name))}
-                }
-            },
+            Value::Object(object) => object.set_field(field_name, value),
 
             Value::List(t, list_values) => {
                 match field_name.parse::<usize>() {
