@@ -1,3 +1,5 @@
+use std::any::Any;
+
 use crate::errors::ErrorMessage;
 use crate::{errors::Error, sloth::types::Type};
 use crate::sloth::function::SlothFunction;
@@ -5,7 +7,7 @@ use crate::sloth::program::SlothProgram;
 use crate::sloth::scope::Scope;
 use crate::sloth::value::Value;
 use super::{BuiltInFunction, BuiltinTypes};
-use crate::sloth::structure::{ObjectBlueprint, StructSignature, SlothObject};
+use crate::sloth::structure::{ObjectBlueprint, StructSignature, SlothObject, ObjectToAny};
 
 use sdl2::render::{Canvas, CanvasBuilder};
 use sdl2::video::Window;
@@ -146,6 +148,7 @@ pub struct SDL2Wrapper {
 }
 
 
+
 impl SlothObject for SDL2Wrapper {
 
     fn box_clone(&self) -> Box<dyn SlothObject> {
@@ -204,15 +207,17 @@ fn draw_sys(wrapper: &mut SDL2Wrapper) -> Result<(), String> {
 fn draw(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
     let value = scope.get_variable("@self".to_string(), program).unwrap();
 
-    let result = match value {
-        Value::Object(mut x) => {x.execute("draw_sys")},
+    let mut result = match value {
+        Value::Object(wrapper) => {wrapper.box_clone()},
         _ => panic!("Implementation of method 'draw' for type 'Window' was called on a value of another type")
     };
 
-    match result {
-        Ok(()) => (),
-        Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e), None))
-    }
+    let object = result.as_any().downcast_mut::<SDL2Wrapper>().expect("builtin 'draw' called on a SlothObject that is not SDL2Wrapper");
+
+    match draw_sys(object) {
+        Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e), None)),
+        _ => (),
+    };
 
     scope.set_variable("@return".to_string(), Value::Number(0.0));
     Ok(())

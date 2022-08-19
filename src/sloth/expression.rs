@@ -181,7 +181,7 @@ impl Expression {
                             let err_msg = format!("Function {} should return a value of type {}, but it returned {} which is of type {}", function.get_name(), function.get_output_type(), v.to_string(), v.get_type());
                             Err(Error::new(ErrorMessage::ReturnValueError(err_msg), Some(p.clone())))
                         }
-                        else {Ok(v)}
+                        else {Ok(v.clone())}
                     },
                     Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                 }
@@ -264,7 +264,7 @@ impl Expression {
                         Ok(v) => (v),
                         Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                     };
-                    match wrapper.set_value(new_self, scope, program.as_mut().unwrap()) {
+                    match wrapper.set_value(new_self.clone(), scope, program.as_mut().unwrap()) {
                         Ok(()) => (),
                         Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))
                     }
@@ -282,7 +282,7 @@ impl Expression {
                             let err_msg = format!("Function {} should return a value of type {}, but it returned {} which is of type {}", method.get_name(), method.get_output_type(), v.to_string(), v.get_type());
                             return Err(Error::new(ErrorMessage::ReturnValueError(err_msg), Some(p.clone())))
                         }
-                        else {return Ok(v)}
+                        else {return Ok(v.clone())}
                     },
                     Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                 }

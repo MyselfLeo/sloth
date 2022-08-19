@@ -119,7 +119,7 @@ impl Value {
 
 
 
-    pub fn get_field(&self, field_name: &String) -> Result<Value, String> {
+    pub fn get_field(&self, field_name: &String) -> Result<&mut Value, String> {
         match self {
             Value::Object(object) => object.get_field(field_name),
 
@@ -127,7 +127,7 @@ impl Value {
                 match field_name.parse::<usize>() {
                     Ok(i) => {
                         match list_values.get(i) {
-                            Some(v) => Ok(v.clone()),
+                            Some(v) => Ok(&mut v),
                             None => {Err(format!("Tried to access the {}th element of a list with only {} elements", i, list_values.len()))}
                         }
                     },
