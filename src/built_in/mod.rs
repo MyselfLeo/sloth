@@ -18,12 +18,13 @@ pub enum BuiltinTypes {
 
 
 
-pub const MODULES: [&str; 5] = [
+pub const MODULES: [&str; 6] = [
     "io",
     "numbers",
     "strings",
     "lists",
     "maths",
+    "graphics"
 ];
 
 
@@ -64,6 +65,7 @@ impl BuiltInImport {
                     "strings" => strings::BUILTINS.to_vec(),
                     "lists" => lists::BUILTINS.to_vec(),
                     "maths" => maths::BUILTINS.to_vec(),
+                    "graphics" => graphics::BUILTINS.to_vec(),
                     _ => panic!("Trying to access builtins of module '{}', which do not exists", self.module)
                 };
 
@@ -115,6 +117,7 @@ pub fn collapse_imports(mut imports: Vec<BuiltInImport>) -> Result<(Vec<Box<dyn 
                     "strings" => strings::BUILTINS.to_vec(),
                     "lists" => lists::BUILTINS.to_vec(),
                     "maths" => maths::BUILTINS.to_vec(),
+                    "graphics" => graphics::BUILTINS.to_vec(),
                     _ => panic!()
                 };
 
@@ -137,6 +140,7 @@ pub fn collapse_imports(mut imports: Vec<BuiltInImport>) -> Result<(Vec<Box<dyn 
                     "strings" => strings::get_type(&bi),
                     "lists" => lists::get_type(&bi),
                     "maths" => maths::get_type(&bi),
+                    "graphics" => graphics::get_type(&bi),
                     _ => panic!()
                 }?;
 
@@ -149,6 +153,7 @@ pub fn collapse_imports(mut imports: Vec<BuiltInImport>) -> Result<(Vec<Box<dyn 
                             "strings" => strings::get_function(bi),
                             "lists" => lists::get_function(bi),
                             "maths" => maths::get_function(bi),
+                            "graphics" => graphics::get_function(bi),
                             _ => panic!()
                         };
                         funcs.push(f);
@@ -161,6 +166,7 @@ pub fn collapse_imports(mut imports: Vec<BuiltInImport>) -> Result<(Vec<Box<dyn 
                             "strings" => strings::get_struct(bi),
                             "lists" => lists::get_struct(bi),
                             "maths" => maths::get_struct(bi),
+                            "graphics" => graphics::get_struct(bi),
                             _ => panic!()
                         };
 

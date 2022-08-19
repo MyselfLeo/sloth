@@ -17,14 +17,47 @@ const WINDOW_STRUCT_NAME: &str = "Window";
 
 
 
+
+
+pub const BUILTINS: [&str; 1] = [
+    WINDOW_STRUCT_NAME
+];
+
+
+/// Return whether each builtin is a function or a structure
+pub fn get_type(builtin: &String) -> Result<BuiltinTypes, String> {
+    match builtin.as_str() {
+        WINDOW_STRUCT_NAME => Ok(BuiltinTypes::Structure),
+
+        _ => Err(format!("Builtin '{builtin}' not found in module 'io'"))
+    }
+}
+
+
+
+
+
+
+
 /// Return an ObjectBlueprint along with the list of requirements this structure has
 pub fn get_struct(s_name: String) -> (Box<dyn ObjectBlueprint>, Vec<String>) {
     match s_name.as_str() {
+        WINDOW_STRUCT_NAME => (Box::new(SDL2WrapperBlueprint {}), Vec::new()),
         s => panic!("Requested unknown built-in structure '{}'", s)
     }
 }
 
 
+
+
+
+
+/// Return a reference to a new SlothFunction. Panics if the function does not exists
+pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
+    match f_name.as_str() {
+        n => panic!("Requested unknown built-in '{}'", n)
+    }
+}
 
 
 
@@ -59,7 +92,7 @@ impl ObjectBlueprint for SDL2WrapperBlueprint {
             v => {return Err(format!("Field 'name' of structure '{}' is of type '{}', but it has been given a value of type '{}'", WINDOW_STRUCT_NAME, Type::String, v.get_type()))}
         };
 
-        let x_size = match &given_values[0] {
+        let x_size = match &given_values[1] {
             Value::Number(x) => {
                 if *x < 0.0 {return Err(format!("Cannot give a negative x size to the window ({})", x))}
                 *x as u32
@@ -67,7 +100,7 @@ impl ObjectBlueprint for SDL2WrapperBlueprint {
             v => {return Err(format!("Field 'x' of structure '{}' is of type '{}', but it has been given a value of type '{}'", WINDOW_STRUCT_NAME, Type::Number, v.get_type()))}
         };
 
-        let y_size = match &given_values[0] {
+        let y_size = match &given_values[2] {
             Value::Number(y) => {
                 if *y < 0.0 {return Err(format!("Cannot give a negative x size to the window ({})", y))}
                 *y as u32
