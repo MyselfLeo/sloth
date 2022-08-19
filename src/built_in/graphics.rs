@@ -171,13 +171,6 @@ impl SlothObject for SDL2Wrapper {
     fn get_fields(&self) -> (Vec<String>, Vec<Value>) {
         todo!()
     }
-
-    fn execute(&mut self, instruction_name: &str) -> Result<(), String> {
-        match instruction_name {
-            "draw" => draw_sys(self),
-            _ => panic!("Called execute on SDL2Wrapper but the instruction does not exists")
-        }
-    }
 }
 
 

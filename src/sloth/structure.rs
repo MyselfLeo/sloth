@@ -105,7 +105,6 @@ pub trait SlothObject {
     fn get_field(&self, field_name: &String) -> Result<Value, String>;
     fn set_field(&mut self, field_name: &String, value: Value) -> Result<(), String>;
     fn get_fields(&self) -> (Vec<String>, Vec<Value>);
-    fn execute(&mut self, instruction_name: &str) -> Result<(), String>;             // Used to execute specific functions without having to cast a Trait to a Structure
 }
 
 
@@ -184,10 +183,6 @@ impl SlothObject for StructureObject {
         }
 
         res
-    }
-
-    fn execute(&mut self, instruction_name: &str) -> Result<(), String> {
-        panic!("Cannot run execute on StructureObject")
     }
 }
 
