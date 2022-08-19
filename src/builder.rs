@@ -734,9 +734,17 @@ fn parse_statement(iterator: &mut TokenIterator, program: &mut SlothProgram, war
                                     parse_assignment(wrapper, iterator, program, warning)?
                                 }
 
-                                // Expression call
+                                // Method Call
+                                else if token.original_string() == ".".to_string() {
+                                    let first_expr = (program.push_expr(Expression::VariableCall(wrapper.0, wrapper.1.clone())), wrapper.1.clone());
+                                    let new_expr = parse_second_expr(iterator, program, warning, first_expr, false)?;
+                                    Statement::ExpressionCall(new_expr.0, new_expr.1)
+                                }
+
+                                // VariableCall call
                                 else {
-                                    Statement::ExpressionCall(program.push_expr(Expression::VariableCall(wrapper.0, wrapper.1.clone())), wrapper.1)
+                                    let expr = (program.push_expr(Expression::VariableCall(wrapper.0, wrapper.1.clone())), wrapper.1.clone());
+                                    Statement::ExpressionCall(expr.0, expr.1)
                                 }
                             },
 
@@ -1019,9 +1027,9 @@ fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram, modu
                 // next token must be the type name
                 Some(parse_type(iterator, program, module_name, warning)?.0)
             }
-            else {None}
+            else {iterator.next(); None}
         },
-        _ => None
+        _ => {iterator.next(); None}
     };
 
 
@@ -1029,7 +1037,7 @@ fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram, modu
 
 
     // Next token must be a colon
-    match iterator.next() {
+    match iterator.current() {
         Some(t) => {
             if let (Token::Separator(Separator::Colon), _) = t {}
             else {
