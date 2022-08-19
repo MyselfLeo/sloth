@@ -24,7 +24,7 @@ impl StructSignature {
 
 
 /// Trait stored in the Program. Used to build SlothObject
-pub trait ObjectBlueprint: std::fmt::Debug {
+pub trait ObjectBlueprint {
     fn box_clone(&self) -> Box<dyn ObjectBlueprint>;
     fn get_signature(&self) -> StructSignature;
     fn build(&self, given_values: Vec<Value>) -> Result<Box<dyn SlothObject>, String>;
@@ -98,7 +98,7 @@ impl ObjectBlueprint for CustomDefinition {
 
 /// An object with custom behaviors that can be stored in a Value enum. From the point of view of the program, it
 /// behaves like a structure, but it can have other features hidden from the user.
-pub trait SlothObject: std::fmt::Debug {
+pub trait SlothObject {
     fn box_clone(&self) -> Box<dyn SlothObject>;
     fn get_signature(&self) -> StructSignature;
     fn get_blueprint(&self) -> Box<dyn ObjectBlueprint>;

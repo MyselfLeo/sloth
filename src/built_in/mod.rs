@@ -4,6 +4,7 @@ pub mod numbers;
 pub mod strings;
 pub mod lists;
 pub mod maths;
+pub mod graphics;
 
 
 

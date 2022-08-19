@@ -3,7 +3,7 @@ use super::structure::SlothObject;
 
 
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub enum Value {
     Number(f64),
     Boolean(bool),
@@ -25,6 +25,19 @@ impl PartialEq for Value {
             (Self::List(l0, l1), Self::List(r0, r1)) => l0 == r0 && l1 == r1,
             (Self::Object(l0), Self::Object(r0)) => l0 == r0,
             (_, _) => false
+        }
+    }
+}
+
+
+impl std::fmt::Debug for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Number(arg0) => f.debug_tuple("Number").field(arg0).finish(),
+            Self::Boolean(arg0) => f.debug_tuple("Boolean").field(arg0).finish(),
+            Self::String(arg0) => f.debug_tuple("String").field(arg0).finish(),
+            Self::List(arg0, arg1) => f.debug_tuple("List").field(arg0).field(arg1).finish(),
+            Self::Object(arg0) => f.debug_tuple("Object").finish(),
         }
     }
 }
