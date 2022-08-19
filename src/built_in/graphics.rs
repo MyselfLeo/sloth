@@ -116,7 +116,7 @@ impl ObjectBlueprint for SDL2WrapperBlueprint {
             .build()
             .unwrap();
 
-        let mut canvas = &mut window.into_canvas().build().unwrap();
+        let canvas = &mut window.into_canvas().build().unwrap();
 
         unsafe {
             Ok(Box::new(SDL2Wrapper::new(self.clone(), canvas)))
@@ -165,4 +165,22 @@ impl SDL2Wrapper {
     unsafe fn new(blueprint: SDL2WrapperBlueprint, canvas: *mut Canvas<Window>) -> SDL2Wrapper {
         SDL2Wrapper { blueprint, canvas }
     }
+}
+
+
+
+
+/// Draw the given Window to the screen
+fn draw(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
+    let value = scope.get_variable("@self".to_string(), program).unwrap();
+
+    let result = match value {
+        Value::Object(x) => {
+            let object = *x;
+        },
+        _ => panic!("Implementation of method 'to_num' for type 'string' was called on a value of another type")
+    };
+
+    scope.set_variable("@return".to_string(), result);
+    Ok(())
 }
