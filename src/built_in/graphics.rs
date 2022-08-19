@@ -158,11 +158,29 @@ impl SlothObject for SDL2Wrapper {
     fn get_fields(&self) -> (Vec<String>, Vec<Value>) {
         todo!()
     }
+
+    fn execute(&mut self, instruction_name: &String) -> Result<(), String> {
+        match instruction_name.as_str() {
+            "draw" => draw(self),
+            _ => panic!("Called execute on SDL2Wrapper but the instruction does not exists")
+        }
+    }
 }
 
 
 impl SDL2Wrapper {
     unsafe fn new(blueprint: SDL2WrapperBlueprint, canvas: *mut Canvas<Window>) -> SDL2Wrapper {
         SDL2Wrapper { blueprint, canvas }
+    }
+}
+
+
+
+
+/// Update the wrapper on the screen
+fn draw(wrapper: &mut SDL2Wrapper) -> Result<(), String> {
+    unsafe {
+        wrapper.canvas.as_mut().unwrap().present();
+        Ok(())
     }
 }
