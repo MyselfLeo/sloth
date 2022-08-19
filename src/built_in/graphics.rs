@@ -174,7 +174,7 @@ impl SlothObject for SDL2Wrapper {
 
     fn execute(&mut self, instruction_name: &str) -> Result<(), String> {
         match instruction_name {
-            "draw" => draw_sys(self),
+            "draw_sys" => draw_sys(self),
             _ => panic!("Called execute on SDL2Wrapper but the instruction does not exists")
         }
     }
