@@ -953,7 +953,7 @@ fn parse_type(iterator: &mut TokenIterator, program: &mut SlothProgram, module_n
 
             Type::List(Box::new(list_type))
         },
-        _ => {Type::Struct(first_type_name)}
+        _ => {Type::Object(first_type_name)}
     };
 
 

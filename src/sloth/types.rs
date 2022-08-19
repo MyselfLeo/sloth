@@ -7,7 +7,7 @@ pub enum Type {
     Number,
     String,
     List(Box<Type>),     // type of the list elements
-    Struct(String)       // name of the string
+    Object(String)       // name of the string
 }
 
 
@@ -20,7 +20,7 @@ impl Type {
             Type::Number => Value::Number(0.0),
             Type::String => Value::String("".to_string()),
             Type::List(t) => Value::List(*t.clone(), Vec::new()),
-            Type::Struct(_s) => unimplemented!()
+            Type::Object(_s) => Value::Number(0.0), // TEMPORARY TODO
         }
     }
 
@@ -28,7 +28,7 @@ impl Type {
     pub fn strict_eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::List(l0), Self::List(r0)) => l0 == r0, // List[Any] is 'equal' to every other lists
-            (Self::Struct(l0), Self::Struct(r0)) => l0 == r0,
+            (Self::Object(l0), Self::Object(r0)) => l0 == r0,
             _ => core::mem::discriminant(self) == core::mem::discriminant(other),
         }
     }
@@ -43,7 +43,7 @@ impl std::fmt::Display for Type {
             Type::Number => write!(f, "num"),
             Type::String => write!(f, "string"),
             Type::List(t) => write!(f, "list[{}]", t),
-            Type::Struct(n) => write!(f, "{}", n),
+            Type::Object(n) => write!(f, "{}", n),
         }
     }
 }
@@ -55,7 +55,7 @@ impl PartialEq for Type {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (Self::List(l0), Self::List(r0)) => l0.strict_eq(&Type::Any) || r0.strict_eq(&Type::Any) || l0 == r0, // List[Any] is 'equal' to every other lists
-            (Self::Struct(l0), Self::Struct(r0)) => l0 == r0,
+            (Self::Object(l0), Self::Object(r0)) => l0 == r0,
             (Type::Any, _) => true,
             (_, Type::Any) => true,
             _ => core::mem::discriminant(self) == core::mem::discriminant(other),

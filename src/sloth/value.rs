@@ -39,7 +39,7 @@ impl Value {
             Value::Boolean(_) => Type::Boolean,
             Value::String(_) => Type::String,
             Value::List(t, _) => Type::List(Box::new(t.clone())),
-            Value::Object(object) => Type::Struct(object.get_signature().name)
+            Value::Object(object) => Type::Object(object.get_signature().name)
         }
     }
 
@@ -100,7 +100,7 @@ impl Value {
                 }
             }
             Type::List(_t) => Err("Cannot create a list from a string".to_string()),
-            Type::Struct(_n) => unimplemented!()
+            Type::Object(_n) => unimplemented!()
         }
     }
 

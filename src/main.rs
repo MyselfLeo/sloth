@@ -30,9 +30,9 @@ struct Args {
     #[clap(long, value_parser)]
     expr: bool,
 
-    /// Display the list of the structures generated from the file instead of running it
+    /// Display the list of the structures blueprints from the file instead of running it
     #[clap(long, value_parser)]
-    structures: bool,
+    blueprints: bool,
 
     /// Print the return code after execution
     #[clap(long, value_parser)]
@@ -77,7 +77,7 @@ fn main() {
 
         if args.functions {program.print_functions()}
         else if args.expr {program.print_exprs()}
-        else if args.structures {program.print_blueprints()}
+        else if args.blueprints {program.print_blueprints()}
         else {
             unsafe {
                 let return_value = program.run(args.arguments);
