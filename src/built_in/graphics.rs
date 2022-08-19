@@ -19,8 +19,9 @@ const WINDOW_STRUCT_NAME: &str = "Window";
 
 
 
-pub const BUILTINS: [&str; 1] = [
-    WINDOW_STRUCT_NAME
+pub const BUILTINS: [&str; 2] = [
+    WINDOW_STRUCT_NAME,
+    "draw"
 ];
 
 
@@ -28,6 +29,7 @@ pub const BUILTINS: [&str; 1] = [
 pub fn get_type(builtin: &String) -> Result<BuiltinTypes, String> {
     match builtin.as_str() {
         WINDOW_STRUCT_NAME => Ok(BuiltinTypes::Structure),
+        "draw" => Ok(BuiltinTypes::Function),
 
         _ => Err(format!("Builtin '{builtin}' not found in module 'io'"))
     }
@@ -42,7 +44,7 @@ pub fn get_type(builtin: &String) -> Result<BuiltinTypes, String> {
 /// Return an ObjectBlueprint along with the list of requirements this structure has
 pub fn get_struct(s_name: String) -> (Box<dyn ObjectBlueprint>, Vec<String>) {
     match s_name.as_str() {
-        WINDOW_STRUCT_NAME => (Box::new(SDL2WrapperBlueprint {}), Vec::new()),
+        WINDOW_STRUCT_NAME => (Box::new(SDL2WrapperBlueprint {}), (vec!["draw".to_string()])),
         s => panic!("Requested unknown built-in structure '{}'", s)
     }
 }
@@ -55,7 +57,18 @@ pub fn get_struct(s_name: String) -> (Box<dyn ObjectBlueprint>, Vec<String>) {
 /// Return a reference to a new SlothFunction. Panics if the function does not exists
 pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
     match f_name.as_str() {
-        n => panic!("Requested unknown built-in '{}'", n)
+        "draw" => Box::new(
+            BuiltInFunction::new(
+                "draw",
+                Some("graphics"),
+                Some(Type::Object("Window".to_string())),
+                Type::Number,
+                draw
+            )
+        ),
+
+
+        n => panic!("Requested unknown built-in function '{}'", n)
     }
 }
 
@@ -159,9 +172,9 @@ impl SlothObject for SDL2Wrapper {
         todo!()
     }
 
-    fn execute(&mut self, instruction_name: &String) -> Result<(), String> {
-        match instruction_name.as_str() {
-            "draw" => draw(self),
+    fn execute(&mut self, instruction_name: &str) -> Result<(), String> {
+        match instruction_name {
+            "draw" => draw_sys(self),
             _ => panic!("Called execute on SDL2Wrapper but the instruction does not exists")
         }
     }
@@ -177,17 +190,37 @@ impl SDL2Wrapper {
 
 
 
+
+
+/// Update the wrapper on the screen
+fn draw_sys(wrapper: &mut SDL2Wrapper) -> Result<(), String> {
+    unsafe {
+        wrapper.canvas.as_mut().unwrap().present();
+        Ok(())
+    }
+}
+
+
+
+
+
+
+
+
 /// Draw the given Window to the screen
 fn draw(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
     let value = scope.get_variable("@self".to_string(), program).unwrap();
 
     let result = match value {
-        Value::Object(x) => {
-            let object = *x;
-        },
-        _ => panic!("Implementation of method 'to_num' for type 'string' was called on a value of another type")
+        Value::Object(mut x) => {x.execute("draw_sys")},
+        _ => panic!("Implementation of method 'draw' for type 'Window' was called on a value of another type")
     };
 
-    scope.set_variable("@return".to_string(), result);
+    match result {
+        Ok(()) => (),
+        Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e), None))
+    }
+
+    scope.set_variable("@return".to_string(), Value::Number(0.0));
     Ok(())
 }
