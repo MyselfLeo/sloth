@@ -1,5 +1,5 @@
 use crate::errors::ErrorMessage;
-use crate::sloth::structure::StructDefinition;
+use crate::sloth::structure::ObjectBlueprint;
 use crate::{errors::Error, sloth::types::Type};
 use crate::sloth::function::SlothFunction;
 use crate::sloth::program::SlothProgram;
@@ -102,7 +102,7 @@ pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
 
 
 /// Return a StructDefinition along with the list of requirements this structure has
-pub fn get_struct(s_name: String) -> (StructDefinition, Vec<String>) {
+pub fn get_struct(s_name: String) -> (Box<dyn ObjectBlueprint>, Vec<String>) {
     match s_name.as_str() {
         s => panic!("Requested unknown built-in structure '{}'", s)
     }

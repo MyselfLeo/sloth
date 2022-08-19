@@ -5,7 +5,7 @@ use crate::sloth::program::SlothProgram;
 use crate::sloth::scope::Scope;
 use crate::sloth::value::Value;
 use super::{BuiltInFunction, BuiltinTypes};
-use crate::sloth::structure::StructDefinition;
+use crate::sloth::structure::ObjectBlueprint;
 
 
 
@@ -65,7 +65,7 @@ pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
 
 
 /// Return a StructDefinition along with the list of requirements this structure has
-pub fn get_struct(s_name: String) -> (StructDefinition, Vec<String>) {
+pub fn get_struct(s_name: String) -> (Box<dyn ObjectBlueprint>, Vec<String>) {
     match s_name.as_str() {
 
 

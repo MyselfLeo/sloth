@@ -8,7 +8,7 @@ use crate::sloth::function::{CustomFunction, FunctionSignature};
 use crate::sloth::operator::{Operator};
 use crate::sloth::program::SlothProgram;
 use crate::sloth::statement::{Statement, IdentifierWrapper, IdentifierElement};
-use crate::sloth::structure::{StructDefinition, StructSignature};
+use crate::sloth::structure::{CustomDefinition, StructSignature};
 use crate::sloth::types::Type;
 use crate::sloth::value::Value;
 use crate::tokenizer::{TokenizedProgram, Token, ElementPosition, Separator, self};
@@ -1372,7 +1372,10 @@ fn parse_structure_def(iterator: &mut TokenIterator, program: &mut SlothProgram,
     }
 
 
-    match program.push_struct(struct_name, module_name.clone(), StructDefinition::new(signature, fields)) {
+    let definition = CustomDefinition::new(signature, fields);
+
+
+    match program.push_struct(struct_name, module_name.clone(), Box::new(definition)) {
         // warning raised by the program
         Some(w) => {
             if warning {

@@ -6,7 +6,7 @@ use crate::tokenizer::ElementPosition;
 use super::function::{SlothFunction, FunctionSignature};
 use super::scope::{Scope, ScopeID};
 use super::expression::{Expression, ExpressionID};
-use super::structure::{StructSignature, StructDefinition};
+use super::structure::{StructSignature, ObjectBlueprint};
 use super::types::Type;
 use super::value::Value;
 use crate::built_in;
@@ -26,7 +26,7 @@ const DEFAULT_BUILTIN_IMPORTS: [&str; 1] = ["io"];
 pub struct SlothProgram {
     _filename: String,
     functions: BTreeMap<FunctionSignature, Box<dyn SlothFunction>>,
-    structures: HashMap<StructSignature, StructDefinition>,
+    structures: HashMap<StructSignature, Box<dyn ObjectBlueprint>>,
     scopes: HashMap<ScopeID, Scope>,
     expressions: HashMap<ExpressionID, Expression>,
     scope_nb: u64,
@@ -121,11 +121,11 @@ impl SlothProgram {
 
 
 
-    /// Push a new StructDefinition to the program
+    /// Push a new ObjectBlueprint to the program
     /// Can return an optional warning message if a previously defined function was overwritten
-    pub fn push_struct(&mut self, struct_name: String, struct_module: Option<String>, structure: StructDefinition) -> Option<String> {
+    pub fn push_struct(&mut self, struct_name: String, struct_module: Option<String>, blueprint: Box<dyn ObjectBlueprint>) -> Option<String> {
         let signature = StructSignature::new(struct_module, struct_name.clone());
-        match self.structures.insert(signature.clone(), structure) {
+        match self.structures.insert(signature.clone(), blueprint) {
             Some(_) => {
                 let msg = format!("Redefinition of structure {}. Previous definition was overwritten", struct_name);
                 Some(msg)
@@ -136,12 +136,12 @@ impl SlothProgram {
 
 
 
-    /// Return the structure definition of the given structure name
-    pub fn get_struct(&self, signature: &StructSignature) -> Result<StructDefinition, String> {
+    /// Return the blueprint of the given object name
+    pub fn get_struct(&self, signature: &StructSignature) -> Result<Box<dyn ObjectBlueprint>, String> {
         // A perfect fit is found
         match self.structures.get(signature) {
             None => (),
-            Some(v) => {return Ok(v.clone());}
+            Some(v) => {return Ok(v.box_clone());}
         };
 
         match &signature.module {
@@ -157,7 +157,7 @@ impl SlothProgram {
                 };
 
                 match matching_def.len() {
-                    1 => return Ok(matching_def[0].clone()),
+                    1 => return Ok(matching_def[0].box_clone()),
                     0 => return Err(format!("Structure '{}' does not exists", signature.name)),
                     n => return Err(format!("{} instances of structure '{}' found in the scope. Precise the module like that: module:StructureName {{...}}", n, signature.name))
                 }
@@ -230,7 +230,10 @@ impl SlothProgram {
     pub fn import_builtins(&mut self) -> Result<(), String> {
         let (f, s) = built_in::collapse_imports(self.builtins.clone())?;
         for function in f {self.push_function(function);}
-        for structure in s {self.push_struct(structure.signature.name.clone(), structure.signature.module.clone(), structure);}
+        for blueprint in s {
+            let sign = blueprint.get_signature();
+            self.push_struct(sign.name.clone(), sign.module.clone(), blueprint);
+        }
         Ok(())
     }
 
@@ -328,7 +331,7 @@ impl SlothProgram {
 
 
     /// Print to console the list of structures defined in the program
-    pub fn print_structs(self) {
+    pub fn print_blueprints(self) {
         for s in self.structures {
             println!("{:<15}{:?}", s.0.name, s.1);
         }

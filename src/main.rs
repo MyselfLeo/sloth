@@ -77,7 +77,7 @@ fn main() {
 
         if args.functions {program.print_functions()}
         else if args.expr {program.print_exprs()}
-        else if args.structures {program.print_structs()}
+        else if args.structures {program.print_blueprints()}
         else {
             unsafe {
                 let return_value = program.run(args.arguments);

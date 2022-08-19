@@ -1,4 +1,4 @@
-use crate::{sloth::{function::{SlothFunction, FunctionSignature}, program::SlothProgram, scope::Scope, types::Type, structure::StructDefinition}, errors::Error};
+use crate::{sloth::{function::{SlothFunction, FunctionSignature}, program::SlothProgram, scope::Scope, types::Type, structure::{ObjectBlueprint}}, errors::Error};
 pub mod io;
 pub mod numbers;
 pub mod strings;
@@ -91,10 +91,10 @@ impl BuiltInImport {
 /// Take a vec of imports and collaspes them into 2 vectors: one of functions and one
 /// of structures (to be imported to the program's scope)
 /// This function takes care of duplicates in the imports
-pub fn collapse_imports(mut imports: Vec<BuiltInImport>) -> Result<(Vec<Box<dyn SlothFunction>>, Vec<StructDefinition>), String> {
+pub fn collapse_imports(mut imports: Vec<BuiltInImport>) -> Result<(Vec<Box<dyn SlothFunction>>, Vec<Box<dyn ObjectBlueprint>>), String> {
     let mut imported: Vec<String> = Vec::new();                  // Keeps track of which imports are already in the 2 vectors
     let mut funcs: Vec<Box<dyn SlothFunction>> = Vec::new();
-    let mut structs: Vec<StructDefinition> = Vec::new();
+    let mut structs: Vec<Box<dyn ObjectBlueprint>> = Vec::new();
 
 
     let mut i = 0;
