@@ -145,7 +145,7 @@ impl IdentifierWrapper {
 
 
 
-    pub fn get_value(&self, scope: &mut Scope, program: &mut SlothProgram) -> Result<&mut Value, String> {
+    pub fn get_value(&self, scope: &mut Scope, program: &mut SlothProgram) -> Result<Value, String> {
         if self.ident_sequence.len() == 0 {panic!("IdentifierWrapper has a length of 0")}
         
         let mut value;
@@ -164,8 +164,8 @@ impl IdentifierWrapper {
     }
 
 
-    fn update_value_rec(parent_value: Value, changed_value: Value, sequence: &mut Vec<IdentifierElement>, scope: &mut Scope, program: &mut SlothProgram) -> Result<&mut Value, String> {
-        if sequence.is_empty() {return Ok(&mut changed_value)}
+    fn update_value_rec(parent_value: Value, changed_value: Value, sequence: &mut Vec<IdentifierElement>, scope: &mut Scope, program: &mut SlothProgram) -> Result<Value, String> {
+        if sequence.is_empty() {return Ok(changed_value)}
 
         let mut parent_value = parent_value.clone();
 
@@ -177,7 +177,7 @@ impl IdentifierWrapper {
         
         parent_value.set_field(&child_field_name, child_value)?;
 
-        Ok(&mut parent_value)
+        Ok(parent_value)
     }
 
 

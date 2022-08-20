@@ -43,9 +43,9 @@ impl Clone for Scope {
 impl Scope {
     /// Return the value contained in the given variable. Prefer variable in this scope,
     /// but can also query parent scope for variable
-    pub fn get_variable(&mut self, name: String, program: &mut SlothProgram) -> Result<&mut Value, String> {
+    pub fn get_variable(&self, name: String, program: &mut SlothProgram) -> Result<Value, String> {
         match self.variables.get(&name) {
-            Some(v) => Ok(&mut v),
+            Some(v) => Ok(v.clone()),
             None => {
                 if self.parent.is_some() {
                     let parent_scope = program.get_scope(self.parent.unwrap())?;

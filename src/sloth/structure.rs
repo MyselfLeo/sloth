@@ -1,4 +1,3 @@
-use std::any::Any;
 use std::collections::HashMap;
 
 use crate::sloth::types::Type;
@@ -92,21 +91,6 @@ impl ObjectBlueprint for CustomDefinition {
 
 
 
-/// Trait used to allow for downcasting Trait Objects into their corresponding structs
-pub trait ObjectToAny: 'static {
-    fn as_any(&mut self) -> &mut dyn Any;
-}
-
-
-impl<T: 'static> ObjectToAny for T {
-    fn as_any(&mut self) -> &mut dyn Any {
-        self
-    }
-}
-
-
-
-
 
 
 
@@ -114,11 +98,11 @@ impl<T: 'static> ObjectToAny for T {
 
 /// An object with custom behaviors that can be stored in a Value enum. From the point of view of the program, it
 /// behaves like a structure, but it can have other features hidden from the user.
-pub trait SlothObject: ObjectToAny {
+pub trait SlothObject {
     fn box_clone(&self) -> Box<dyn SlothObject>;
     fn get_signature(&self) -> StructSignature;
     fn get_blueprint(&self) -> Box<dyn ObjectBlueprint>;
-    fn get_field(&mut self, field_name: &String) -> Result<&mut Value, String>;
+    fn get_field(&self, field_name: &String) -> Result<Value, String>;
     fn set_field(&mut self, field_name: &String, value: Value) -> Result<(), String>;
     fn get_fields(&self) -> (Vec<String>, Vec<Value>);
 }
@@ -159,7 +143,6 @@ impl StructureObject {
     }
 }
 
-
 impl SlothObject for StructureObject {
     fn box_clone(&self) -> Box<dyn SlothObject> {
         Box::new(self.clone())
@@ -173,9 +156,9 @@ impl SlothObject for StructureObject {
         self.definition.box_clone()
     }
 
-    fn get_field(&mut self, field_name: &String) -> Result<&mut Value, String> {
+    fn get_field(&self, field_name: &String) -> Result<Value, String> {
         match self.fields.get(field_name) {
-            Some(v) => Ok(&mut v),
+            Some(v) => Ok(v.clone()),
             None => Err(format!("Structure '{}' does not have a field named '{}'", self.get_signature().name, field_name))
         }
     }
