@@ -112,7 +112,7 @@ impl Value {
                     _ => Err(format!("Cannot convert '{}' into a Boolean value", s))
                 }
             }
-            Type::List(_t) => Err("Cannot create a list from a string".to_string()),
+            Type::List(_t) => Err("Cannot create a List from a String".to_string()),
             Type::Object(_n) => unimplemented!()
         }
     }
@@ -128,10 +128,22 @@ impl Value {
                     Ok(i) => {
                         match list_values.get(i) {
                             Some(v) => Ok(v.clone()),
-                            None => {Err(format!("Tried to access the {}th element of a list with only {} elements", i, list_values.len()))}
+                            None => {Err(format!("Tried to access the {}th element of a List with only {} elements", i, list_values.len()))}
                         }
                     },
-                    Err(_) => {Err(format!("Cannot index a list with '{}'", field_name))}
+                    Err(_) => {Err(format!("Cannot index a List with '{}'", field_name))}
+                }
+            },
+
+            Value::String(txt) => {
+                match field_name.parse::<usize>() {
+                    Ok(i) => {
+                        match txt.get(i..i+1) {
+                            Some(v) => Ok(Value::String(v.to_string())),
+                            None => {Err(format!("Tried to access the {}th character of a String of length {}", i, txt.len()))}
+                        }
+                    },
+                    Err(_) => {Err(format!("Cannot index a String with '{}'", field_name))}
                 }
             },
 
@@ -148,14 +160,34 @@ impl Value {
                     Ok(i) => {
                         // Check type of new value
                         let value_type = value.get_type();
-                        if *t != value_type {return Err(format!("Tried to set an element of type '{}' in a list of type '{}'", value_type, t))}
+                        if *t != value_type {return Err(format!("Tried to set an element of type '{}' in a List of type '{}'", value_type, t))}
                         
                         if i > list_values.len() - 1 {list_values.push(value);}
                         else {list_values[i] = value;}
 
                         Ok(())
                     },
-                    Err(_) => {Err(format!("Cannot index a list with '{}'", field_name))}
+                    Err(_) => {Err(format!("Cannot index a List with '{}'", field_name))}
+                }
+            },
+
+            Value::String(txt) => {
+                match field_name.parse::<usize>() {
+                    Ok(i) => {
+                        // Check type of new value
+                        let given_str = match value {
+                            Value::String(v) => v,
+                            v => {return Err(format!("Tried to set a character of a String to a value of type '{}'", v.get_type()))}
+                        };
+                        
+                        if given_str.len() != 1 {return Err("Tried to set a character of a String to multiple characters. Note: You can only set one character to another (string[x] = \"a\")".to_string())}
+
+                        if i > txt.len() - 1 {txt.push_str(given_str.as_str());}
+                        else {txt.replace_range(i..i+1, &given_str);}
+
+                        Ok(())
+                    },
+                    Err(_) => {Err(format!("Cannot index a String with '{}'", field_name))}
                 }
             },
 

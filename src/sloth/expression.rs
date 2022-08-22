@@ -89,7 +89,7 @@ impl Expression {
             Expression::VariableCall(wrapper, p) => {
                 match wrapper.get_value(scope, program.as_mut().unwrap()) {
                     Ok(v) => Ok(v),
-                    Err(e) => Err(Error::new(ErrorMessage::UnexpectedExpression(e), Some(p.clone())))
+                    Err(e) => Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))
                 }
             },
 

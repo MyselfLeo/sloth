@@ -11,9 +11,12 @@ use super::{BuiltInFunction, BuiltinTypes};
 
 
 
-pub const BUILTINS: [&str; 2] = [
+pub const BUILTINS: [&str; 5] = [
     "to_num",
-    "len"
+    "len",
+    "insert",
+    "push",
+    "remove"
 ];
 
 
