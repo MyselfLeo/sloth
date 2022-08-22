@@ -1,6 +1,4 @@
-use std::collections::HashMap;
-use std::path::{Path, PathBuf};
-use std::str::FromStr;
+use std::path::PathBuf;
 
 use crate::built_in::BuiltInImport;
 use crate::sloth::expression::{ExpressionID, Expression};
@@ -13,7 +11,6 @@ use crate::sloth::types::Type;
 use crate::sloth::value::Value;
 use crate::tokenizer::{TokenizedProgram, Token, ElementPosition, Separator, self};
 use crate::errors::{Error, ErrorMessage, Warning};
-use regex::Regex;
 
 
 const UNEXPECTED_EOF_ERR_MSG: &str = "Unexpected End Of File";

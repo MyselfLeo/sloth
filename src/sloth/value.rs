@@ -37,7 +37,7 @@ impl std::fmt::Debug for Value {
             Self::Boolean(arg0) => f.debug_tuple("Boolean").field(arg0).finish(),
             Self::String(arg0) => f.debug_tuple("String").field(arg0).finish(),
             Self::List(arg0, arg1) => f.debug_tuple("List").field(arg0).field(arg1).finish(),
-            Self::Object(arg0) => f.debug_tuple("Object").finish(),
+            Self::Object(_) => f.debug_tuple("Object").finish(),
         }
     }
 }
