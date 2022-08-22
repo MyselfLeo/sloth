@@ -1,6 +1,6 @@
-use super::function::FunctionSignature;
+use super::function::{FunctionSignature};
 use super::statement::IdentifierWrapper;
-use super::structure::StructSignature;
+use super::structure::{StructSignature};
 use super::types::Type;
 use super::value::Value;
 use super::operator::{Operator, apply_op};
@@ -292,43 +292,32 @@ impl Expression {
 
 
 
-            Expression::ObjectConstruction(signature, fields, p) => {
+            Expression::ObjectConstruction(signature, given_fields, p) => {
                 // Get the structure definition from the program
-                let struct_def = match program.as_mut().unwrap().get_struct(signature) {
+                let blueprint = match program.as_mut().unwrap().get_struct(signature) {
                     Ok(v) => v,
                     Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))
                 };
 
+                // Evaluate each given values
+                let mut given_values = Vec::new();
 
-                // Compare lenght of given fields to the struct def
-                if struct_def.fields_names.len() != fields.len() {
-                    let err_msg = format!("Structure '{}' expects {} fields, but it has been given {} fields", signature.name, struct_def.fields_names.len(), fields.len());
-                    return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), Some(p.clone())))
-                }
-
-
-                let mut values = Vec::new();
-
-                // Evaluate each values given for the fields, compare them to the definition
-                for (i, expr_id) in fields.iter().enumerate() {
+                for expr_id in given_fields {
                     let expr = match program.as_ref().unwrap().get_expr(*expr_id) {
                         Ok(e) => e,
                         Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                     };
 
-                    let value = expr.evaluate(scope, program)?;
-
-                    if value.get_type() != *struct_def.fields_types[i] {
-                        let err_msg = format!("Field '{}' of structure '{}' is of type '{}', but it has been given a value of type '{}'", struct_def.fields_names[i], signature.name, struct_def.fields_types[i], value.get_type());
-                        return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), Some(p.clone())))
-                    }
-
-                    values.push(value);
+                    given_values.push(expr.evaluate(scope, program)?);
                 }
 
-
+                // Build the object
+                let object = match blueprint.build(given_values) {
+                    Ok(v) => v,
+                    Err(e) => return Err(Error::new(ErrorMessage::InvalidArguments(e), Some(p.clone())))
+                };
                 // Return the value
-                Ok(Value::Struct(struct_def, values))
+                Ok(Value::Object(object))
             },
         }
     }

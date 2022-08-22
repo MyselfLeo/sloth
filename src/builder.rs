@@ -1,5 +1,4 @@
-use std::path::{Path, PathBuf};
-use std::str::FromStr;
+use std::path::PathBuf;
 
 use crate::built_in::BuiltInImport;
 use crate::sloth::expression::{ExpressionID, Expression};
@@ -7,12 +6,11 @@ use crate::sloth::function::{CustomFunction, FunctionSignature};
 use crate::sloth::operator::{Operator};
 use crate::sloth::program::SlothProgram;
 use crate::sloth::statement::{Statement, IdentifierWrapper, IdentifierElement};
-use crate::sloth::structure::{StructDefinition, StructSignature};
+use crate::sloth::structure::{CustomDefinition, StructSignature};
 use crate::sloth::types::Type;
 use crate::sloth::value::Value;
 use crate::tokenizer::{TokenizedProgram, Token, ElementPosition, Separator, self};
 use crate::errors::{Error, ErrorMessage, Warning};
-use regex::Regex;
 
 
 const UNEXPECTED_EOF_ERR_MSG: &str = "Unexpected End Of File";
@@ -733,9 +731,17 @@ fn parse_statement(iterator: &mut TokenIterator, program: &mut SlothProgram, war
                                     parse_assignment(wrapper, iterator, program, warning)?
                                 }
 
-                                // Expression call
+                                // Method Call
+                                else if token.original_string() == ".".to_string() {
+                                    let first_expr = (program.push_expr(Expression::VariableCall(wrapper.0, wrapper.1.clone())), wrapper.1.clone());
+                                    let new_expr = parse_second_expr(iterator, program, warning, first_expr, false)?;
+                                    Statement::ExpressionCall(new_expr.0, new_expr.1)
+                                }
+
+                                // VariableCall call
                                 else {
-                                    Statement::ExpressionCall(program.push_expr(Expression::VariableCall(wrapper.0, wrapper.1.clone())), wrapper.1)
+                                    let expr = (program.push_expr(Expression::VariableCall(wrapper.0, wrapper.1.clone())), wrapper.1.clone());
+                                    Statement::ExpressionCall(expr.0, expr.1)
                                 }
                             },
 
@@ -952,7 +958,7 @@ fn parse_type(iterator: &mut TokenIterator, program: &mut SlothProgram, module_n
 
             Type::List(Box::new(list_type))
         },
-        _ => {Type::Struct(first_type_name)}
+        _ => {Type::Object(first_type_name)}
     };
 
 
@@ -1018,9 +1024,9 @@ fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram, modu
                 // next token must be the type name
                 Some(parse_type(iterator, program, module_name, warning)?.0)
             }
-            else {None}
+            else {iterator.next(); None}
         },
-        _ => None
+        _ => {iterator.next(); None}
     };
 
 
@@ -1028,7 +1034,7 @@ fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram, modu
 
 
     // Next token must be a colon
-    match iterator.next() {
+    match iterator.current() {
         Some(t) => {
             if let (Token::Separator(Separator::Colon), _) = t {}
             else {
@@ -1300,8 +1306,7 @@ fn parse_structure_def(iterator: &mut TokenIterator, program: &mut SlothProgram,
     }
 
 
-    let mut fields_name: Vec<String> = Vec::new();
-    let mut fields_types: Vec<Box<Type>> = Vec::new();
+    let mut struct_fields: (Vec<String>, Vec<Type>) = (Vec::new(), Vec::new());
 
     iterator.next();
 
@@ -1315,16 +1320,15 @@ fn parse_structure_def(iterator: &mut TokenIterator, program: &mut SlothProgram,
             },
 
             // name of the field, as an identifier
-            Some((Token::Identifier(name), first_pos)) => {
+            Some((Token::Identifier(field_name), first_pos)) => {
 
                 // check that the name is not already used
-                if fields_name.contains(&name) {
-                    let err_msg = format!("The name '{}' is already used for a field of the structure '{}'", name, struct_name);
+                if struct_fields.0.contains(&field_name) {
+                    let err_msg = format!("The name '{}' is already used for a field of the structure '{}'", field_name, struct_name);
                     return Err(Error::new(ErrorMessage::DefinitionError(err_msg), Some(first_pos.clone())))
                 }
 
 
-                fields_name.push(name);
 
                 
                 // next token must be a colon
@@ -1340,8 +1344,9 @@ fn parse_structure_def(iterator: &mut TokenIterator, program: &mut SlothProgram,
                 // the type of the field
                 iterator.next();
                 let (field_type, type_pos) = parse_type(iterator, program, module_name, warning)?;
-                fields_types.push(Box::new(field_type));
 
+                struct_fields.0.push(field_name);
+                struct_fields.1.push(field_type);
 
                 // A semicolon here is strongly recommended, but not necessary
                 match iterator.current() {
@@ -1363,7 +1368,19 @@ fn parse_structure_def(iterator: &mut TokenIterator, program: &mut SlothProgram,
         }
     }
 
-    match program.push_struct(StructDefinition::new(struct_name, fields_name, fields_types, None), module_name.clone()) {
+    let signature = StructSignature::new(module_name.clone(), struct_name.clone());
+
+    let mut fields: Vec<(String, Type)> = Vec::new();
+
+    for (n, t) in std::iter::zip(struct_fields.0, struct_fields.1) {
+        fields.push((n, t));
+    }
+
+
+    let definition = CustomDefinition::new(signature, fields);
+
+
+    match program.push_struct(struct_name, module_name.clone(), Box::new(definition)) {
         // warning raised by the program
         Some(w) => {
             if warning {

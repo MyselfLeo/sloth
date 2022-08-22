@@ -1,16 +1,48 @@
 use super::types::Type;
-use super::structure::StructDefinition;
+use super::structure::SlothObject;
 
 
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone)]
 pub enum Value {
     Number(f64),
     Boolean(bool),
     String(String),
     List(Type, Vec<Value>),
-    Struct(StructDefinition, Vec<Value>)
+    Object(Box<dyn SlothObject>)
 }
+
+impl PartialEq for Value {
+    fn ne(&self, other: &Self) -> bool {
+        !self.eq(other)
+    }
+
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Number(l0), Self::Number(r0)) => l0 == r0,
+            (Self::Boolean(l0), Self::Boolean(r0)) => l0 == r0,
+            (Self::String(l0), Self::String(r0)) => l0 == r0,
+            (Self::List(l0, l1), Self::List(r0, r1)) => l0 == r0 && l1 == r1,
+            (Self::Object(l0), Self::Object(r0)) => l0 == r0,
+            (_, _) => false
+        }
+    }
+}
+
+
+impl std::fmt::Debug for Value {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Number(arg0) => f.debug_tuple("Number").field(arg0).finish(),
+            Self::Boolean(arg0) => f.debug_tuple("Boolean").field(arg0).finish(),
+            Self::String(arg0) => f.debug_tuple("String").field(arg0).finish(),
+            Self::List(arg0, arg1) => f.debug_tuple("List").field(arg0).field(arg1).finish(),
+            Self::Object(_) => f.debug_tuple("Object").finish(),
+        }
+    }
+}
+
+
 
 
 impl Value {
@@ -20,7 +52,7 @@ impl Value {
             Value::Boolean(_) => Type::Boolean,
             Value::String(_) => Type::String,
             Value::List(t, _) => Type::List(Box::new(t.clone())),
-            Value::Struct(struct_def, _) => Type::Struct(struct_def.name.clone())
+            Value::Object(object) => Type::Object(object.get_signature().name)
         }
     }
 
@@ -40,10 +72,10 @@ impl Value {
                 for v in values {string_vec.push(v.to_string())}
                 format!("[{}]", string_vec.join(" ")).to_string()
             },
-            Value::Struct(s, fields) => {
+            Value::Object(object) => {
                 let mut string_vec: Vec<String> = Vec::new();
-                for f in fields {string_vec.push(f.to_string())}
-                format!("{}({})", s.name, string_vec.join(" ")).to_string()
+                for f in object.get_fields().1 {string_vec.push(f.to_string())}
+                format!("{}({})", object.get_signature().name, string_vec.join(" ")).to_string()
             }
         }
     }
@@ -81,7 +113,7 @@ impl Value {
                 }
             }
             Type::List(_t) => Err("Cannot create a list from a string".to_string()),
-            Type::Struct(_n) => unimplemented!()
+            Type::Object(_n) => unimplemented!()
         }
     }
 
@@ -89,12 +121,7 @@ impl Value {
 
     pub fn get_field(&self, field_name: &String) -> Result<Value, String> {
         match self {
-            Value::Struct(s, f) => {
-                match s.fields_names.iter().position(|x| x == field_name) {
-                    Some(i) => Ok(f[i].clone()),
-                    None => {Err(format!("Structure '{}' doesn't have a field '{}'", s.name, field_name))}
-                }
-            },
+            Value::Object(object) => object.get_field(field_name),
 
             Value::List(_, list_values) => {
                 match field_name.parse::<usize>() {
@@ -114,19 +141,7 @@ impl Value {
 
     pub fn set_field(&mut self, field_name: &String, value: Value) -> Result<(), String> {
         match self {
-            Value::Struct(s, f) => {
-                match s.fields_names.iter().position(|x| x == field_name) {
-                    Some(i) => {
-                        // Check type of new value
-                        let value_type = value.get_type();
-                        if *s.fields_types[i] != value_type {return Err(format!("Field '{}' expect a value of type '{}', got '{}' instead", field_name, s.fields_types[i], value_type))}
-                        
-                        f[i] = value.clone();
-                        Ok(())
-                    },
-                    None => {Err(format!("Structure '{}' doesn't have a field '{}'", s.name, field_name))}
-                }
-            },
+            Value::Object(object) => object.set_field(field_name, value),
 
             Value::List(t, list_values) => {
                 match field_name.parse::<usize>() {
