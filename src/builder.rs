@@ -301,7 +301,7 @@ fn parse_list(iterator: &mut TokenIterator, program: &mut SlothProgram, warning:
 
 
 
-/// In the case of a ParameterCall or a MethodCall (expr.attribute or expr.method()), this function parses the second part (after the period/)
+/// In the case of a MethodCall (expr.method()), this function parses the second part (after the period)
 /// It is given the ExpressionID and ElementPosition of the first expression
 fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool, first_expr: (ExpressionID, ElementPosition), is_parenthesied: bool) -> Result<(ExpressionID, ElementPosition), Error> {
     // name of the variable or function to use
@@ -331,11 +331,9 @@ fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, w
         },
         
         // Parameter call
-        Some((_, p)) => {
-            let expr_pos = first_expr.1.until(p);
-            let param_call = Expression::ParameterCall(first_expr.0, ident, expr_pos.clone());
-            iterator.next();
-            (program.push_expr(param_call), expr_pos)
+        Some((t, p)) => {
+            let err_msg = format!("Expected method call, got unexpected token '{}'", t.original_string());
+            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)));
         },
 
         None => return Err(eof_error(line!()))

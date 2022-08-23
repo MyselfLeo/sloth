@@ -28,7 +28,6 @@ pub enum Expression {
     Literal(Value, ElementPosition),                                                     // value of the literal
     ListInit(Vec<ExpressionID>, ElementPosition),                                        // list initialised in code. Example: [1 2 3 4 5]
     VariableCall(IdentifierWrapper, ElementPosition),                                    // identifierwrapper linking to the variable
-    ParameterCall(ExpressionID, String, ElementPosition),                                // name of a parameter of a structure or built-in that can be accessed
     Operation(Operator, Option<ExpressionID>, Option<ExpressionID>, ElementPosition),    // Operator to apply to one or 2 values from the Scope Expression stack (via index)
     FunctionCall(FunctionSignature, Vec<ExpressionID>, ElementPosition),                 // name of the function and its list of expressions to be evaluated
     MethodCall(ExpressionID, FunctionSignature, Vec<ExpressionID>, ElementPosition),     // call of a method of a Value
@@ -178,7 +177,7 @@ impl Expression {
                 match func_scope.get_variable("@return".to_string(), program.as_mut().unwrap()) {
                     Ok(v) => {
                         if v.get_type() != function.get_output_type() {
-                            let err_msg = format!("Function {} should return a value of type {}, but it returned {} which is of type {}", function.get_name(), function.get_output_type(), v.to_string(), v.get_type());
+                            let err_msg = format!("Function {} should return a value of type {}, but it returned '{}' which is of type {}", function.get_name(), function.get_output_type(), v.to_string(), v.get_type());
                             Err(Error::new(ErrorMessage::ReturnValueError(err_msg), Some(p.clone())))
                         }
                         else {Ok(v)}
@@ -187,8 +186,6 @@ impl Expression {
                 }
             },
 
-
-            Expression::ParameterCall(_owner, _v_name, _p) => unimplemented!("Parameters calls are not implemented yet"),
             
             Expression::MethodCall(owner, signature, arguments, p) => {
 
@@ -332,7 +329,6 @@ impl Expression {
             Expression::Literal(_, p) => p,
             Expression::ListInit(_, p) => p,
             Expression::VariableCall(_, p) => p,
-            Expression::ParameterCall(_, _, p) => p,
             Expression::Operation(_, _, _, p) => p,
             Expression::FunctionCall(_, _, p) => p,
             Expression::MethodCall(_, _, _, p) => p,
