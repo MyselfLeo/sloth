@@ -89,13 +89,6 @@ pub fn get_struct(s_name: String) -> (Box<dyn ObjectBlueprint>, Vec<String>) {
 
 
 
-
-
-
-
-
-
-
 fn to_num(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
     let value = scope.get_variable("@self".to_string(), program).unwrap();
 
@@ -134,5 +127,50 @@ fn len(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
     };
 
     scope.set_variable("@return".to_string(), result);
+    Ok(())
+}
+
+
+
+
+
+
+
+
+
+fn insert(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
+    let owner_v = scope.get_variable("@self".to_string(), program).unwrap();
+    let inputs = scope.get_inputs();
+
+    if inputs.len() != 2 {
+        let err_msg = format!("Called function 'insert' with {} argument(s), but the function requires 2 arguments", inputs.len());
+        return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
+    }
+
+    let insert_value = match inputs[0] {
+        Value::String(x) => x,
+        v => {
+            let err_msg = format!("Argument 1 of function 'insert' is of type string, given a value of type {}", v.get_type());
+            return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
+        }
+    };
+
+    let insert_value = match inputs[1] {
+        Value::Number(x) => x,
+        v => {
+            let err_msg = format!("Argument 1 of function 'insert' is of type num, given a value of type {}", v.get_type());
+            return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
+        }
+    };
+
+    let string = match owner_v {
+        Value::String(x) => x,
+        _ => panic!("Implementation of method 'insert' for type 'string' was called on a value of another type")
+    };
+
+
+
+    string.insert_str(idx, string)
+
     Ok(())
 }
