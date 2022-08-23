@@ -1,1 +1,0 @@
-- Make a "SlothStructure" Trait (similar to the SlothFunction trait) that implements StructDefinition (could be renamed), that will be the value used by Value::Struct(...). This will allow for custom structures (for graphics notably)
