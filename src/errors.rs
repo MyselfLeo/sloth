@@ -75,7 +75,17 @@ pub struct Error {
 
 impl Error {
     pub fn new(message: ErrorMessage, position: Option<ElementPosition>) -> Error {
-        Error { message: message, position: position }
+        
+        // if dummy pos, consider no pos was given
+        let pos = match position {
+            None => None,
+            Some(p) => {
+                if p.filename == "" {None}
+                else {Some(p)}
+            }
+        };
+
+        Error { message: message, position: pos }
     }
 
 
