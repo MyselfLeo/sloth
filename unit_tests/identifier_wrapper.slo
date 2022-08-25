@@ -1,0 +1,35 @@
+builtin maths;
+builtin lists;
+
+structure Point {
+    x: num;
+    y: num;
+}
+
+structure Polygon {
+    points: list[Point];
+}
+
+structure World {
+    polys: list[Polygon];
+}
+
+
+define norm for Point: -> num {
+    @return = (+ @self.x.pow(2) @self.y.pow(2)).sqrt();
+}
+
+
+
+
+define main: -> num {
+    w = new World([]);
+    w.polys.push(new Polygon([]));
+    w.polys.push(new Polygon([]));
+
+    w.polys[1].points.push(new Point(3 4));
+
+    if ! == w.polys[1].points[0].x 3 {@return = 1;};
+    if ! == w.polys[1].points[0].y 4 {@return = 1;};
+    if ! == w.polys[1].points[0].norm() 5 {@return = 1;};
+}

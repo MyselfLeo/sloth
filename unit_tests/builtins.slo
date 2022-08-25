@@ -1,0 +1,10 @@
+builtin strings;
+builtin io;
+builtin maths;
+builtin numbers;
+builtin lists;
+
+
+define main: -> num {
+    @return = 0;
+}

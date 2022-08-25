@@ -1,0 +1,3 @@
+define main: -> num {
+    print("Hello, world!\n");
+}

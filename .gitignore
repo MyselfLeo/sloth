@@ -1,3 +1,5 @@
 /target
 /sloth_derive/target
 /test
+/unit_tests/release
+/unit_tests/.rustc_info.json
