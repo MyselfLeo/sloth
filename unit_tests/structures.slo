@@ -1,0 +1,15 @@
+builtin maths;
+
+structure Point {
+    x: num;
+    y: num;
+}
+
+define norm for Point: -> num {
+    @return = (+ @self.x.pow(2) @self.y.pow(2)).sqrt();
+}
+
+define main: -> num {
+    p = new Point(3 4);
+    if ! == p.norm() 5 {@return = 1;};
+}

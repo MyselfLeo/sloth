@@ -34,3 +34,6 @@ do
 done
 
 echo -e $BLUE "-  RESULTS:" $(expr $SUCCESS \* 100 / $TEST_COUNT)% $NC
+
+rm -r release
+rm .rustc_info.json
