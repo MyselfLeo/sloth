@@ -1,4 +1,9 @@
-use crate::{sloth::{function::{SlothFunction, FunctionSignature}, program::SlothProgram, scope::Scope, types::Type, structure::{ObjectBlueprint}}, errors::Error};
+use crate::sloth::function::{SlothFunction, FunctionSignature};
+use crate::sloth::program::SlothProgram;
+use crate::sloth::scope::Scope;
+use crate::sloth::types::Type;
+use crate::sloth::structure::ObjectBlueprint;
+use crate::errors::Error;
 pub mod io;
 pub mod numbers;
 pub mod strings;
