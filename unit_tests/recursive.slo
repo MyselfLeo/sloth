@@ -11,5 +11,5 @@ define factorial: num -> num {
 }
 
 define main: -> num {
-    if ! == factorial(10) 3628800 {@return = 1;};
+    if !== factorial(10) 3628800 {@return = 1;};
 }
