@@ -27,14 +27,13 @@ pub struct SlothProgram {
     _filename: String,
     functions: BTreeMap<FunctionSignature, Box<dyn SlothFunction>>,
     structures: HashMap<StructSignature, Box<dyn ObjectBlueprint>>,
-    scopes: HashMap<ScopeID, Scope>,
     expressions: HashMap<ExpressionID, Expression>,
     scope_nb: u64,
     expressions_nb: u64,
 
     builtins: Vec<built_in::BuiltInImport>,
 
-    main_scope: Option<ScopeID>
+    main_scope: Scope
 }
 
 impl SlothProgram {
@@ -43,7 +42,6 @@ impl SlothProgram {
             _filename: filename,
             functions: BTreeMap::new(),
             structures: HashMap::new(),
-            scopes: HashMap::new(), 
             expressions: HashMap::new(),
             scope_nb: 0,
             expressions_nb: 0,

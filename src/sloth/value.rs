@@ -1,3 +1,6 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use super::types::Type;
 use super::structure::SlothObject;
 
@@ -121,8 +124,8 @@ impl Value {
     }
 
 
-
-    pub fn get_field(&self, field_name: &String) -> Result<Value, String> {
+    /// Return a smart pointer to the field of the value
+    pub fn get_field(&self, field_name: &String) -> Result<Rc<RefCell<Value>>, String> {
         match self {
             Value::Object(object) => object.get_field(field_name),
 
@@ -154,6 +157,8 @@ impl Value {
         }
     }
 
+
+    /*
     pub fn set_field(&mut self, field_name: &String, value: Value) -> Result<(), String> {
         match self {
             Value::Object(object) => object.set_field(field_name, value),
@@ -197,6 +202,7 @@ impl Value {
             v => Err(format!("Type '{}' doesn't have a field '{}'", v.get_type(), field_name))
         }
     }
+     */
 
 
 

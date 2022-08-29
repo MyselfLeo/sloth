@@ -1,3 +1,6 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use crate::errors::{Error, ErrorMessage};
 use crate::tokenizer::ElementPosition;
 use super::expression::ExpressionID;
@@ -144,8 +147,8 @@ impl IdentifierWrapper {
 
 
 
-
-    pub fn get_value(&self, scope: &mut Scope, program: &mut SlothProgram) -> Result<Value, String> {
+    /// Return a smart pointer to the value represented by the IdentifierWrapper
+    pub fn get_value(&self, scope: &mut Scope, program: &mut SlothProgram) -> Result<Rc<RefCell<Value>>, String> {
         if self.ident_sequence.len() == 0 {panic!("IdentifierWrapper has a length of 0")}
         
         let mut value;
@@ -157,7 +160,7 @@ impl IdentifierWrapper {
         // Get the value of each ident element successively to get the final value
         for (i, ident) in self.ident_sequence.iter().enumerate() {
             if i == 0 {continue;}
-            value = value.get_field(&ident.get_field_str(scope, program)?)?;
+            value = value.borrow().get_field(&ident.get_field_str(scope, program)?)?;
         }
 
         Ok(value)

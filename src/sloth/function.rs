@@ -79,7 +79,7 @@ impl SlothFunction for CustomFunction {
         // Check that the given input types match the ones from the definition
         let mut i = 0;
         for (given, required) in std::iter::zip(args, &self_inputs) {
-            let given_type = given.get_type();
+            let given_type = given.borrow().get_type();
             if given_type != *required {
                 let err_msg = format!("Function {} was called with argument of type {} at position {}, where argument of type {} was required", self.get_name(), given_type, i, required);
                 return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
