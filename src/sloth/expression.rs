@@ -1,3 +1,7 @@
+use std::borrow::BorrowMut;
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use super::function::{FunctionSignature};
 use super::statement::IdentifierWrapper;
 use super::structure::{StructSignature};
@@ -39,14 +43,14 @@ pub enum Expression {
 
 impl Expression {
     /// Evaluate the expression in the given context (scope and program) and return its value
-    pub unsafe fn evaluate(&self, scope: &mut Scope, program: *mut SlothProgram) -> Result<Value, Error> {
+    pub unsafe fn evaluate(&self, scope: Rc<RefCell<Scope>>, program: *mut SlothProgram) -> Result<Rc<RefCell<Value>>, Error> {
         match self {
             // return this literal value
-            Expression::Literal(v, _) => Ok(v.clone()),
+            Expression::Literal(v, _) => Ok(Rc::new(RefCell::new(v.clone()))),
 
             // a list
             Expression::ListInit(exprs, p) => {
-                let mut values: Vec<Value> = Vec::new();
+                let mut values = Vec::new();
                 let mut list_type = Type::Any;
 
                 if exprs.len() != 0 {
@@ -57,7 +61,7 @@ impl Expression {
                     };
                     values.push(expr.evaluate(scope, program)?);
 
-                    list_type = values[0].get_type();
+                    list_type = values[0].borrow().get_type();
 
 
                     // Add the other elements to the value list, but checking the type of the value first
@@ -69,16 +73,16 @@ impl Expression {
 
                         let value = expr.evaluate(scope, program)?;
 
-                        if value.get_type() == list_type {values.push(value);}
+                        if value.borrow().get_type() == list_type {values.push(value);}
                         else {
-                            let err_msg = format!("Created a list of type '{}' but this value is of type '{}'", list_type, value.get_type());
+                            let err_msg = format!("Created a list of type '{}' but this value is of type '{}'", list_type, value.borrow().get_type());
                             return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), Some(expr.get_pos())));
                         }
                     }
                 }
 
 
-                Ok(Value::List(list_type, values))
+                Ok(Rc::new(RefCell::new(Value::List(list_type, values))))
             },
 
 
@@ -122,7 +126,7 @@ impl Expression {
                 
                 //apply op
                 match apply_op(op, lhs, rhs) {
-                    Ok(v) => Ok(v),
+                    Ok(v) => Ok(Rc::new(RefCell::new(v))),
                     Err(s) => Err(Error::new(ErrorMessage::InvalidArguments(s), Some(p.clone())))
                 }
             }
@@ -130,12 +134,7 @@ impl Expression {
             // return the result of the function call
             Expression::FunctionCall(f_id, param, p) => {
                 // Create a new scope for the execution of the function
-                let func_scope_id = program.as_mut().unwrap().new_scope(Some(scope.id));
-
-                let mut func_scope = match program.as_mut().unwrap().get_scope(func_scope_id) {
-                    Ok(s) => s.clone(),
-                    Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
-                };
+                let mut func_scope = Rc::new(RefCell::new(Scope::new(Some(program.as_ref().unwrap().main_scope()))));
 
                 // Evaluate each given expression in the scope, and create an input variable (@0, @1, etc.) with the set value
                 for (i, param_expr_id) in param.iter().enumerate() {
@@ -146,7 +145,7 @@ impl Expression {
                     };
 
                     let value = expr.evaluate(scope, program)?;
-                    func_scope.set_variable(format!("@{}", i), value);
+                    func_scope.borrow().push_variable(format!("@{}", i), value);
                 }
 
                 // Get the function
@@ -158,11 +157,11 @@ impl Expression {
 
                 // Create the @return variable, with default value
                 let default_value = function.get_output_type().default();
-                func_scope.set_variable("@return".to_string(), default_value);
+                func_scope.borrow().push_variable("@return".to_string(), Rc::new(RefCell::new(default_value)));
                 
                 // run the function in the given scope.
                 // If the function call returned an error without position, set its position to this function call's
-                match function.call(&mut func_scope, program.as_mut().unwrap()) {
+                match function.call(func_scope, program.as_mut().unwrap()) {
                     Ok(()) => (),
                     Err(mut e) => {
                         if e.position.is_none() && p.filename != "" {e.position = Some(p.clone());}
@@ -170,14 +169,12 @@ impl Expression {
                     }
                 }
 
-                // remove the scope from the program
-                program.as_mut().unwrap().dump_scope(&func_scope_id);
-
                 // return the value in the '@return' variable, but check its type first
-                match func_scope.get_variable("@return".to_string(), program.as_mut().unwrap()) {
+                match func_scope.borrow().get_variable("@return".to_string(), program.as_mut().unwrap()) {
                     Ok(v) => {
-                        if v.get_type() != function.get_output_type() {
-                            let err_msg = format!("Function {} should return a value of type {}, but it returned '{}' which is of type {}", function.get_name(), function.get_output_type(), v.to_string(), v.get_type());
+                        let brrw = v.borrow();
+                        if brrw.get_type() != function.get_output_type() {
+                            let err_msg = format!("Function {} should return a value of type {}, but it returned '{}' which is of type {}", function.get_name(), function.get_output_type(), brrw.to_string(), brrw.get_type());
                             Err(Error::new(ErrorMessage::ReturnValueError(err_msg), Some(p.clone())))
                         }
                         else {Ok(v)}
@@ -202,7 +199,7 @@ impl Expression {
                 
                 // try to find if the method, applied to the type of the value, exists
                 // TODO: Make defining owned function both work for 'list' (means List(Any)) and 'list[type]'
-                signature_clone.owner_type = match value.get_type() {
+                signature_clone.owner_type = match value.borrow().get_type() {
                     Type::List(_t) => Some(Type::List(Box::new(Type::Any))),
                     t => Some(t),
                 };
@@ -216,11 +213,7 @@ impl Expression {
 
 
                 // Create a new scope for the execution of the method
-                let method_scope_id = program.as_mut().unwrap().new_scope(Some(scope.id));
-                let mut func_scope = match program.as_mut().unwrap().get_scope(method_scope_id) {
-                    Ok(s) => s.clone(),
-                    Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
-                };
+                let mut func_scope = Rc::new(RefCell::new(Scope::new(Some(program.as_ref().unwrap().main_scope()))));
 
                 // Evaluate each given expression in the scope, and create an input variable (@0, @1, etc.) with the set value
                 for (i, param_expr_id) in arguments.iter().enumerate() {
@@ -231,22 +224,22 @@ impl Expression {
                     };
 
                     let value = expr.evaluate(scope, program)?;
-                    func_scope.set_variable(format!("@{}", i), value);
+                    func_scope.borrow().push_variable(format!("@{}", i), value);
                 }
 
 
                 // Create the @return variable, with default value
                 let default_value = method.get_output_type().default();
-                func_scope.set_variable("@return".to_string(), default_value);
+                func_scope.borrow().push_variable("@return".to_string(), Rc::new(RefCell::new(default_value)));
 
 
                 // create the "@self" variable, containing a copy of the value stored in the variable
-                func_scope.set_variable("@self".to_string(), value);
+                func_scope.borrow().push_variable("@self".to_string(), value);
 
 
                 // run the method in the given scope.
                 // If the method call returned an error without position, set its position to this function call's
-                match method.call(&mut func_scope, program.as_mut().unwrap()) {
+                match method.call(func_scope, program.as_mut().unwrap()) {
                     Ok(()) => (),
                     Err(mut e) => {
                         if e.position.is_none() && p.filename != "" {e.position = Some(p.clone());}
@@ -257,26 +250,25 @@ impl Expression {
 
                 if let Expression::VariableCall(wrapper, p) = expr {
                     // Set the variable on which was called the function to the new value of "@self"
-                    let new_self = match func_scope.get_variable("@self".to_string(), program.as_mut().unwrap()) {
+                    let new_self = match func_scope.borrow().get_variable("@self".to_string(), program.as_mut().unwrap()) {
                         Ok(v) => (v),
                         Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                     };
-                    match wrapper.set_value(new_self, scope, program.as_mut().unwrap()) {
-                        Ok(()) => (),
-                        Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))
+
+                    // Try to set the value
+                    match value.try_borrow_mut() {
+                        Ok(borrow) => *borrow = new_self.borrow().to_owned(),
+                        Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e.to_string()), Some(p.clone())))
                     }
                 }
 
 
-                // remove the scope from the program
-                program.as_mut().unwrap().dump_scope(&method_scope_id);
-
-
                 // return the value in the '@return' variable, but check its type first
-                match func_scope.get_variable("@return".to_string(), program.as_mut().unwrap()) {
+                match func_scope.borrow().get_variable("@return".to_string(), program.as_mut().unwrap()) {
                     Ok(v) => {
-                        if v.get_type() != method.get_output_type() {
-                            let err_msg = format!("Function {} should return a value of type {}, but it returned {} which is of type {}", method.get_name(), method.get_output_type(), v.to_string(), v.get_type());
+                        let brrw = v.borrow();
+                        if brrw.get_type() != method.get_output_type() {
+                            let err_msg = format!("Function {} should return a value of type {}, but it returned {} which is of type {}", method.get_name(), method.get_output_type(), brrw.to_string(), brrw.get_type());
                             return Err(Error::new(ErrorMessage::ReturnValueError(err_msg), Some(p.clone())))
                         }
                         else {return Ok(v)}
@@ -314,7 +306,7 @@ impl Expression {
                     Err(e) => return Err(Error::new(ErrorMessage::InvalidArguments(e), Some(p.clone())))
                 };
                 // Return the value
-                Ok(Value::Object(object))
+                Ok(Rc::new(RefCell::new(Value::Object(object))))
             },
         }
     }

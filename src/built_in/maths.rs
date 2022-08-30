@@ -6,6 +6,8 @@ use crate::sloth::scope::Scope;
 use crate::sloth::value::Value;
 use super::{BuiltInFunction, BuiltinTypes};
 use crate::sloth::structure::ObjectBlueprint;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 
 
@@ -103,7 +105,7 @@ pub fn get_struct(s_name: String) -> (Box<dyn ObjectBlueprint>, Vec<String>) {
 
 
 
-fn pow(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
+fn pow(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
     let value = scope.get_variable("@self".to_string(), program).unwrap();
     let inputs = scope.get_inputs();
 
@@ -135,7 +137,7 @@ fn pow(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
 
 
 
-fn sqrt(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
+fn sqrt(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
     let value = scope.get_variable("@self".to_string(), program).unwrap();
 
     let result = match value {

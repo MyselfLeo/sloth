@@ -6,6 +6,8 @@ use crate::sloth::program::SlothProgram;
 use crate::sloth::scope::Scope;
 use crate::sloth::value::Value;
 use super::{BuiltInFunction, BuiltinTypes};
+use std::cell::RefCell;
+use std::rc::Rc;
 
 
 
@@ -121,7 +123,7 @@ pub fn get_struct(s_name: String) -> (Box<dyn ObjectBlueprint>, Vec<String>) {
 
 
 
-fn set(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
+fn set(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
     let list = scope.get_variable("@self".to_string(), program).unwrap();
     let inputs = scope.get_inputs();
 
@@ -199,7 +201,7 @@ fn set(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
 
 
 
-fn get(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
+fn get(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
     let list = scope.get_variable("@self".to_string(), program).unwrap();
     let inputs = scope.get_inputs();
 
@@ -258,7 +260,7 @@ fn get(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
 
 
 
-fn push(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
+fn push(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
     let list = scope.get_variable("@self".to_string(), program).unwrap();
     let inputs = scope.get_inputs();
 
@@ -311,7 +313,7 @@ fn push(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
 
 
 
-fn pull(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
+fn pull(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
     let list = scope.get_variable("@self".to_string(), program).unwrap();
     let inputs = scope.get_inputs();
 
@@ -370,7 +372,7 @@ fn pull(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
 
 
 
-fn len(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
+fn len(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
     let list = scope.get_variable("@self".to_string(), program).unwrap();
     // get the list value
     let (_, list_vec) = match list {

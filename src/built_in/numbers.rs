@@ -5,7 +5,8 @@ use crate::sloth::program::SlothProgram;
 use crate::sloth::scope::Scope;
 use crate::sloth::value::Value;
 use super::{BuiltInFunction, BuiltinTypes};
-
+use std::cell::RefCell;
+use std::rc::Rc;
 
 
 
@@ -78,7 +79,7 @@ pub fn get_struct(s_name: String) -> (Box<dyn ObjectBlueprint>, Vec<String>) {
 
 
 
-fn to_string(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
+fn to_string(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
     let value = scope.get_variable("@self".to_string(), program).unwrap();
 
     let result = match value {

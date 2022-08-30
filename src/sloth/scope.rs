@@ -14,20 +14,43 @@ pub struct Scope {
 
 
 impl Scope {
+    pub fn new(parent: Option<Rc<RefCell<Scope>>>) -> Scope {
+        Scope {
+            variables: HashMap::new(),
+            parent
+        }
+    }
+
+
     /// Return the value contained in the given variable. Prefer variable in this scope,
     /// but can also query parent scope for variable
     pub fn get_variable(&self, name: String, program: &mut SlothProgram) -> Result<Rc<RefCell<Value>>, String> {
         match self.variables.get(&name) {
             Some(v) => Ok(v.clone()),
             None => {
-                if self.parent.is_some() {
-                    let parent_scope = program.get_scope(self.parent.unwrap())?;
-                    parent_scope.get_variable(name, program)
+                match self.parent {
+                    Some(p) => p.borrow().get_variable(name, program),
+                    None => {
+                        let error_msg = format!("Called uninitialised variable '{}'", name);
+                        Err(error_msg.to_string())
+                    }
                 }
-                else {
-                    let error_msg = format!("Called uninitialised variable '{}'", name);
-                    Err(error_msg.to_string())
-                }
+            }
+        }
+    }
+
+
+
+    /// Add a new variable to the scope with the given value. Fails if a value with the given id already exists
+    pub fn push_variable(&mut self, name: String, value: Rc<RefCell<Value>>) -> Result<(), String> {
+        match self.variables.contains_key(&name) {
+            true => {
+                let error_msg = format!("Variable '{}' already exists", name);
+                Err(error_msg.to_string())
+            },
+            false => {
+                self.variables.insert(name, value);
+                Ok(())
             }
         }
     }

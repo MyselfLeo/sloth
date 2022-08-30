@@ -11,7 +11,7 @@ pub enum Value {
     Number(f64),
     Boolean(bool),
     String(String),
-    List(Type, Vec<Value>),
+    List(Type, Vec<Rc<RefCell<Value>>>),
     Object(Box<dyn SlothObject>)
 }
 
@@ -73,14 +73,15 @@ impl Value {
             Value::List(_, values) => {
                 let mut string_vec: Vec<String> = Vec::new();
                 for v in values {
-                    if v.get_type() == Type::String {string_vec.push(format!("\"{}\"", v));}
-                    else {string_vec.push(v.to_string())}
+                    let borrow = v.borrow();
+                    if borrow.get_type() == Type::String {string_vec.push(format!("\"{}\"", borrow));}
+                    else {string_vec.push(borrow.to_string())}
                 }
                 format!("[{}]", string_vec.join(" ")).to_string()
             },
             Value::Object(object) => {
                 let mut string_vec: Vec<String> = Vec::new();
-                for f in object.get_fields().1 {string_vec.push(f.to_string())}
+                for f in object.get_fields().1 {string_vec.push(f.borrow().to_string())}
                 format!("{}({})", object.get_signature().name, string_vec.join(" ")).to_string()
             }
         }
@@ -141,6 +142,8 @@ impl Value {
                 }
             },
 
+            // TODO: Change how strings works to allow smart pointer access
+            /*
             Value::String(txt) => {
                 match field_name.parse::<usize>() {
                     Ok(i) => {
@@ -152,6 +155,7 @@ impl Value {
                     Err(_) => {Err(format!("Cannot index a String with '{}'", field_name))}
                 }
             },
+             */
 
             v => Err(format!("Type '{}' doesn't have a field '{}'", v.get_type(), field_name))
         }

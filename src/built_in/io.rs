@@ -1,3 +1,4 @@
+use crate::errors::ErrorMessage;
 use crate::sloth::structure::{ObjectBlueprint};
 use crate::{errors::Error, sloth::types::Type};
 use crate::sloth::function::SlothFunction;
@@ -5,6 +6,8 @@ use crate::sloth::program::SlothProgram;
 use crate::sloth::scope::Scope;
 use crate::sloth::value::Value;
 use super::{BuiltInFunction, BuiltinTypes};
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::io::{self, Write};
 use text_io::read;
 
@@ -96,12 +99,12 @@ pub fn get_struct(s_name: String) -> (Box<dyn ObjectBlueprint>, Vec<String>) {
 
 
 
-fn print(scope: &mut Scope, _: &mut SlothProgram) -> Result<(), Error> {
-    let inputs = scope.get_inputs();
+fn print(scope: Rc<RefCell<Scope>>, _: &mut SlothProgram) -> Result<(), Error> {
+    let inputs = scope.borrow().get_inputs();
     let mut text = String::new();
 
     for (_, v) in inputs.iter().enumerate() {
-        text += &format!("{}", v).replace("\\n", "\n");
+        text += &format!("{}", v.borrow()).replace("\\n", "\n");
     }
     print!("{}", text);
 
@@ -115,12 +118,12 @@ fn print(scope: &mut Scope, _: &mut SlothProgram) -> Result<(), Error> {
 
 
 
-fn read(scope: &mut Scope, _: &mut SlothProgram) -> Result<(), Error> {
-    let inputs = scope.get_inputs();
+fn read(scope: Rc<RefCell<Scope>>, p: &mut SlothProgram) -> Result<(), Error> {
+    let inputs = scope.borrow().get_inputs();
     let mut text = String::new();
 
     for (_, v) in inputs.iter().enumerate() {
-        text += &format!("{}", v).replace("\\n", "\n");
+        text += &format!("{}", v.borrow()).replace("\\n", "\n");
     }
     print!("{}", text);
 
@@ -128,6 +131,17 @@ fn read(scope: &mut Scope, _: &mut SlothProgram) -> Result<(), Error> {
 
     let console_input: String = read!("{}\n");
     let return_value = Value::String(console_input);
-    scope.set_variable("@return".to_string(), return_value);
+
+    match scope.borrow().get_variable("@return".to_string(), p) {
+        Ok(r) => {
+            // Try to set the value
+            match r.try_borrow_mut() {
+                Ok(borrow) => *borrow = return_value,
+                Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e.to_string()), None))
+            }
+        },
+        Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e), None))
+    };
+
     Ok(())
 }

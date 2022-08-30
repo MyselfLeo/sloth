@@ -1,3 +1,6 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use crate::errors::{Error, ErrorMessage};
 use super::program::SlothProgram;
 use super::statement::Statement;
@@ -41,7 +44,7 @@ pub trait SlothFunction {
     fn get_output_type(&self) -> Type;
 
     /// Execute the function
-    unsafe fn call(&self,  scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error>;
+    unsafe fn call(&self,  scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error>;
 }
 
 
@@ -61,9 +64,9 @@ impl SlothFunction for CustomFunction {
     fn get_name(&self) -> String {self.signature.name.clone()}
     fn get_output_type(&self) -> Type {self.signature.output_type.as_ref().unwrap().clone()}
 
-    unsafe fn call(&self, scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
+    unsafe fn call(&self, scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
         // get the given arguments
-        let args = scope.get_inputs();
+        let args = scope.borrow().get_inputs();
 
         let self_inputs = match &self.signature.input_types {
             Some(v) => v.clone(),

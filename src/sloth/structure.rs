@@ -1,5 +1,7 @@
 use std::any::Any;
+use std::cell::RefCell;
 use std::collections::HashMap;
+use std::rc::Rc;
 
 use crate::sloth::types::Type;
 use crate::sloth::value::Value;
@@ -28,7 +30,7 @@ impl StructSignature {
 pub trait ObjectBlueprint {
     fn box_clone(&self) -> Box<dyn ObjectBlueprint>;
     fn get_signature(&self) -> StructSignature;
-    fn build(&self, given_values: Vec<Value>) -> Result<Box<dyn SlothObject>, String>;
+    fn build(&self, given_values: Vec<Rc<RefCell<Value>>>) -> Result<Box<dyn SlothObject>, String>;
 }
 
 
@@ -68,7 +70,7 @@ impl ObjectBlueprint for CustomDefinition {
         self.signature.clone()
     }
 
-    fn build(&self, given_values: Vec<Value>) -> Result<Box<dyn SlothObject>, String> {
+    fn build(&self, given_values: Vec<Rc<RefCell<Value>>>) -> Result<Box<dyn SlothObject>, String> {
         // Compare lenght of given fields to the struct def
         if self.fields.len() != given_values.len() {
             return Err(format!("Structure '{}' expects {} fields, but it has been given {} fields", self.signature.name, self.fields.len(), given_values.len()));
@@ -78,7 +80,10 @@ impl ObjectBlueprint for CustomDefinition {
 
         // Compare each given value to the fields of the Structure, checking their type
         for (given_value, (field_name, expected_type)) in std::iter::zip(given_values, self.fields.clone()) {
-            if given_value.get_type() != expected_type {return Err(format!("Field '{}' of structure '{}' is of type '{}', but it has been given a value of type '{}'", field_name, self.signature.name, expected_type, given_value.get_type()))}
+            let borrow = given_value.borrow();
+            if borrow.get_type() != expected_type {
+                return Err(format!("Field '{}' of structure '{}' is of type '{}', but it has been given a value of type '{}'", field_name, self.signature.name, expected_type, borrow.get_type()))
+            }
             result.insert(field_name, given_value);
         }
 
@@ -122,9 +127,8 @@ pub trait SlothObject: ObjectToAny {
     fn box_clone(&self) -> Box<dyn SlothObject>;
     fn get_signature(&self) -> StructSignature;
     fn get_blueprint(&self) -> Box<dyn ObjectBlueprint>;
-    fn get_field(&self, field_name: &String) -> Result<Value, String>;
-    fn set_field(&mut self, field_name: &String, value: Value) -> Result<(), String>;
-    fn get_fields(&self) -> (Vec<String>, Vec<Value>);
+    fn get_field(&self, field_name: &String) -> Result<Rc<RefCell<Value>>, String>;
+    fn get_fields(&self) -> (Vec<String>, Vec<Rc<RefCell<Value>>>);
 }
 
 
@@ -154,11 +158,11 @@ impl PartialEq for Box<dyn SlothObject> {
 /// Object created from a structure defined in Sloth.
 pub struct StructureObject {
     definition: CustomDefinition,
-    fields: HashMap<String, Value>,
+    fields: HashMap<String, Rc<RefCell<Value>>>,
 }
 
 impl StructureObject {
-    pub fn new(definition: CustomDefinition, fields: HashMap<String, Value>) -> StructureObject {
+    pub fn new(definition: CustomDefinition, fields: HashMap<String, Rc<RefCell<Value>>>) -> StructureObject {
         StructureObject {definition, fields }
     }
 }
@@ -176,25 +180,14 @@ impl SlothObject for StructureObject {
         self.definition.box_clone()
     }
 
-    fn get_field(&self, field_name: &String) -> Result<Value, String> {
+    fn get_field(&self, field_name: &String) -> Result<Rc<RefCell<Value>>, String> {
         match self.fields.get(field_name) {
             Some(v) => Ok(v.clone()),
             None => Err(format!("Structure '{}' does not have a field named '{}'", self.get_signature().name, field_name))
         }
     }
 
-    fn set_field(&mut self, field_name: &String, value: Value) -> Result<(), String> {
-        let t = self.definition.get_field_type(field_name)?;
-        if t != value.get_type() {
-            Err(format!("Field '{}' expects a value of type '{}', got a value of type '{}' instead", field_name, t, value.get_type()))
-        }
-        else {
-            self.fields.insert(field_name.clone(), value);
-            Ok(())
-        }
-    }
-
-    fn get_fields(&self) -> (Vec<String>, Vec<Value>) {
+    fn get_fields(&self) -> (Vec<String>, Vec<Rc<RefCell<Value>>>) {
         let mut res = (Vec::new(), Vec::new());
 
         for (k, v) in &self.fields {

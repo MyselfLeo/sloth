@@ -1,3 +1,6 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use crate::sloth::function::{SlothFunction, FunctionSignature};
 use crate::sloth::program::SlothProgram;
 use crate::sloth::scope::Scope;
@@ -202,7 +205,7 @@ pub fn collapse_imports(mut imports: Vec<BuiltInImport>) -> Result<(Vec<Box<dyn 
 
 pub struct BuiltInFunction {
     signature: FunctionSignature,
-    call_function: fn(&mut Scope, &mut SlothProgram) -> Result<(), Error>,
+    call_function: fn(Rc<RefCell<Scope>>, &mut SlothProgram) -> Result<(), Error>,
 }
 
 
@@ -213,14 +216,14 @@ impl SlothFunction for BuiltInFunction {
     fn get_name(&self) -> String {self.signature.name.clone()}
     fn get_output_type(&self) -> Type {self.signature.output_type.as_ref().unwrap().clone()}
 
-    unsafe fn call(&self, scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
+    unsafe fn call(&self, scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
         (self.call_function)(scope, program)
     }
 }
 
 
 impl BuiltInFunction {
-    pub fn new(name: &str, module: Option<&str>, owner_type: Option<Type>, output_type: Type, call_function: fn(&mut Scope, &mut SlothProgram) -> Result<(), Error>) -> BuiltInFunction {
+    pub fn new(name: &str, module: Option<&str>, owner_type: Option<Type>, output_type: Type, call_function: fn(Rc<RefCell<Scope>>, &mut SlothProgram) -> Result<(), Error>) -> BuiltInFunction {
         let new_module = match module {
             Some(s) => Some(s.to_string()),
             None => None

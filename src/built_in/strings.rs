@@ -6,7 +6,8 @@ use crate::sloth::program::SlothProgram;
 use crate::sloth::scope::Scope;
 use crate::sloth::value::Value;
 use super::{BuiltInFunction, BuiltinTypes};
-
+use std::cell::RefCell;
+use std::rc::Rc;
 
 
 
@@ -134,7 +135,7 @@ pub fn get_struct(s_name: String) -> (Box<dyn ObjectBlueprint>, Vec<String>) {
 
 
 
-fn to_num(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
+fn to_num(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
     let value = scope.get_variable("@self".to_string(), program).unwrap();
 
     let result = match value {
@@ -163,7 +164,7 @@ fn to_num(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
 
 
 
-fn len(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
+fn len(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
     let value = scope.get_variable("@self".to_string(), program).unwrap();
 
     let result = match value {
@@ -183,7 +184,7 @@ fn len(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
 
 
 
-fn insert(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
+fn insert(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
     let owner_v = scope.get_variable("@self".to_string(), program).unwrap();
     let inputs = scope.get_inputs();
 
@@ -235,7 +236,7 @@ fn insert(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
 
 
 
-fn push(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
+fn push(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
     let owner_v = scope.get_variable("@self".to_string(), program).unwrap();
     let inputs = scope.get_inputs();
 
@@ -271,7 +272,7 @@ fn push(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
 
 
 
-fn remove(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
+fn remove(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
     let owner_v = scope.get_variable("@self".to_string(), program).unwrap();
     let inputs = scope.get_inputs();
 
@@ -315,7 +316,7 @@ fn remove(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
 
 
 
-fn split(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
+fn split(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
     let owner_v = scope.get_variable("@self".to_string(), program).unwrap();
     let inputs = scope.get_inputs();
 
