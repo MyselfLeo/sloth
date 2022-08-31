@@ -132,16 +132,5 @@ fn read(scope: Rc<RefCell<Scope>>, p: &mut SlothProgram) -> Result<(), Error> {
     let console_input: String = read!("{}\n");
     let return_value = Value::String(console_input);
 
-    match scope.borrow().get_variable("@return".to_string(), p) {
-        Ok(r) => {
-            // Try to set the value
-            match r.try_borrow_mut() {
-                Ok(borrow) => *borrow = return_value,
-                Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e.to_string()), None))
-            }
-        },
-        Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e), None))
-    };
-
-    Ok(())
+    super::set_return(scope, p, return_value)
 }

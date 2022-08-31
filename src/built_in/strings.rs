@@ -136,9 +136,9 @@ pub fn get_struct(s_name: String) -> (Box<dyn ObjectBlueprint>, Vec<String>) {
 
 
 fn to_num(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
-    let value = scope.get_variable("@self".to_string(), program).unwrap();
+    let value = scope.borrow().get_variable("@self".to_string(), program).unwrap();
 
-    let result = match value {
+    let result = match value.borrow().to_owned() {
         Value::String(x) => {
             match x.parse::<f64>() {
                 Ok(v) => Value::Number(v),
@@ -151,7 +151,7 @@ fn to_num(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), E
         _ => panic!("Implementation of method 'to_num' for type 'string' was called on a value of another type")
     };
 
-    scope.set_variable("@return".to_string(), result);
+    super::set_return(scope, program, result);
     Ok(())
 }
 
@@ -165,14 +165,14 @@ fn to_num(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), E
 
 
 fn len(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
-    let value = scope.get_variable("@self".to_string(), program).unwrap();
+    let value = scope.borrow().get_variable("@self".to_string(), program).unwrap();
 
-    let result = match value {
+    let result = match value.borrow().to_owned() {
         Value::String(x) => Value::Number(x.len() as f64),
         _ => panic!("Implementation of method 'len' for type 'string' was called on a value of another type")
     };
 
-    scope.set_variable("@return".to_string(), result);
+    super::set_return(scope, program, result);
     Ok(())
 }
 
@@ -185,8 +185,10 @@ fn len(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Erro
 
 
 fn insert(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
-    let owner_v = scope.get_variable("@self".to_string(), program).unwrap();
-    let inputs = scope.get_inputs();
+    let scope_borrow = scope.borrow();
+
+    let owner_v = scope_borrow.get_variable("@self".to_string(), program).unwrap();
+    let inputs = scope_borrow.get_inputs();
 
     if inputs.len() != 2 {
         let err_msg = format!("Called function 'insert' with {} argument(s), but the function requires 2 arguments", inputs.len());

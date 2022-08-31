@@ -6,7 +6,8 @@ use crate::sloth::program::SlothProgram;
 use crate::sloth::scope::Scope;
 use crate::sloth::types::Type;
 use crate::sloth::structure::ObjectBlueprint;
-use crate::errors::Error;
+use crate::errors::{Error, ErrorMessage};
+use crate::sloth::value::Value;
 pub mod io;
 pub mod numbers;
 pub mod strings;
@@ -233,5 +234,34 @@ impl BuiltInFunction {
             signature: FunctionSignature{module: new_module, name: name.to_string(), owner_type, input_types: None, output_type: Some(output_type)},
             call_function
         }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+// USEFUL FUNCTIONS
+
+
+pub fn set_return(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram, value: Value) -> Result<(), Error> {
+    match scope.borrow().get_variable("@return".to_string(), program) {
+        Ok(r) => {
+            // Try to set the value
+            match r.try_borrow_mut() {
+                Ok(borrow) => {
+                    *borrow = value;
+                    Ok(())
+                },
+                Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e.to_string()), None))
+            }
+        },
+        Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e), None))
     }
 }

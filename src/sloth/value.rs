@@ -142,21 +142,6 @@ impl Value {
                 }
             },
 
-            // TODO: Change how strings works to allow smart pointer access
-            /*
-            Value::String(txt) => {
-                match field_name.parse::<usize>() {
-                    Ok(i) => {
-                        match txt.get(i..i+1) {
-                            Some(v) => Ok(Value::String(v.to_string())),
-                            None => {Err(format!("Tried to access the {}th character of a String of length {}", i, txt.len()))}
-                        }
-                    },
-                    Err(_) => {Err(format!("Cannot index a String with '{}'", field_name))}
-                }
-            },
-             */
-
             v => Err(format!("Type '{}' doesn't have a field '{}'", v.get_type(), field_name))
         }
     }

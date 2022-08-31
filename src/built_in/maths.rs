@@ -106,24 +106,26 @@ pub fn get_struct(s_name: String) -> (Box<dyn ObjectBlueprint>, Vec<String>) {
 
 
 fn pow(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
-    let value = scope.get_variable("@self".to_string(), program).unwrap();
-    let inputs = scope.get_inputs();
+    let scope_borrow = scope.borrow();
+
+    let value = scope_borrow.get_variable("@self".to_string(), program).unwrap();
+    let inputs = scope_borrow.get_inputs();
 
 
-    let power = match inputs.get(0) {
-        Some(Value::Number(x)) => *x,
+    let power = match inputs.get(0).map(|v| v.borrow().to_owned()) {
+        Some(Value::Number(x)) => x,
         _ => {
             let err_msg = "The 'pow' method requires a 'num' input".to_string();
             return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
         }
     };
 
-    let result = match value {
+    let result = match value.borrow().to_owned() {
         Value::Number(x) => Value::Number(x.powf(power)),
         _ => panic!("Implementation of method 'pow' for type 'num' was called on a value of another type")
     };
 
-    scope.set_variable("@return".to_string(), result);
+    super::set_return(scope, program, result);
     Ok(())
 }
 
@@ -138,9 +140,9 @@ fn pow(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Erro
 
 
 fn sqrt(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
-    let value = scope.get_variable("@self".to_string(), program).unwrap();
+    let value = scope.borrow().get_variable("@self".to_string(), program).unwrap();
 
-    let result = match value {
+    let result = match value.borrow().to_owned() {
         Value::Number(x) => {
             if x < 0.0 {
                 return Err(Error::new(ErrorMessage::InvalidArguments(format!("Called sqrt on a negative number ({})", x)), None))
@@ -151,6 +153,6 @@ fn sqrt(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Err
         _ => panic!("Implementation of method 'sqrt' for type 'num' was called on a value of another type")
     };
 
-    scope.set_variable("@return".to_string(), result);
+    super::set_return(scope, program, result);
     Ok(())
 }

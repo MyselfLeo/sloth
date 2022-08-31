@@ -80,13 +80,13 @@ pub fn get_struct(s_name: String) -> (Box<dyn ObjectBlueprint>, Vec<String>) {
 
 
 fn to_string(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
-    let value = scope.get_variable("@self".to_string(), program).unwrap();
+    let value = scope.borrow().get_variable("@self".to_string(), program).unwrap();
 
-    let result = match value {
+    let result = match value.borrow().to_owned() {
         Value::Number(x) => Value::String(x.to_string()),
         _ => panic!("Implementation of method 'to_string' for type 'num' was called on a value of another type")
     };
 
-    scope.set_variable("@return".to_string(), result);
+    super::set_return(scope, program, result);
     Ok(())
 }
