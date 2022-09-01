@@ -285,13 +285,17 @@ fn push(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Err
     }
 
 
-    if let Value::List(t, l) = Rc::get_mut(&mut list).unwrap().get_mut() {
+    /*
+
+    if let Value::List(t, l) = list.borrow_mut() {
         // Set the list's type if it was 'Any' before
         if l.len() == 0 {*t = new_value.borrow().get_type();}
         // Push the new value
         (*l).push(new_value);
     }
     else {panic!()}
+
+     */
 
     Ok(())
 }

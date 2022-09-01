@@ -1,4 +1,3 @@
-use std::borrow::BorrowMut;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -205,7 +204,9 @@ impl Expression {
                 };
 
                 // get the value stored in the variable
-                let value = expr.clone().evaluate(scope.clone(), program)?;
+                let value = expr.evaluate(scope.clone(), program)?;
+
+                println!("value is: {:?}", value.borrow());
                 
                 // try to find if the method, applied to the type of the value, exists
                 // TODO: Make defining owned function both work for 'list' (means List(Any)) and 'list[type]'
@@ -225,6 +226,7 @@ impl Expression {
                 // Create a new scope for the execution of the method
                 let func_scope = Rc::new(RefCell::new(Scope::new(Some(program.as_ref().unwrap().main_scope()))));
 
+
                 // Evaluate each given expression in the scope, and create an input variable (@0, @1, etc.) with the set value
                 for (i, param_expr_id) in arguments.iter().enumerate() {
 
@@ -242,17 +244,18 @@ impl Expression {
                 }
 
 
+
                 // Create the @return variable, with default value, and the "@self" variable, containing a copy of the value stored in the variable
-                let default_value = method.get_output_type().default();
-
-
-                match func_scope.try_borrow_mut() {
-                    Ok(mut reference) => {
-                        (*reference).push_variable("@return".to_string(), Rc::new(RefCell::new(default_value)));
-                        (*reference).push_variable("@self".to_string(), value.clone());
-                    },
-                    Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e.to_string()), Some(p.clone())))
-                };
+                {
+                    let default_value = method.get_output_type().default();
+                    match func_scope.try_borrow_mut() {
+                        Ok(mut reference) => {
+                            (*reference).push_variable("@return".to_string(), Rc::new(RefCell::new(default_value)));
+                            (*reference).push_variable("@self".to_string(), value.clone());
+                        },
+                        Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e.to_string()), Some(p.clone())))
+                    };
+                }
 
 
                 // run the method in the given scope.
@@ -273,9 +276,18 @@ impl Expression {
                         Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                     };
 
+                    println!("func_scope: {}", Rc::strong_count(&func_scope));
+                    println!("value: {}", Rc::strong_count(&value));
+                    println!("new_self: {}", Rc::strong_count(&new_self));
+
                     // Try to set the value
                     match value.try_borrow_mut() {
-                        Ok(mut borrow) => *borrow = new_self.borrow().to_owned(),
+                        Ok(mut borrow) => {
+                            match new_self.try_borrow() {
+                                Ok(b) => *borrow = b.to_owned(),
+                                Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e.to_string()), Some(p.clone())))
+                            }
+                        },
                         Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e.to_string()), Some(p.clone())))
                     }
                 }
