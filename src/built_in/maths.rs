@@ -125,7 +125,7 @@ fn pow(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Erro
         _ => panic!("Implementation of method 'pow' for type 'num' was called on a value of another type")
     };
 
-    super::set_return(scope, program, result);
+    super::set_return(scope.clone(), program, result);
     Ok(())
 }
 

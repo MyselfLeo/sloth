@@ -92,7 +92,7 @@ impl SlothFunction for CustomFunction {
 
         // Call each statement of the function
         for statement in &self.instructions {
-            statement.apply(scope, program)?;
+            statement.apply(scope.clone(), program)?;
         };
 
         return Ok(())

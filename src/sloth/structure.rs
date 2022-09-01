@@ -84,7 +84,7 @@ impl ObjectBlueprint for CustomDefinition {
             if borrow.get_type() != expected_type {
                 return Err(format!("Field '{}' of structure '{}' is of type '{}', but it has been given a value of type '{}'", field_name, self.signature.name, expected_type, borrow.get_type()))
             }
-            result.insert(field_name, given_value);
+            result.insert(field_name, given_value.clone());
         }
 
         return Ok(Box::new(StructureObject::new(self.clone(), result)))

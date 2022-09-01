@@ -255,7 +255,7 @@ pub fn set_return(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram, value: 
         Ok(r) => {
             // Try to set the value
             match r.try_borrow_mut() {
-                Ok(borrow) => {
+                Ok(mut borrow) => {
                     *borrow = value;
                     Ok(())
                 },

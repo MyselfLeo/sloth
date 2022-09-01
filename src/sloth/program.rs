@@ -65,7 +65,7 @@ impl SlothProgram {
 
 
 
-    pub fn main_scope(self) -> Rc<RefCell<Scope>> {self.main_scope}
+    pub fn main_scope(&self) -> Rc<RefCell<Scope>> {self.main_scope.clone()}
 
 
     
@@ -248,7 +248,7 @@ impl SlothProgram {
         // Call the main function
         let f_call = Expression::FunctionCall(main_func_id, args_id, dummy_pos.clone());
 
-        match f_call.evaluate(self.main_scope, self) {
+        match f_call.evaluate(self.main_scope.clone(), self) {
             Ok(reference) => Ok(reference.borrow().to_owned()),
             Err(e) => Err(e)
         }

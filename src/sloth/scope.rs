@@ -28,7 +28,7 @@ impl Scope {
         match self.variables.get(&name) {
             Some(v) => Ok(v.clone()),
             None => {
-                match self.parent {
+                match self.parent.clone() {
                     Some(p) => p.borrow().get_variable(name, program),
                     None => {
                         let error_msg = format!("Called uninitialised variable '{}'", name);

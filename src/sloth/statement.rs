@@ -33,7 +33,7 @@ impl Statement {
                     Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                 };
 
-                let value = expr.evaluate(scope, program)?;
+                let value = expr.evaluate(scope.clone(), program)?;
 
 
                 // This is a simple assignment. In that case, we need to check if the variable exists. If not,
@@ -41,10 +41,17 @@ impl Statement {
                 match wrapper.is_simple() {
                     Some(ident) => {
                         if let IdentifierElement::Identifier(n) = ident {
-                            match scope.borrow().push_variable(n, value) {
-                                Ok(()) => return Ok(()),
-                                Err(_) => (),
+                            match scope.try_borrow_mut() {
+                                Ok(mut brrw) => {
+                                    match (*brrw).push_variable(n, value.clone()) {
+                                        Ok(()) => return Ok(()),
+                                        Err(_) => (),
+                                    }
+                                },
+                                Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e.to_string()), Some(p.clone())))}
                             }
+
+                            
                         }
                         else {panic!("IdentifierWrapper did not start with an IdentifierElement::Identifier")}
                     },
@@ -67,7 +74,7 @@ impl Statement {
 
                             // Try to set the value
                             match reference.try_borrow_mut() {
-                                Ok(borrow) => *borrow = value.borrow().to_owned(),
+                                Ok(mut borrow) => *borrow = value.borrow().to_owned(),
                                 Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e.to_string()), Some(p.clone())))
                             }
 
@@ -96,11 +103,11 @@ impl Statement {
                     Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                 };
 
-                let cond_value = expr.evaluate(scope, program)?;
+                let cond_value = expr.evaluate(scope.clone(), program)?;
                 
                 match cond_value.borrow().to_owned() {
                     Value::Boolean(true) => {
-                        for statement in statements {statement.apply(scope, program)?}
+                        for statement in statements {statement.apply(scope.clone(), program)?}
                     }
                     Value::Boolean(false) => {},
                     _ => {return Err(Error::new(ErrorMessage::UnexpectedExpression("Expected boolean expression as 'if' condition".to_string()), Some(p.clone())))}
@@ -115,11 +122,11 @@ impl Statement {
                     Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                 };
 
-                let mut loop_cond = expr.evaluate(scope, program)?.borrow().to_owned() == Value::Boolean(true);
+                let mut loop_cond = expr.evaluate(scope.clone(), program)?.borrow().to_owned() == Value::Boolean(true);
                 
                 while loop_cond {
-                    for statement in statements {statement.apply(scope, program)?}
-                    loop_cond = expr.evaluate(scope, program)?.borrow().to_owned() == Value::Boolean(true);
+                    for statement in statements {statement.apply(scope.clone(), program)?}
+                    loop_cond = expr.evaluate(scope.clone(), program)?.borrow().to_owned() == Value::Boolean(true);
                 }
 
                 Ok(())
@@ -162,7 +169,9 @@ impl IdentifierElement {
                         Err(e) => return Err(e.message.as_string())
                     };
 
-                    Ok(index_value.borrow().to_string())
+                    let res = index_value.borrow().to_string();
+
+                    Ok(res)
                 }
             }
         }
@@ -198,7 +207,8 @@ impl IdentifierWrapper {
         // Get the value of each ident element successively to get the final value
         for (i, ident) in self.ident_sequence.iter().enumerate() {
             if i == 0 {continue;}
-            value = value.borrow().get_field(&ident.get_field_str(scope, program)?)?;
+            let new_value = value.borrow().get_field(&ident.get_field_str(scope.clone(), program)?)?;
+            value = new_value;
         }
 
         Ok(value)

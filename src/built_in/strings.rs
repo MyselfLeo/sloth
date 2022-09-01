@@ -290,7 +290,7 @@ fn push(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Err
     };
 
 
-    let insert_value = match &inputs[0].borrow().to_owned() {
+    let insert_value = match inputs[0].borrow().to_owned() {
         Value::String(x) => x,
         v => {
             let err_msg = format!("Argument 1 of function 'push' is of type string, given a value of type {}", v.get_type());
@@ -301,13 +301,15 @@ fn push(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Err
     string.push_str(&insert_value);
     
     // try to edit owner value
-    match owner_v.try_borrow_mut() {
-        Ok(borrow) => {
+    let res = match owner_v.try_borrow_mut() {
+        Ok(mut borrow) => {
             *borrow = Value::String(string);
             Ok(())
         },
         Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e.to_string()), None))
-    }
+    };
+
+    res
 }
 
 
@@ -338,13 +340,15 @@ fn remove(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), E
     string.remove(idx);
     
     // try to edit owner value
-    match owner_v.try_borrow_mut() {
-        Ok(borrow) => {
+    let res = match owner_v.try_borrow_mut() {
+        Ok(mut borrow) => {
             *borrow = Value::String(string);
             Ok(())
         },
         Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e.to_string()), None))
-    }
+    };
+
+    res
 }
 
 

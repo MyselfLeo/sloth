@@ -160,7 +160,7 @@ fn set(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Erro
     let inputs = scope_borrow.get_inputs();
 
     // get the list type
-    let (mut list_type, mut list_vec) = match list.borrow().to_owned() {
+    let (list_type, list_vec) = match list.borrow().to_owned() {
         Value::List(t, v) => (t, v),
         _ => panic!("Called 'set' on a value which is not a list")
     };
@@ -186,9 +186,9 @@ fn set(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Erro
 
 
     // Try to set the value
-    let element_ref = list_vec[index];
+    let element_ref = list_vec[index].clone();
     match element_ref.try_borrow_mut() {
-        Ok(borrow) => *borrow = new_value.borrow().to_owned(),
+        Ok(mut borrow) => *borrow = new_value.borrow().to_owned(),
         Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e.to_string()), None))
     }
 
@@ -236,7 +236,7 @@ fn get(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Erro
 
     // Return the value
     let element_value = list_vec[index].borrow().to_owned();
-    super::set_return(scope, program, element_value);
+    super::set_return(scope.clone(), program, element_value);
     Ok(())
 }
 
@@ -272,7 +272,7 @@ fn push(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Err
     }
 
     // get the list type
-    let (mut list_type, mut list_vec) = match list.borrow().to_owned() {
+    let (list_type, list_vec) = match list.borrow().to_owned() {
         Value::List(t, v) => (t, v),
         _ => panic!("Called 'push' on a value which is not a list")
     };
@@ -284,17 +284,17 @@ fn push(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Err
         return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
     }
 
-    // Get a reference to the list's vector to push a new value to it
-    let list_ref = list.borrow_mut();
+
+
 
     // Set the list's type if it was 'Any' before
     if list_vec.len() == 0 {
-        let type_ref = RefMut::map(list_ref, |Value::List(t, _)| t);
+        let mut type_ref = RefMut::map(list.borrow_mut(), |Value::List(t, _)| t);
         *type_ref = new_value.borrow().get_type();
     }
 
     // Push the new value
-    let vec_ref = RefMut::map(list_ref, |Value::List(_, l)| l);
+    let mut vec_ref = RefMut::map(list.borrow_mut(), |Value::List(_, l)| l);
     (*vec_ref).push(new_value);
 
     Ok(())
@@ -326,7 +326,7 @@ fn pull(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Err
 
 
     // get the list value
-    let (t, mut list_vec) = match list.borrow().to_owned() {
+    let (_, list_vec) = match list.borrow().to_owned() {
         Value::List(t, v) => (t, v),
         _ => panic!("Called 'pull' on a value which is not a list")
     };
@@ -336,10 +336,10 @@ fn pull(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Err
 
     // Get a reference to the list's vector to push a new value to it
     let list_ref = list.borrow_mut();
-    let vec_ref = RefMut::map(list_ref, |Value::List(_, l)| l);
+    let mut vec_ref = RefMut::map(list_ref, |Value::List(_, l)| l);
     let pulled_value = (*vec_ref).remove(index);
 
-    super::set_return(scope, program, pulled_value.borrow().to_owned());
+    super::set_return(scope.clone(), program, pulled_value.borrow().to_owned());
     Ok(())
 }
 
