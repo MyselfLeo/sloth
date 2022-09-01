@@ -259,7 +259,7 @@ fn get(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Erro
 fn push(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
     let scope_borrow = scope.borrow();
 
-    let list = scope_borrow.get_variable("@self".to_string(), program).unwrap();
+    let mut list = scope_borrow.get_variable("@self".to_string(), program).unwrap();
     let inputs = scope_borrow.get_inputs();
 
     if inputs.len() == 0 {
@@ -285,17 +285,13 @@ fn push(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Err
     }
 
 
-
-
-    // Set the list's type if it was 'Any' before
-    if list_vec.len() == 0 {
-        let mut type_ref = RefMut::map(list.borrow_mut(), |Value::List(t, _)| t);
-        *type_ref = new_value.borrow().get_type();
+    if let Value::List(t, l) = Rc::get_mut(&mut list).unwrap().get_mut() {
+        // Set the list's type if it was 'Any' before
+        if l.len() == 0 {*t = new_value.borrow().get_type();}
+        // Push the new value
+        (*l).push(new_value);
     }
-
-    // Push the new value
-    let mut vec_ref = RefMut::map(list.borrow_mut(), |Value::List(_, l)| l);
-    (*vec_ref).push(new_value);
+    else {panic!()}
 
     Ok(())
 }
@@ -321,7 +317,7 @@ fn push(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Err
 fn pull(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
     let scope_borrow = scope.borrow();
 
-    let list = scope_borrow.get_variable("@self".to_string(), program).unwrap();
+    let mut list = scope_borrow.get_variable("@self".to_string(), program).unwrap();
     let inputs = scope_borrow.get_inputs();
 
 
@@ -334,12 +330,13 @@ fn pull(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Err
     // first value is the index of the value to pull
     let index = expect_positive_index(inputs.get(0).map(|v| v.borrow().to_owned()), Some(list_vec.len() - 1))?;
 
-    // Get a reference to the list's vector to push a new value to it
-    let list_ref = list.borrow_mut();
-    let mut vec_ref = RefMut::map(list_ref, |Value::List(_, l)| l);
-    let pulled_value = (*vec_ref).remove(index);
 
-    super::set_return(scope.clone(), program, pulled_value.borrow().to_owned());
+    if let Value::List(t, l) = Rc::get_mut(&mut list).unwrap().get_mut() {
+       let pulled_value = (*l).remove(index);
+       super::set_return(scope.clone(), program, pulled_value.borrow().to_owned());
+    }
+    else {panic!()}
+
     Ok(())
 }
 
