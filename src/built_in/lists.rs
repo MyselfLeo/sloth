@@ -333,8 +333,8 @@ fn pull(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Err
 
 
     // get the list value
-    let (_, list_vec) = match list.borrow().to_owned() {
-        Value::List(t, v) => (t, v),
+    let (list_type, mut list_vec) = match list.borrow().to_owned() {
+        Value::List(t, v) => (t, v.iter().map(|rc| rc.borrow().to_owned()).collect::<Vec<Value>>()),
         _ => panic!("Called 'pull' on a value which is not a list")
     };
 
@@ -342,13 +342,23 @@ fn pull(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Err
     let index = expect_positive_index(inputs.get(0).map(|v| v.borrow().to_owned()), Some(list_vec.len() - 1))?;
 
 
-    if let Value::List(_, l) = Rc::get_mut(&mut list).unwrap().get_mut() {
-       let pulled_value = (*l).remove(index);
-       super::set_return(scope.clone(), program, pulled_value.borrow().to_owned())?;
-    }
-    else {panic!()}
+    let pulled_value = list_vec.remove(index);
+    let list_vec_ref = list_vec.iter().map(|v| Rc::new(RefCell::new(v.clone()))).collect::<Vec<Rc<RefCell<Value>>>>();
+    let new_list = Value::List(list_type, list_vec_ref);
 
-    Ok(())
+
+    super::set_return(scope.clone(), program, pulled_value)?;
+
+    // Modify the owner value
+    let res = match list.try_borrow_mut() {
+        Ok(mut brrw) => {
+            *brrw = new_list;
+            Ok(())
+        },
+        Err(e) => Err(Error::new(ErrorMessage::RustError(e.to_string()), None))
+    };
+
+    res
 }
 
 
