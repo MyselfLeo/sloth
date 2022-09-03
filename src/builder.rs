@@ -1473,6 +1473,7 @@ fn parse_import(iterator: &mut TokenIterator, program: &mut SlothProgram, warnin
 /// Parse a whole file, populating the program object
 pub fn parse_file(filename: PathBuf, program: &mut SlothProgram, warning: bool, is_main: bool) -> Result<(), Error> {
     let tokens = tokenizer::TokenizedProgram::from_file(filename.to_str().unwrap())?;
+
     let mut iterator = TokenIterator::new(tokens);
 
     let module_name = match is_main {
@@ -1507,7 +1508,6 @@ pub fn parse_file(filename: PathBuf, program: &mut SlothProgram, warning: bool, 
             }
         }
     };
-
     Ok(())
 }
 
