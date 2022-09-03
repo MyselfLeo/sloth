@@ -157,7 +157,7 @@ pub fn expect_positive_index(value: Option<Value>, limit: Option<usize>) -> Resu
             else {
                 match limit {
                     Some(l) => {
-                        if (x as usize) > l {Err(format!("Tried to set the {}th element of a string of only {} elements", x as usize, l))}
+                        if (x as usize) > l {Err(format!("Tried to set the {}th element of a string of only {} elements", x as usize, l + 1))}
                         else {Ok(x as usize)}
                     },
                     None => Ok(x as usize)
