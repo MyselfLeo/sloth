@@ -1,10 +1,12 @@
+use std::cell::RefCell;
 use std::collections::{HashMap, BTreeMap};
 use std::iter::zip;
+use std::rc::Rc;
 
 use crate::errors::{Error, ErrorMessage, formatted_vec_string};
 use crate::tokenizer::ElementPosition;
 use super::function::{SlothFunction, FunctionSignature};
-use super::scope::{Scope, ScopeID};
+use super::scope::Scope;
 use super::expression::{Expression, ExpressionID};
 use super::structure::{StructSignature, ObjectBlueprint};
 use super::types::Type;
@@ -27,14 +29,12 @@ pub struct SlothProgram {
     _filename: String,
     functions: BTreeMap<FunctionSignature, Box<dyn SlothFunction>>,
     structures: HashMap<StructSignature, Box<dyn ObjectBlueprint>>,
-    scopes: HashMap<ScopeID, Scope>,
     expressions: HashMap<ExpressionID, Expression>,
-    scope_nb: u64,
     expressions_nb: u64,
 
     builtins: Vec<built_in::BuiltInImport>,
 
-    main_scope: Option<ScopeID>
+    main_scope: Rc<RefCell<Scope>>
 }
 
 impl SlothProgram {
@@ -43,19 +43,13 @@ impl SlothProgram {
             _filename: filename,
             functions: BTreeMap::new(),
             structures: HashMap::new(),
-            scopes: HashMap::new(), 
             expressions: HashMap::new(),
-            scope_nb: 0,
             expressions_nb: 0,
 
             builtins: Vec::new(),
 
-            main_scope: None
+            main_scope: Rc::new(RefCell::new(Scope::new(None)))
         };
-
-        let s_id = program.new_scope(None);
-        program.main_scope = Some(s_id.clone());
-
 
         if import_default_builtins {
             for import in DEFAULT_BUILTIN_IMPORTS {
@@ -66,6 +60,10 @@ impl SlothProgram {
 
         program
     }
+
+
+
+    pub fn main_scope(&self) -> Rc<RefCell<Scope>> {self.main_scope.clone()}
 
 
     
@@ -169,36 +167,6 @@ impl SlothProgram {
 
 
 
-    /// Create a scope to the Scope stack and return its ID
-    pub fn new_scope(&mut self, parent: Option<ScopeID>) -> ScopeID {
-        let scope_id = ScopeID::new(self.scope_nb);
-
-        let new_scope = Scope {
-            id: scope_id.clone(),
-            variables: HashMap::new(),
-            parent: parent.clone()
-        };
-
-        self.scopes.insert(scope_id.clone(), new_scope);
-        self.scope_nb += 1;
-
-        scope_id
-    }
-
-
-    /// Remove the scope, freeing memory
-    pub fn dump_scope(&mut self, scope: &ScopeID) {
-        self.scopes.remove(scope);
-    }
-
-
-    /// Return a reference to the scope with the given ScopeID
-    pub fn get_scope(&mut self, id: ScopeID) -> Result<&Scope, String>{
-        match self.scopes.get(&id) {
-            Some(v) => Ok(v),
-            None => Err("Tried to access a scope with a wrong scope ID".to_string())
-        } 
-    }
 
     /// Add an expression to the Expression stack and return its ID
     pub fn push_expr(&mut self, expr: Expression) -> ExpressionID {
@@ -276,10 +244,12 @@ impl SlothProgram {
         }
 
         // Call the main function
-        let mut scope = self.get_scope(self.main_scope.unwrap()).unwrap().clone();
         let f_call = Expression::FunctionCall(main_func_id, args_id, dummy_pos.clone());
 
-        f_call.evaluate(&mut scope, self)
+        match f_call.evaluate(self.main_scope.clone(), self) {
+            Ok(reference) => Ok(reference.borrow().to_owned()),
+            Err(e) => Err(e)
+        }
     }
 
 

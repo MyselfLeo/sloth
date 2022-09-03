@@ -1,76 +1,67 @@
+use std::cell::RefCell;
 use std::collections::HashMap;
-
+use std::rc::Rc;
 use super::program::SlothProgram;
-
 use super::value::Value;
-
-
-
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-/// Used by scopes to reference to parent scope in the Scope stack
-pub struct ScopeID {
-    id: u64
-}
-impl ScopeID {
-    pub fn new(value: u64) -> ScopeID {
-        ScopeID { id: value }
-    }
-}
 
 
 
 /// A scope is an environment in which variables lives.
 pub struct Scope {
-    pub id: ScopeID,
-    pub variables: HashMap<String, Value>,
-    pub parent: Option<ScopeID>
+    pub variables: HashMap<String, Rc<RefCell<Value>>>,
+    pub parent: Option<Rc<RefCell<Scope>>>
 }
 
-
-impl Clone for Scope {
-    fn clone(&self) -> Self {
-        let mut variable_clones: HashMap<String, Value> = HashMap::new();
-        for v in &self.variables {variable_clones.insert(v.0.clone(), v.1.clone());}
-
-        Self {
-            id: self.id.clone(),
-            variables: variable_clones,
-            parent: self.parent.clone()
-        }
-    }
-}
 
 impl Scope {
+    pub fn new(parent: Option<Rc<RefCell<Scope>>>) -> Scope {
+        Scope {
+            variables: HashMap::new(),
+            parent
+        }
+    }
+
+
     /// Return the value contained in the given variable. Prefer variable in this scope,
     /// but can also query parent scope for variable
-    pub fn get_variable(&self, name: String, program: &mut SlothProgram) -> Result<Value, String> {
+    pub fn get_variable(&self, name: String, program: &mut SlothProgram) -> Result<Rc<RefCell<Value>>, String> {
         match self.variables.get(&name) {
             Some(v) => Ok(v.clone()),
             None => {
-                if self.parent.is_some() {
-                    let parent_scope = program.get_scope(self.parent.unwrap())?;
-
-                    parent_scope.clone().get_variable(name, program)
-                }
-                else {
-                    let error_msg = format!("Called uninitialised variable '{}'", name);
-                    Err(error_msg.to_string())
+                match self.parent.clone() {
+                    Some(p) => p.borrow().get_variable(name, program),
+                    None => {
+                        let error_msg = format!("Called uninitialised variable '{}'", name);
+                        Err(error_msg.to_string())
+                    }
                 }
             }
         }
     }
 
 
-    /// Set value of a given variable
-    pub fn set_variable(&mut self, name: String, value: Value) {
-        self.variables.insert(name, value);
+
+    /// Add a new variable to the scope with the given value. Fails if a value with the given id already exists
+    pub fn push_variable(&mut self, name: String, value: Rc<RefCell<Value>>) -> Result<(), String> {
+        match self.variables.contains_key(&name) {
+            true => {
+                let error_msg = format!("Variable '{}' already exists", name);
+                Err(error_msg.to_string())
+            },
+            false => {
+                self.variables.insert(name, value);
+                Ok(())
+            }
+        }
     }
 
 
+
+
     /// Useful feature to get a list of each input values (@0, @1, @2, etc.), in order
-    pub fn get_inputs(&self) -> Vec<Value> {
+    pub fn get_inputs(&self) -> Vec<Rc<RefCell<Value>>> {
         let mut i = 0;
-        let mut res: Vec<Value> = Vec::new();
+        let mut res: Vec<Rc<RefCell<Value>>> = Vec::new();
 
         loop {
             let name = format!("@{}", i);
