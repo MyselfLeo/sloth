@@ -5,7 +5,7 @@ use super::function::{FunctionSignature};
 use super::statement::IdentifierWrapper;
 use super::structure::{StructSignature};
 use super::types::Type;
-use super::value::Value;
+use super::value::{Value, RecursiveRereference};
 use super::operator::{Operator, apply_op};
 use super::scope::Scope;
 use super::program::SlothProgram;
@@ -156,11 +156,13 @@ impl Expression {
                     };
 
                     let mut value = expr.evaluate(scope.clone(), program)?;
+                    
+
 
                     // if the values are cloned, allocate a new Value instead of using the reference given by expr.evaluate()
                     if !inputs_ref_or_cloned[i] {
-                        let cloned_value = value.borrow().to_owned();
-                        value = Rc::new(RefCell::new(cloned_value));
+                        let cloned_value = value.borrow().to_owned().rereference();
+                        value = cloned_value;
                     }
 
                     match func_scope.try_borrow_mut() {

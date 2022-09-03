@@ -6,6 +6,18 @@ use super::structure::SlothObject;
 
 
 
+
+/// Returns a smart pointer (Rc<RefCell<V>>) to the object,
+/// with all its inner values rereferences the same way
+pub trait RecursiveRereference {
+    fn rereference(&self) -> Rc<RefCell<Self>>;
+}
+
+
+
+
+
+
 #[derive(Clone)]
 pub enum Value {
     Number(f64),
@@ -44,6 +56,28 @@ impl std::fmt::Debug for Value {
         }
     }
 }
+
+
+impl RecursiveRereference for Value {
+    fn rereference(&self) -> Rc<RefCell<Self>> {
+        let new_value = match self {
+            Self::Number(_) => self.clone(),
+            Self::Boolean(_) => self.clone(),
+            Self::String(_) => self.clone(),
+            Self::List(t, v) => {
+                let new_vec: Vec<Rc<RefCell<Value>>> = v.iter()
+                                                        .map(|r| r.borrow().to_owned().rereference())
+                                                        .collect();
+                Value::List(t.clone(), new_vec)
+            },
+            Self::Object(o) => Value::Object(o.rereference()),
+        };
+
+        Rc::new(RefCell::new(new_value))
+    }
+}
+
+
 
 
 
@@ -145,56 +179,6 @@ impl Value {
             v => Err(format!("Type '{}' doesn't have a field '{}'", v.get_type(), field_name))
         }
     }
-
-
-    /*
-    pub fn set_field(&mut self, field_name: &String, value: Value) -> Result<(), String> {
-        match self {
-            Value::Object(object) => object.set_field(field_name, value),
-
-            Value::List(t, list_values) => {
-                match field_name.parse::<usize>() {
-                    Ok(i) => {
-                        // Check type of new value
-                        let value_type = value.get_type();
-                        if *t != value_type {return Err(format!("Tried to set an element of type '{}' in a List of type '{}'", value_type, t))}
-                        
-                        if i > list_values.len() - 1 {list_values.push(value);}
-                        else {list_values[i] = value;}
-
-                        Ok(())
-                    },
-                    Err(_) => {Err(format!("Cannot index a List with '{}'", field_name))}
-                }
-            },
-
-            Value::String(txt) => {
-                match field_name.parse::<usize>() {
-                    Ok(i) => {
-                        // Check type of new value
-                        let given_str = match value {
-                            Value::String(v) => v,
-                            v => {return Err(format!("Tried to set a character of a String to a value of type '{}'", v.get_type()))}
-                        };
-                        
-                        if given_str.len() != 1 {return Err("Tried to set a character of a String to multiple characters. Note: You can only set one character to another (string[x] = \"a\")".to_string())}
-
-                        if i > txt.len() - 1 {txt.push_str(given_str.as_str());}
-                        else {txt.replace_range(i..i+1, &given_str);}
-
-                        Ok(())
-                    },
-                    Err(_) => {Err(format!("Cannot index a String with '{}'", field_name))}
-                }
-            },
-
-            v => Err(format!("Type '{}' doesn't have a field '{}'", v.get_type(), field_name))
-        }
-    }
-     */
-
-
-
 }
 
 

@@ -6,6 +6,8 @@ use std::rc::Rc;
 use crate::sloth::types::Type;
 use crate::sloth::value::Value;
 
+use super::value::RecursiveRereference;
+
 
 
 
@@ -149,6 +151,9 @@ pub trait SlothObject: ObjectToAny {
     fn get_blueprint(&self) -> Box<dyn ObjectBlueprint>;
     fn get_field(&self, field_name: &String) -> Result<Rc<RefCell<Value>>, String>;
     fn get_fields(&self) -> (Vec<String>, Vec<Rc<RefCell<Value>>>);
+
+    /// Return a clone of the object, with all its inner values re-allocated
+    fn rereference(&self) -> Box<dyn SlothObject>;
 }
 
 
@@ -219,6 +224,15 @@ impl SlothObject for StructureObject {
         }
 
         res
+    }
+
+    fn rereference(&self) -> Box<dyn SlothObject> {
+        let mut new_fields = HashMap::new();
+        for (k,v) in &self.fields {
+            new_fields.insert(k.clone(), v.borrow().to_owned().rereference());
+        };
+
+        Box::new(StructureObject::new(self.definition.clone(), new_fields))
     }
 }
 
