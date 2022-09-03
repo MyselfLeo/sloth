@@ -257,6 +257,10 @@ fn get(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Erro
 
 
 fn push(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
+
+    // Operations on list can't be made with references (due to them being Enums)
+    // so we take its inner values (type and vec), them create a new Value::List that we place at the same reference pointer
+
     let scope_borrow = scope.borrow();
 
     let mut list = scope_borrow.get_variable("@self".to_string(), program).unwrap();
@@ -271,33 +275,36 @@ fn push(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Err
         return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
     }
 
-    // get the list type
-    let (list_type, list_vec) = match list.borrow().to_owned() {
-        Value::List(t, v) => (t, v),
+    // get the list elements as owned, in order to build a new one
+    let (list_type, mut list_vec) = match list.borrow().to_owned() {
+        Value::List(t, v) => (t, v.iter().map(|rc| rc.borrow().to_owned()).collect::<Vec<Value>>()),
         _ => panic!("Called 'push' on a value which is not a list")
     };
 
-    // the new value must be the same type as list_type
-    let new_value = inputs[0].clone();
-    if new_value.borrow().get_type() != list_type {
-        let err_msg = format!("Tried to push a value of type '{}' to a list of type '{}'", new_value.borrow().get_type(), list_type);
+    // the pushed_value value must be the same type as list_type
+    let pushed_value = inputs[0].borrow().to_owned();
+    if pushed_value.get_type() != list_type {
+        let err_msg = format!("Tried to push a value of type '{}' to a list of type '{}'", pushed_value.get_type(), list_type);
         return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
     }
 
+    list_vec.push(pushed_value);
+    let list_vec_ref = list_vec.iter().map(|v| Rc::new(RefCell::new(v.clone()))).collect::<Vec<Rc<RefCell<Value>>>>();
 
-    /*
 
-    if let Value::List(t, l) = list.borrow_mut() {
-        // Set the list's type if it was 'Any' before
-        if l.len() == 0 {*t = new_value.borrow().get_type();}
-        // Push the new value
-        (*l).push(new_value);
-    }
-    else {panic!()}
+    let new_list = Value::List(list_type, list_vec_ref);
 
-     */
 
-    Ok(())
+    // Modify the owner value
+    let res = match list.try_borrow_mut() {
+        Ok(mut brrw) => {
+            *brrw = new_list;
+            Ok(())
+        },
+        Err(e) => Err(Error::new(ErrorMessage::RuntimeError(e.to_string()), None))
+    };
+
+    res
 }
 
 

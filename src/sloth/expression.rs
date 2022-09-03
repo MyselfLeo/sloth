@@ -206,7 +206,6 @@ impl Expression {
                 // get the value stored in the variable
                 let value = expr.evaluate(scope.clone(), program)?;
 
-                println!("value is: {:?}", value.borrow());
                 
                 // try to find if the method, applied to the type of the value, exists
                 // TODO: Make defining owned function both work for 'list' (means List(Any)) and 'list[type]'
@@ -243,8 +242,6 @@ impl Expression {
                     };
                 }
 
-
-
                 // Create the @return variable, with default value, and the "@self" variable, containing a copy of the value stored in the variable
                 {
                     let default_value = method.get_output_type().default();
@@ -257,7 +254,6 @@ impl Expression {
                     };
                 }
 
-
                 // run the method in the given scope.
                 // If the method call returned an error without position, set its position to this function call's
                 match method.call(func_scope.clone(), program.as_mut().unwrap()) {
@@ -269,28 +265,6 @@ impl Expression {
                 };
 
 
-                if let Expression::VariableCall(_, p) = expr {
-                    // Set the variable on which was called the function to the new value of "@self"
-                    let new_self = match func_scope.borrow().get_variable("@self".to_string(), program.as_mut().unwrap()) {
-                        Ok(v) => (v),
-                        Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
-                    };
-
-                    println!("func_scope: {}", Rc::strong_count(&func_scope));
-                    println!("value: {}", Rc::strong_count(&value));
-                    println!("new_self: {}", Rc::strong_count(&new_self));
-
-                    // Try to set the value
-                    match value.try_borrow_mut() {
-                        Ok(mut borrow) => {
-                            match new_self.try_borrow() {
-                                Ok(b) => *borrow = b.to_owned(),
-                                Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e.to_string()), Some(p.clone())))
-                            }
-                        },
-                        Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e.to_string()), Some(p.clone())))
-                    }
-                }
 
 
                 // return the value in the '@return' variable, but check its type first

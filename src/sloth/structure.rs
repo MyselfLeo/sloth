@@ -80,16 +80,24 @@ impl ObjectBlueprint for CustomDefinition {
 
         // Compare each given value to the fields of the Structure, checking their type
         for (mut given_value, (field_name, expected_type)) in std::iter::zip(given_values, self.fields.clone()) {
-            let borrow = given_value.borrow();
 
             // special case for lists: if the given list is EMPTY (so it's a list of type Any), make its type the same as the type of the required LIST
-            if let Type::List(t_r) = &expected_type {
-                if let Type::List(t_g) = borrow.get_type() {
-                    if *t_g == Type::Any {
-                        given_value = Rc::new(RefCell::new(Value::List(**t_r, Vec::new())))
+            let res = {
+                if let Type::List(t_r) = &expected_type {
+                    if let Type::List(t_g) = given_value.borrow().get_type() {
+                        if (*t_g).strict_eq(&Type::Any) {
+                            Rc::new(RefCell::new(Value::List((**t_r).clone(), Vec::new())))
+                        }
+                        else {given_value.clone()}
                     }
+                    else {given_value.clone()}
                 }
-            }
+                else {given_value.clone()}
+            };
+
+            given_value = res;
+
+            let borrow = given_value.borrow();
 
             if borrow.get_type() != expected_type {
                 return Err(format!("Field '{}' of structure '{}' is of type '{}', but it has been given a value of type '{}'", field_name, self.signature.name, expected_type, borrow.get_type()))
@@ -200,9 +208,12 @@ impl SlothObject for StructureObject {
     fn get_fields(&self) -> (Vec<String>, Vec<Rc<RefCell<Value>>>) {
         let mut res = (Vec::new(), Vec::new());
 
-        for (k, v) in &self.fields {
-            res.0.push(k.clone());
-            res.1.push(v.clone());
+        // Required so the fields are given in the correct order (as the Hashmap is not sorted)
+        let definition_order = &self.definition.fields;
+
+        for (field_name, _) in definition_order {
+            res.0.push(field_name.clone());
+            res.1.push(self.fields.get(field_name).unwrap().clone());
         }
 
         res
