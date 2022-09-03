@@ -5,7 +5,7 @@ use super::function::{FunctionSignature};
 use super::statement::IdentifierWrapper;
 use super::structure::{StructSignature};
 use super::types::Type;
-use super::value::Value;
+use super::value::{Value, RecursiveRereference};
 use super::operator::{Operator, apply_op};
 use super::scope::Scope;
 use super::program::SlothProgram;
@@ -135,6 +135,18 @@ impl Expression {
                 // Create a new scope for the execution of the function
                 let func_scope = Rc::new(RefCell::new(Scope::new(Some(program.as_ref().unwrap().main_scope()))));
 
+                // Get the function
+                let function = match program.as_ref().unwrap().get_function(f_id) {
+                    Ok(f) => f,
+                    Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
+                };
+
+
+                let inputs_ref_or_cloned: Vec<bool> = match function.get_signature().input_types {
+                    Some(v) => v.iter().map(|(_, b)| *b).collect(),
+                    None => vec![true; param.len()]
+                };
+
                 // Evaluate each given expression in the scope, and create an input variable (@0, @1, etc.) with the set value
                 for (i, param_expr_id) in param.iter().enumerate() {
 
@@ -143,7 +155,15 @@ impl Expression {
                         Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                     };
 
-                    let value = expr.evaluate(scope.clone(), program)?;
+                    let mut value = expr.evaluate(scope.clone(), program)?;
+                    
+
+
+                    // if the values are cloned, allocate a new Value instead of using the reference given by expr.evaluate()
+                    if !inputs_ref_or_cloned[i] {
+                        let cloned_value = value.borrow().to_owned().rereference();
+                        value = cloned_value;
+                    }
 
                     match func_scope.try_borrow_mut() {
                         Ok(mut reference) => match (*reference).push_variable(format!("@{}", i), value) {
@@ -154,11 +174,6 @@ impl Expression {
                     };
                 }
 
-                // Get the function
-                let function = match program.as_ref().unwrap().get_function(f_id) {
-                    Ok(f) => f,
-                    Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
-                };
 
 
                 // Create the @return variable, with default value

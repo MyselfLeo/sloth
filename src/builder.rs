@@ -1045,7 +1045,7 @@ fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram, modu
 
 
     // Parse the input types of the function
-    let mut input_types: Vec<Type> = Vec::new();
+    let mut input_types: Vec<(Type, bool)> = Vec::new();
 
     iterator.next();
 
@@ -1054,7 +1054,12 @@ fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram, modu
         Some(_) => true,
         None => return Err(eof_error(line!())),
     } {
-        input_types.push(parse_type(iterator, program, module_name, warning)?.0)
+        let mut referenced = false;
+        if let Some((Token::Separator(Separator::Tilde), _)) = iterator.current() {
+            referenced = true;
+            iterator.next();
+        }
+        input_types.push((parse_type(iterator, program, module_name, warning)?.0, referenced))
     }
 
 

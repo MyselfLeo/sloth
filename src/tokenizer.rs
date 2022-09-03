@@ -7,7 +7,7 @@ use regex::Regex;
 
 const KEYWORDS: [&str; 10] = ["define", "none", "->", "=", "if", "while", "builtin", "for", "new", "import"];
 const OPERATORS: [&str; 12] = ["+", "-", "*", "/", "<=", ">=", "==", "<", ">", "&", "?", "!"];                                  // The '<=' and '>=' must be before '<' and '>' so the parsing works
-const SEPARATORS: [&str; 11] = ["(", ")", "{", "}", "[", "]", ";", ":", ",", "|", "."];
+const SEPARATORS: [&str; 12] = ["(", ")", "{", "}", "[", "]", ";", ":", ",", "|", ".", "~"];
 
 // Unlike SEPARATORS, those do not have a semantic meaning (only used for separating tokens)
 const DEFAULT_SEPARATORS: [char; 2] = [' ', '"'];
@@ -39,7 +39,8 @@ pub enum Separator {
     Colon,
     Comma,
     Line,
-    Period
+    Period,
+    Tilde
 }
 
 impl Separator {
@@ -56,6 +57,7 @@ impl Separator {
             Separator::Comma => ",",
             Separator::Line => "|",
             Separator::Period => ".",
+            Separator::Tilde => "~"
         }.to_string()
     }
 }
@@ -84,6 +86,7 @@ impl Token {
                 "," => Ok(Token::Separator(Separator::Comma)),
                 "|" => Ok(Token::Separator(Separator::Line)),
                 "." => Ok(Token::Separator(Separator::Period)),
+                "~" => Ok(Token::Separator(Separator::Tilde)),
                 &_ => Err(format!("Unimplemented separator '{}'", string))
             }
         }
