@@ -12,13 +12,14 @@ use std::rc::Rc;
 
 
 
-pub const BUILTINS: [&str; 6] = [
+pub const BUILTINS: [&str; 7] = [
     "to_num",
     "len",
     "insert",
     "push",
     "remove",
-    "split"
+    "split",
+    "get"
 ];
 
 
@@ -33,6 +34,7 @@ pub fn get_type(builtin: &String) -> Result<BuiltinTypes, String> {
         "push" => Ok(BuiltinTypes::Function),
         "remove" => Ok(BuiltinTypes::Function),
         "split" => Ok(BuiltinTypes::Function),
+        "get" => Ok(BuiltinTypes::Function),
         _ => Err(format!("Builtin '{builtin}' not found in module 'strings'"))
     }
 }
@@ -103,6 +105,16 @@ pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
                 Some(Type::String),
                 Type::List(Box::new(Type::String)),
                 split
+            )
+        ),
+
+        "get" => Box::new(
+            BuiltInFunction::new(
+                "get",
+                Some("strings"),
+                Some(Type::String),
+                Type::String,
+                get
             )
         ),
 
@@ -389,6 +401,45 @@ fn split(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Er
     let vec = string.split(&sep).map(|x| Rc::new(RefCell::new(Value::String(x.to_string())))).collect();
 
     super::set_return(scope, program, Value::List(Type::String, vec))?;
+
+    Ok(())
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+fn get(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
+    let (string, idx) = {
+        let scope_borrow = scope.borrow();
+
+        let owner_v = scope_borrow.get_variable("@self".to_string(), program).unwrap();
+        let inputs = scope_borrow.get_inputs();
+
+        if inputs.len() != 1 {
+            let err_msg = format!("Called function 'split' with {} argument(s), but the function requires 1 arguments", inputs.len());
+            return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
+        }
+
+        let string = match owner_v.borrow().to_owned() {
+            Value::String(x) => x,
+            _ => panic!("Implementation of method 'insert' for type 'string' was called on a value of another type")
+        };
+
+        let idx = expect_positive_index(inputs.get(0).map(|v| v.borrow().to_owned()), Some(string.len() - 1))?;
+
+        (string, idx)
+    };
+    
+    super::set_return(scope, program, Value::String(string.char_indices().nth(idx).unwrap().1.to_string()))?;
 
     Ok(())
 }
