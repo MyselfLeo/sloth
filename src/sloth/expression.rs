@@ -146,8 +146,11 @@ impl Expression {
                     let value = expr.evaluate(scope.clone(), program)?;
 
                     match func_scope.try_borrow_mut() {
-                        Ok(mut reference) => (*reference).push_variable(format!("@{}", i), value),
-                        Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e.to_string()), Some(p.clone())))
+                        Ok(mut reference) => match (*reference).push_variable(format!("@{}", i), value) {
+                            Ok(()) => (),
+                            Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))
+                        },
+                        Err(e) => return Err(Error::new(ErrorMessage::RustError(e.to_string()), Some(p.clone())))
                     };
                 }
 
@@ -162,8 +165,11 @@ impl Expression {
                 let default_value = function.get_output_type().default();
 
                 match func_scope.try_borrow_mut() {
-                    Ok(mut reference) => (*reference).push_variable("@return".to_string(), Rc::new(RefCell::new(default_value))),
-                    Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e.to_string()), Some(p.clone())))
+                    Ok(mut reference) => match (*reference).push_variable("@return".to_string(), Rc::new(RefCell::new(default_value))){
+                        Ok(()) => (),
+                        Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))
+                    },
+                    Err(e) => return Err(Error::new(ErrorMessage::RustError(e.to_string()), Some(p.clone())))
                 };
                 
                 // run the function in the given scope.
@@ -217,8 +223,7 @@ impl Expression {
 
                 let method = match program.as_ref().unwrap().get_function(&signature_clone) {
                     Ok(f) => f,
-                    Err(e) => {
-                        return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
+                    Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                 };
 
 
@@ -237,8 +242,11 @@ impl Expression {
                     let v = expr.evaluate(scope.clone(), program)?;
 
                     match func_scope.try_borrow_mut() {
-                        Ok(mut reference) => (*reference).push_variable(format!("@{}", i), v),
-                        Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e.to_string()), Some(p.clone())))
+                        Ok(mut reference) => match (*reference).push_variable(format!("@{}", i), v) {
+                            Ok(()) => (),
+                            Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))
+                        },
+                        Err(e) => return Err(Error::new(ErrorMessage::RustError(e.to_string()), Some(p.clone())))
                     };
                 }
 
@@ -247,10 +255,16 @@ impl Expression {
                     let default_value = method.get_output_type().default();
                     match func_scope.try_borrow_mut() {
                         Ok(mut reference) => {
-                            (*reference).push_variable("@return".to_string(), Rc::new(RefCell::new(default_value)));
-                            (*reference).push_variable("@self".to_string(), value.clone());
+                            match (*reference).push_variable("@return".to_string(), Rc::new(RefCell::new(default_value))) {
+                                Ok(()) => (),
+                                Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))
+                            };
+                            match (*reference).push_variable("@self".to_string(), value.clone()) {
+                                Ok(()) => (),
+                                Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))
+                            };
                         },
-                        Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e.to_string()), Some(p.clone())))
+                        Err(e) => return Err(Error::new(ErrorMessage::RustError(e.to_string()), Some(p.clone())))
                     };
                 }
 

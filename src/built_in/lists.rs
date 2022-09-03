@@ -189,7 +189,7 @@ fn set(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Erro
     let element_ref = list_vec[index].clone();
     match element_ref.try_borrow_mut() {
         Ok(mut borrow) => *borrow = new_value.borrow().to_owned(),
-        Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e.to_string()), None))
+        Err(e) => return Err(Error::new(ErrorMessage::RustError(e.to_string()), None))
     }
 
     Ok(())
@@ -301,7 +301,7 @@ fn push(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Err
             *brrw = new_list;
             Ok(())
         },
-        Err(e) => Err(Error::new(ErrorMessage::RuntimeError(e.to_string()), None))
+        Err(e) => Err(Error::new(ErrorMessage::RustError(e.to_string()), None))
     };
 
     res

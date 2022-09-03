@@ -48,7 +48,7 @@ impl Statement {
                                         Err(_) => (),
                                     }
                                 },
-                                Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e.to_string()), Some(p.clone())))}
+                                Err(e) => {return Err(Error::new(ErrorMessage::RustError(e.to_string()), Some(p.clone())))}
                             }
 
                             
@@ -75,7 +75,7 @@ impl Statement {
                             // Try to set the value
                             match reference.try_borrow_mut() {
                                 Ok(mut borrow) => *borrow = value.borrow().to_owned(),
-                                Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e.to_string()), Some(p.clone())))
+                                Err(e) => return Err(Error::new(ErrorMessage::RustError(e.to_string()), Some(p.clone())))
                             }
 
                             Ok(())

@@ -259,7 +259,7 @@ pub fn set_return(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram, value: 
                     *borrow = value;
                     Ok(())
                 },
-                Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e.to_string()), None))
+                Err(e) => return Err(Error::new(ErrorMessage::RustError(e.to_string()), None))
             }
         },
         Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e), None))

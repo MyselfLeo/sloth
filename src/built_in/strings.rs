@@ -262,7 +262,7 @@ fn insert(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), E
             *borrow = Value::String(string);
             Ok(())
         },
-        Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e.to_string()), None))
+        Err(e) => return Err(Error::new(ErrorMessage::RustError(e.to_string()), None))
     };
 
     res
@@ -306,7 +306,7 @@ fn push(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Err
             *borrow = Value::String(string);
             Ok(())
         },
-        Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e.to_string()), None))
+        Err(e) => return Err(Error::new(ErrorMessage::RustError(e.to_string()), None))
     };
 
     res
@@ -345,7 +345,7 @@ fn remove(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), E
             *borrow = Value::String(string);
             Ok(())
         },
-        Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e.to_string()), None))
+        Err(e) => return Err(Error::new(ErrorMessage::RustError(e.to_string()), None))
     };
 
     res
