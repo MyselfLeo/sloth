@@ -98,6 +98,3 @@ impl SlothFunction for CustomFunction {
         return Ok(())
     }
 }
-
-
-

@@ -53,16 +53,6 @@ impl CustomDefinition {
     pub fn new(signature: StructSignature, fields: Vec<(String, Type)>) -> CustomDefinition {
         CustomDefinition { signature, fields }
     }
-
-    /*
-    /// should not be called without knowing the field exists first
-    pub fn get_field_type(&self, field_name: &String) -> Result<Type, String> {
-        for (n, t) in &self.fields {
-            if n == field_name {return Ok(t.clone())}
-        }
-        panic!("get_field_type() called on a non-existant field")
-    }
-     */
 }
 
 impl ObjectBlueprint for CustomDefinition {
@@ -167,7 +157,15 @@ impl Clone for Box<dyn SlothObject> {
 
 impl PartialEq for Box<dyn SlothObject> {
     fn eq(&self, other: &Self) -> bool {
-        self.get_signature() == other.get_signature()
+        if self.get_signature() != other.get_signature() {return false}
+
+        let self_fields = self.get_fields().1;
+        let other_fields = other.get_fields().1;
+
+        for i in 0..self_fields.len() {
+            if self_fields[i].borrow().to_owned() != other_fields[i].borrow().to_owned() {return false}
+        }
+        true
     }
 }
 

@@ -170,11 +170,7 @@ fn equal(lhs: Option<Rc<RefCell<Value>>>, rhs: Option<Rc<RefCell<Value>>>) -> Re
     let rhs = rhs.unwrap().borrow().to_owned();
     let lhs = lhs.unwrap().borrow().to_owned();
 
-    match (lhs, rhs) {
-        (Value::Number(x), Value::Number(y)) => Ok(Value::Boolean(x == y)),
-        (Value::Boolean(x), Value::Boolean(y)) => Ok(Value::Boolean(x == y)),
-        _ =>Ok(Value::Boolean(false))
-    }
+    Ok(Value::Boolean(lhs == rhs))
 }
 
 fn greater(lhs: Option<Rc<RefCell<Value>>>, rhs: Option<Rc<RefCell<Value>>>) -> Result<Value, String> {
