@@ -328,7 +328,7 @@ fn push(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Err
 fn pull(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
     let scope_borrow = scope.borrow();
 
-    let mut list = scope_borrow.get_variable("@self".to_string(), program).unwrap();
+    let list = scope_borrow.get_variable("@self".to_string(), program).unwrap();
     let inputs = scope_borrow.get_inputs();
 
 
