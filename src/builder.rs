@@ -1,5 +1,4 @@
 use std::path::PathBuf;
-use std::time::Instant;
 
 use crate::built_in::BuiltInImport;
 use crate::sloth::expression::{ExpressionID, Expression};

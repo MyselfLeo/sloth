@@ -77,11 +77,6 @@ fn main() {
 
     else {
         // build the program
-        let time = match args.time {
-            true => Some(start_time),
-            false => None
-        };
-
         let mut program: SlothProgram = match builder::from(filename.clone(), !args.nowarn, !args.nodefault) {
             Err(e) => {e.abort(); return},
             Ok(p) => p,
