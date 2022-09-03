@@ -1,3 +1,6 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use crate::errors::{Error, ErrorMessage};
 use crate::tokenizer::ElementPosition;
 use super::expression::ExpressionID;
@@ -21,18 +24,64 @@ pub enum Statement {
 impl Statement {
 
     // Apply the statement to the given scope
-    pub unsafe fn apply(&self, scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
+    pub unsafe fn apply(&self, scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
         match self {
             Statement::Assignment(wrapper, expr_id, p) => {
+
                 let expr = match program.get_expr(*expr_id) {
                     Ok(e) => e,
                     Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                 };
 
-                let value = expr.evaluate(scope, program)?;
-                
-                match wrapper.set_value(value, scope, program) {
-                    Ok(()) => Ok(()),
+                let value = expr.evaluate(scope.clone(), program)?;
+
+
+                // This is a simple assignment. In that case, we need to check if the variable exists. If not,
+                // we push it with the given value, then stops
+                match wrapper.is_simple() {
+                    Some(ident) => {
+                        if let IdentifierElement::Identifier(n) = ident {
+                            match scope.try_borrow_mut() {
+                                Ok(mut brrw) => {
+                                    match (*brrw).push_variable(n, value.clone()) {
+                                        Ok(()) => return Ok(()),
+                                        Err(_) => (),
+                                    }
+                                },
+                                Err(e) => {return Err(Error::new(ErrorMessage::RustError(e.to_string()), Some(p.clone())))}
+                            }
+
+                            
+                        }
+                        else {panic!("IdentifierWrapper did not start with an IdentifierElement::Identifier")}
+                    },
+                    None => (),
+                };
+
+
+                match wrapper.get_value(scope, program) {
+                    Ok(reference) => {
+
+                        // Check that the type matches
+                        {
+                            let required_type = reference.borrow().get_type();
+                            let given_type = value.borrow().get_type();
+
+                            if required_type != given_type {
+                                let err_msg = format!("Expected a Value of type '{}', got type '{}' instead", required_type, given_type);
+                                return Err(Error::new(ErrorMessage::TypeError(err_msg), Some(p.clone())))
+                            }
+
+                            // Try to set the value
+                            match reference.try_borrow_mut() {
+                                Ok(mut borrow) => *borrow = value.borrow().to_owned(),
+                                Err(e) => return Err(Error::new(ErrorMessage::RustError(e.to_string()), Some(p.clone())))
+                            }
+
+                            Ok(())
+                        }
+
+                    },
                     Err(e) => Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))
                 }
             },
@@ -54,11 +103,11 @@ impl Statement {
                     Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                 };
 
-                let cond_value = expr.evaluate(scope, program)?;
+                let cond_value = expr.evaluate(scope.clone(), program)?;
                 
-                match cond_value {
+                match cond_value.borrow().to_owned() {
                     Value::Boolean(true) => {
-                        for statement in statements {statement.apply(scope, program)?}
+                        for statement in statements {statement.apply(scope.clone(), program)?}
                     }
                     Value::Boolean(false) => {},
                     _ => {return Err(Error::new(ErrorMessage::UnexpectedExpression("Expected boolean expression as 'if' condition".to_string()), Some(p.clone())))}
@@ -73,11 +122,11 @@ impl Statement {
                     Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                 };
 
-                let mut loop_cond = expr.evaluate(scope, program)? == Value::Boolean(true);
+                let mut loop_cond = expr.evaluate(scope.clone(), program)?.borrow().to_owned() == Value::Boolean(true);
                 
                 while loop_cond {
-                    for statement in statements {statement.apply(scope, program)?}
-                    loop_cond = expr.evaluate(scope, program)? == Value::Boolean(true);
+                    for statement in statements {statement.apply(scope.clone(), program)?}
+                    loop_cond = expr.evaluate(scope.clone(), program)?.borrow().to_owned() == Value::Boolean(true);
                 }
 
                 Ok(())
@@ -109,7 +158,7 @@ pub enum IdentifierElement {
 }
 
 impl IdentifierElement {
-    pub fn get_field_str(&self, scope: &mut Scope, program: &mut SlothProgram) -> Result<String, String> {
+    pub fn get_field_str(&self, scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<String, String> {
         match self {
             IdentifierElement::Identifier(n) => {Ok(n.clone())},
             IdentifierElement::Indexation(e) => {
@@ -120,7 +169,9 @@ impl IdentifierElement {
                         Err(e) => return Err(e.message.as_string())
                     };
 
-                    Ok(index_value.to_string())
+                    let res = index_value.borrow().to_string();
+
+                    Ok(res)
                 }
             }
         }
@@ -143,64 +194,31 @@ impl IdentifierWrapper {
     }
 
 
-
-
-    pub fn get_value(&self, scope: &mut Scope, program: &mut SlothProgram) -> Result<Value, String> {
+    /// Return a smart pointer to the value represented by the IdentifierWrapper
+    pub fn get_value(&self, scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<Rc<RefCell<Value>>, String> {
         if self.ident_sequence.len() == 0 {panic!("IdentifierWrapper has a length of 0")}
         
         let mut value;
 
         // Get the first value
-        if let IdentifierElement::Identifier(n) = &self.ident_sequence[0] {value = scope.get_variable(n.clone(), program)?;}
+        if let IdentifierElement::Identifier(n) = &self.ident_sequence[0] {value = scope.borrow().get_variable(n.clone(), program)?;}
         else {panic!("IdentifierWrapper sequence starts with an indexation")}
 
         // Get the value of each ident element successively to get the final value
         for (i, ident) in self.ident_sequence.iter().enumerate() {
             if i == 0 {continue;}
-            value = value.get_field(&ident.get_field_str(scope, program)?)?;
+            let new_value = value.borrow().get_field(&ident.get_field_str(scope.clone(), program)?)?;
+            value = new_value;
         }
 
         Ok(value)
     }
 
-
-    fn update_value_rec(parent_value: Value, changed_value: Value, sequence: &mut Vec<IdentifierElement>, scope: &mut Scope, program: &mut SlothProgram) -> Result<Value, String> {
-        if sequence.is_empty() {return Ok(changed_value)}
-
-        let mut parent_value = parent_value.clone();
-
-        let child_field_name = sequence[0].get_field_str(scope, program)?;
-        sequence.remove(0);
-
-        let mut child_value = parent_value.get_field(&child_field_name)?; 
-        child_value = Self::update_value_rec(child_value, changed_value, sequence, scope, program)?;
-        
-        parent_value.set_field(&child_field_name, child_value)?;
-
-        Ok(parent_value)
-    }
-
-
-
-    pub fn set_value(&self, value: Value, scope: &mut Scope, program: &mut SlothProgram) -> Result<(), String> {
-        let parent_variable_name = match &self.ident_sequence[0] {
-            IdentifierElement::Identifier(n) => n.clone(),
-            IdentifierElement::Indexation(_) => {panic!("IdentifierWrapper sequence starts with an indexation")}
-        };
-
-        if self.ident_sequence.len() == 1 {
-            scope.set_variable(parent_variable_name, value);
-            return Ok(())
+    /// Simple = links to a variable in a scope, not an inner value of something
+    pub fn is_simple(&self) -> Option<IdentifierElement> {
+        match self.ident_sequence.len() == 1 {
+            true => Some(self.ident_sequence[0].clone()),
+            false => None
         }
-
-        let first_value = scope.get_variable(parent_variable_name.clone(), program)?;
-
-        let mut sequence = self.ident_sequence.clone();
-        sequence.remove(0);
-        
-        let new_value = Self::update_value_rec(first_value, value, &mut sequence, scope, program)?;
-        scope.set_variable(parent_variable_name, new_value);
-
-        Ok(())
     }
 }

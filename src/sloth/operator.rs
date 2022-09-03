@@ -1,3 +1,5 @@
+use std::{cell::RefCell, rc::Rc};
+
 use super::value::Value;
 
 
@@ -43,7 +45,7 @@ impl std::fmt::Display for Operator {
 }
 
 
-pub fn apply_op(op: &Operator, lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String> {
+pub fn apply_op(op: &Operator, lhs: Option<Rc<RefCell<Value>>>, rhs: Option<Rc<RefCell<Value>>>) -> Result<Value, String> {
     match op {
         Operator::Add => add(lhs, rhs),
         Operator::Sub => sub(lhs, rhs),
@@ -62,18 +64,18 @@ pub fn apply_op(op: &Operator, lhs: Option<Value>, rhs: Option<Value>) -> Result
 
 
 
-fn add(lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String> {
-    if rhs.is_none() {return Err("Tried to add with no right hand side value".to_string())}
+fn add(lhs: Option<Rc<RefCell<Value>>>, rhs: Option<Rc<RefCell<Value>>>) -> Result<Value, String> {
+    if rhs.is_none() || lhs.is_none() {return Err("The addition requires 2 operands".to_string())}
 
-    let rhs = rhs.unwrap();
-    let lhs = lhs.unwrap_or(Value::Number(0.0));
+    let rhs = rhs.unwrap().borrow().to_owned();
+    let lhs = lhs.unwrap().borrow().to_owned();
 
     match (lhs, rhs) {
         (Value::Number(x), Value::Number(y)) => Ok(Value::Number(x + y)),
         (Value::String(x), Value::String(y)) => Ok(Value::String(x + &y)),
-        (Value::String(x), Value::Number(y)) => Ok(Value::String(x + &y.to_string())),
+        (Value::String(x), Value::Number(y)) => Ok(Value::String(x.to_owned() + &y.to_string())),
         (Value::Number(x), Value::String(y)) => Ok(Value::String(x.to_string() + &y)),
-        (Value::String(x), Value::Boolean(y)) => Ok(Value::String(x + &y.to_string())),
+        (Value::String(x), Value::Boolean(y)) => Ok(Value::String(x.to_owned() + &y.to_string())),
         (Value::Boolean(x), Value::String(y)) => Ok(Value::String(x.to_string() + &y)),
 
         // List merging
@@ -93,7 +95,7 @@ fn add(lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String> {
             if t1 != value_type {return Err(format!("Tried to append a value of type {} to a list of type {}", value_type, t1))}
 
             let mut n = v1.clone();
-            n.push(v);
+            n.push(Rc::new(RefCell::new(v)));
             Ok(Value::List(t1, n))
         },
 
@@ -104,7 +106,7 @@ fn add(lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String> {
             if t1 != value_type {return Err(format!("Tried to prepend a value of type {} to a list of type {}", value_type, t1))}
 
             let mut n = v1.clone();
-            n.insert(0, v);
+            n.insert(0, Rc::new(RefCell::new(v)));
             Ok(Value::List(t1, n))
         },
 
@@ -116,11 +118,11 @@ fn add(lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String> {
     }
 }
 
-fn sub(lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String> {
-    if rhs.is_none() {return Err("Tried to sub with no right hand side value".to_string())}
+fn sub(lhs: Option<Rc<RefCell<Value>>>, rhs: Option<Rc<RefCell<Value>>>) -> Result<Value, String> {
+    if rhs.is_none() || lhs.is_none() {return Err("The substraction requires 2 operands".to_string())}
 
-    let rhs = rhs.unwrap();
-    let lhs = lhs.unwrap_or(Value::Number(0.0));
+    let rhs = rhs.unwrap().borrow().to_owned();
+    let lhs = lhs.unwrap().borrow().to_owned();
 
     match (lhs, rhs) {
         (Value::Number(x), Value::Number(y)) => Ok(Value::Number(x - y)),
@@ -130,12 +132,12 @@ fn sub(lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String> {
     }
 }
 
-fn mul(lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String> {
+fn mul(lhs: Option<Rc<RefCell<Value>>>, rhs: Option<Rc<RefCell<Value>>>) -> Result<Value, String> {
     if rhs.is_none() {return Err("Tried to mul with no right hand side value".to_string())}
     if lhs.is_none() {return Err("Tried to mul with no left hand side value".to_string())}
 
-    let rhs = rhs.unwrap();
-    let lhs = lhs.unwrap();
+    let rhs = rhs.unwrap().borrow().to_owned();
+    let lhs = lhs.unwrap().borrow().to_owned();
 
     match (lhs, rhs) {
         (Value::Number(x), Value::Number(y)) => Ok(Value::Number(x * y)),
@@ -145,12 +147,12 @@ fn mul(lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String> {
     }
 }
 
-fn div(lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String> {
+fn div(lhs: Option<Rc<RefCell<Value>>>, rhs: Option<Rc<RefCell<Value>>>) -> Result<Value, String> {
     if rhs.is_none() {return Err("Tried to div with no right hand side value".to_string())}
     if lhs.is_none() {return Err("Tried to div with no left hand side value".to_string())}
 
-    let rhs = rhs.unwrap();
-    let lhs = lhs.unwrap();
+    let rhs = rhs.unwrap().borrow().to_owned();
+    let lhs = lhs.unwrap().borrow().to_owned();
 
     match (lhs, rhs) {
         (Value::Number(x), Value::Number(y)) => Ok(Value::Number(x / y)),
@@ -162,11 +164,11 @@ fn div(lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String> {
 
 
 
-fn equal(lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String> {
+fn equal(lhs: Option<Rc<RefCell<Value>>>, rhs: Option<Rc<RefCell<Value>>>) -> Result<Value, String> {
     if rhs.is_none() || lhs.is_none() {return Err("Expected two values to compare".to_string())}
 
-    let rhs = rhs.unwrap();
-    let lhs = lhs.unwrap();
+    let rhs = rhs.unwrap().borrow().to_owned();
+    let lhs = lhs.unwrap().borrow().to_owned();
 
     match (lhs, rhs) {
         (Value::Number(x), Value::Number(y)) => Ok(Value::Boolean(x == y)),
@@ -175,11 +177,11 @@ fn equal(lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String> {
     }
 }
 
-fn greater(lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String> {
+fn greater(lhs: Option<Rc<RefCell<Value>>>, rhs: Option<Rc<RefCell<Value>>>) -> Result<Value, String> {
     if rhs.is_none() || lhs.is_none() {return Err("Expected two values to compare".to_string())}
 
-    let rhs = rhs.unwrap();
-    let lhs = lhs.unwrap();
+    let rhs = rhs.unwrap().borrow().to_owned();
+    let lhs = lhs.unwrap().borrow().to_owned();
 
     match (lhs, rhs) {
         (Value::Number(x), Value::Number(y)) => Ok(Value::Boolean(x > y)),
@@ -187,11 +189,11 @@ fn greater(lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String> {
     }
 }
 
-fn lower(lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String> {
+fn lower(lhs: Option<Rc<RefCell<Value>>>, rhs: Option<Rc<RefCell<Value>>>) -> Result<Value, String> {
     if rhs.is_none() || lhs.is_none() {return Err("Expected two values to compare".to_string())}
 
-    let rhs = rhs.unwrap();
-    let lhs = lhs.unwrap();
+    let rhs = rhs.unwrap().borrow().to_owned();
+    let lhs = lhs.unwrap().borrow().to_owned();
 
     match (lhs, rhs) {
         (Value::Number(x), Value::Number(y)) => Ok(Value::Boolean(x < y)),
@@ -199,11 +201,11 @@ fn lower(lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String> {
     }
 }
 
-fn greater_equal(lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String> {
+fn greater_equal(lhs: Option<Rc<RefCell<Value>>>, rhs: Option<Rc<RefCell<Value>>>) -> Result<Value, String> {
     if rhs.is_none() || lhs.is_none() {return Err("Expected two values to compare".to_string())}
 
-    let rhs = rhs.unwrap();
-    let lhs = lhs.unwrap();
+    let rhs = rhs.unwrap().borrow().to_owned();
+    let lhs = lhs.unwrap().borrow().to_owned();
 
     match (lhs, rhs) {
         (Value::Number(x), Value::Number(y)) => Ok(Value::Boolean(x >= y)),
@@ -211,11 +213,11 @@ fn greater_equal(lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String
     }
 }
 
-fn lower_equal(lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String> {
+fn lower_equal(lhs: Option<Rc<RefCell<Value>>>, rhs: Option<Rc<RefCell<Value>>>) -> Result<Value, String> {
     if rhs.is_none() || lhs.is_none() {return Err("Expected two values to compare".to_string())}
 
-    let rhs = rhs.unwrap();
-    let lhs = lhs.unwrap();
+    let rhs = rhs.unwrap().borrow().to_owned();
+    let lhs = lhs.unwrap().borrow().to_owned();
 
     match (lhs, rhs) {
         (Value::Number(x), Value::Number(y)) => Ok(Value::Boolean(x <= y)),
@@ -223,11 +225,11 @@ fn lower_equal(lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String> 
     }
 }
 
-fn and(lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String> {
+fn and(lhs: Option<Rc<RefCell<Value>>>, rhs: Option<Rc<RefCell<Value>>>) -> Result<Value, String> {
     if rhs.is_none() || lhs.is_none() {return Err("Expected two values to compare".to_string())}
 
-    let rhs = rhs.unwrap();
-    let lhs = lhs.unwrap();
+    let rhs = rhs.unwrap().borrow().to_owned();
+    let lhs = lhs.unwrap().borrow().to_owned();
 
     match (lhs, rhs) {
         (Value::Boolean(x), Value::Boolean(y)) => Ok(Value::Boolean(x && y)),
@@ -235,11 +237,11 @@ fn and(lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String> {
     }
 }
 
-fn or(lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String> {
+fn or(lhs: Option<Rc<RefCell<Value>>>, rhs: Option<Rc<RefCell<Value>>>) -> Result<Value, String> {
     if rhs.is_none() || lhs.is_none() {return Err("Expected two values to compare".to_string())}
 
-    let rhs = rhs.unwrap();
-    let lhs = lhs.unwrap();
+    let rhs = rhs.unwrap().borrow().to_owned();
+    let lhs = lhs.unwrap().borrow().to_owned();
 
     match (lhs, rhs) {
         (Value::Boolean(x), Value::Boolean(y)) => Ok(Value::Boolean(x || y)),
@@ -247,11 +249,11 @@ fn or(lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String> {
     }
 }
 
-fn inverse(lhs: Option<Value>, rhs: Option<Value>) -> Result<Value, String> {
+fn inverse(lhs: Option<Rc<RefCell<Value>>>, rhs: Option<Rc<RefCell<Value>>>) -> Result<Value, String> {
     if rhs.is_some() {return Err("Unexpected operand".to_string())}
     if lhs.is_none() {return Err("Expected operand".to_string())}
 
-    let lhs = lhs.unwrap();
+    let lhs = lhs.unwrap().borrow().to_owned();
 
     match lhs {
         Value::Boolean(x) => Ok(Value::Boolean(!x)),

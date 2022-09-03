@@ -5,6 +5,8 @@ use crate::sloth::program::SlothProgram;
 use crate::sloth::scope::Scope;
 use crate::sloth::value::Value;
 use super::{BuiltInFunction, BuiltinTypes};
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::io::{self, Write};
 use text_io::read;
 
@@ -96,12 +98,12 @@ pub fn get_struct(s_name: String) -> (Box<dyn ObjectBlueprint>, Vec<String>) {
 
 
 
-fn print(scope: &mut Scope, _: &mut SlothProgram) -> Result<(), Error> {
-    let inputs = scope.get_inputs();
+fn print(scope: Rc<RefCell<Scope>>, _: &mut SlothProgram) -> Result<(), Error> {
+    let inputs = scope.borrow().get_inputs();
     let mut text = String::new();
 
     for (_, v) in inputs.iter().enumerate() {
-        text += &format!("{}", v).replace("\\n", "\n");
+        text += &format!("{}", v.borrow()).replace("\\n", "\n");
     }
     print!("{}", text);
 
@@ -115,12 +117,12 @@ fn print(scope: &mut Scope, _: &mut SlothProgram) -> Result<(), Error> {
 
 
 
-fn read(scope: &mut Scope, _: &mut SlothProgram) -> Result<(), Error> {
-    let inputs = scope.get_inputs();
+fn read(scope: Rc<RefCell<Scope>>, p: &mut SlothProgram) -> Result<(), Error> {
+    let inputs = scope.borrow().get_inputs();
     let mut text = String::new();
 
     for (_, v) in inputs.iter().enumerate() {
-        text += &format!("{}", v).replace("\\n", "\n");
+        text += &format!("{}", v.borrow()).replace("\\n", "\n");
     }
     print!("{}", text);
 
@@ -128,6 +130,6 @@ fn read(scope: &mut Scope, _: &mut SlothProgram) -> Result<(), Error> {
 
     let console_input: String = read!("{}\n");
     let return_value = Value::String(console_input);
-    scope.set_variable("@return".to_string(), return_value);
-    Ok(())
+
+    super::set_return(scope, p, return_value)
 }

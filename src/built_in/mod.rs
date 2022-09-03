@@ -1,9 +1,13 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use crate::sloth::function::{SlothFunction, FunctionSignature};
 use crate::sloth::program::SlothProgram;
 use crate::sloth::scope::Scope;
 use crate::sloth::types::Type;
 use crate::sloth::structure::ObjectBlueprint;
-use crate::errors::Error;
+use crate::errors::{Error, ErrorMessage};
+use crate::sloth::value::Value;
 pub mod io;
 pub mod numbers;
 pub mod strings;
@@ -13,7 +17,7 @@ pub mod maths;
 
 
 
-
+#[allow(dead_code)]
 pub enum BuiltinTypes {
     Function,
     Structure
@@ -202,7 +206,7 @@ pub fn collapse_imports(mut imports: Vec<BuiltInImport>) -> Result<(Vec<Box<dyn 
 
 pub struct BuiltInFunction {
     signature: FunctionSignature,
-    call_function: fn(&mut Scope, &mut SlothProgram) -> Result<(), Error>,
+    call_function: fn(Rc<RefCell<Scope>>, &mut SlothProgram) -> Result<(), Error>,
 }
 
 
@@ -213,14 +217,14 @@ impl SlothFunction for BuiltInFunction {
     fn get_name(&self) -> String {self.signature.name.clone()}
     fn get_output_type(&self) -> Type {self.signature.output_type.as_ref().unwrap().clone()}
 
-    unsafe fn call(&self, scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
+    unsafe fn call(&self, scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
         (self.call_function)(scope, program)
     }
 }
 
 
 impl BuiltInFunction {
-    pub fn new(name: &str, module: Option<&str>, owner_type: Option<Type>, output_type: Type, call_function: fn(&mut Scope, &mut SlothProgram) -> Result<(), Error>) -> BuiltInFunction {
+    pub fn new(name: &str, module: Option<&str>, owner_type: Option<Type>, output_type: Type, call_function: fn(Rc<RefCell<Scope>>, &mut SlothProgram) -> Result<(), Error>) -> BuiltInFunction {
         let new_module = match module {
             Some(s) => Some(s.to_string()),
             None => None
@@ -230,5 +234,34 @@ impl BuiltInFunction {
             signature: FunctionSignature{module: new_module, name: name.to_string(), owner_type, input_types: None, output_type: Some(output_type)},
             call_function
         }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+// USEFUL FUNCTIONS
+
+
+pub fn set_return(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram, value: Value) -> Result<(), Error> {
+    match scope.borrow().get_variable("@return".to_string(), program) {
+        Ok(r) => {
+            // Try to set the value
+            match r.try_borrow_mut() {
+                Ok(mut borrow) => {
+                    *borrow = value;
+                    Ok(())
+                },
+                Err(e) => return Err(Error::new(ErrorMessage::RustError(e.to_string()), None))
+            }
+        },
+        Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e), None))
     }
 }

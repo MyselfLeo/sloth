@@ -6,7 +6,8 @@ use crate::sloth::program::SlothProgram;
 use crate::sloth::scope::Scope;
 use crate::sloth::value::Value;
 use super::{BuiltInFunction, BuiltinTypes};
-
+use std::cell::RefCell;
+use std::rc::Rc;
 
 
 
@@ -134,10 +135,51 @@ pub fn get_struct(s_name: String) -> (Box<dyn ObjectBlueprint>, Vec<String>) {
 
 
 
-fn to_num(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
-    let value = scope.get_variable("@self".to_string(), program).unwrap();
 
-    let result = match value {
+/// Check if the given value is Some and is a positive number (>= 0). Returns it as usize or an error string if it's not the case. Optional limit
+pub fn expect_positive_index(value: Option<Value>, limit: Option<usize>) -> Result<usize, Error> {
+    let res = match value {
+        Some(Value::Number(x)) => {
+            if (x as i128) < 0 {Err(format!("Cannot use a negative index ({}) to access a string", x as i128))}
+
+            else {
+                match limit {
+                    Some(l) => {
+                        if (x as usize) > l {Err(format!("Tried to set the {}th element of a string of only {} elements", x as usize, l))}
+                        else {Ok(x as usize)}
+                    },
+                    None => Ok(x as usize)
+                }
+            }
+        },
+        Some(v) => Err(format!("Tried to index a string with an expression of type '{}'", v.get_type())),
+        None => Err(format!("Expected an index"))
+    };
+
+    match res {
+        Ok(u) => Ok(u),
+        Err(e) => Err(Error::new(ErrorMessage::InvalidArguments(e), None))
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+fn to_num(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
+    let value = scope.borrow().get_variable("@self".to_string(), program).unwrap();
+
+    let result = match value.borrow().to_owned() {
         Value::String(x) => {
             match x.parse::<f64>() {
                 Ok(v) => Value::Number(v),
@@ -150,7 +192,7 @@ fn to_num(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
         _ => panic!("Implementation of method 'to_num' for type 'string' was called on a value of another type")
     };
 
-    scope.set_variable("@return".to_string(), result);
+    super::set_return(scope, program, result)?;
     Ok(())
 }
 
@@ -163,15 +205,15 @@ fn to_num(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
 
 
 
-fn len(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
-    let value = scope.get_variable("@self".to_string(), program).unwrap();
+fn len(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
+    let value = scope.borrow().get_variable("@self".to_string(), program).unwrap();
 
-    let result = match value {
+    let result = match value.borrow().to_owned() {
         Value::String(x) => Value::Number(x.len() as f64),
         _ => panic!("Implementation of method 'len' for type 'string' was called on a value of another type")
     };
 
-    scope.set_variable("@return".to_string(), result);
+    super::set_return(scope, program, result)?;
     Ok(())
 }
 
@@ -183,61 +225,58 @@ fn len(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
 
 
 
-fn insert(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
-    let owner_v = scope.get_variable("@self".to_string(), program).unwrap();
-    let inputs = scope.get_inputs();
+fn insert(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
+    let scope_borrow = scope.borrow();
+
+    let owner_v = scope_borrow.get_variable("@self".to_string(), program).unwrap();
+    let inputs = scope_borrow.get_inputs();
 
     if inputs.len() != 2 {
         let err_msg = format!("Called function 'insert' with {} argument(s), but the function requires 2 arguments", inputs.len());
         return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
     }
 
-    let idx = match &inputs[0] {
-        Value::Number(x) => {
-            if x < &0.0 {
-                let err_msg = format!("Cannot use a negative index ({}) to access a string character", x);
-                return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
-            }
-            *x as usize
-        },
-        v => {
-            let err_msg = format!("Argument 1 of function 'insert' is of type num, given a value of type {}", v.get_type());
-            return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
-        }
+
+    let mut string = match owner_v.borrow().to_owned() {
+        Value::String(x) => x,
+        _ => panic!("Implementation of method 'insert' for type 'string' was called on a value of another type")
     };
 
-    let insert_value = match &inputs[1] {
+
+    let idx = expect_positive_index(inputs.get(0).map(|v| v.borrow().to_owned()), Some(string.len() - 1))?;
+
+
+    let insert_value = match inputs[1].borrow().to_owned() {
         Value::String(x) => x,
         v => {
             let err_msg = format!("Argument 2 of function 'insert' is of type string, given a value of type {}", v.get_type());
             return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
         }
     };
-    
-
-    let mut string = match owner_v {
-        Value::String(x) => x,
-        _ => panic!("Implementation of method 'insert' for type 'string' was called on a value of another type")
-    };
-
-    if idx > string.len() - 1 {
-        let err_msg = format!("Tried to insert at position {} of a String with only {} characters", idx, string.len());
-        return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
-    }
 
     string.insert_str(idx, &insert_value);
-    scope.set_variable("@self".to_string(), Value::String(string));
+    
+    // try to edit owner value
+    let res = match owner_v.try_borrow_mut() {
+        Ok(mut borrow) => {
+            *borrow = Value::String(string);
+            Ok(())
+        },
+        Err(e) => return Err(Error::new(ErrorMessage::RustError(e.to_string()), None))
+    };
 
-    Ok(())
+    res
 }
 
 
 
 
 
-fn push(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
-    let owner_v = scope.get_variable("@self".to_string(), program).unwrap();
-    let inputs = scope.get_inputs();
+fn push(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
+    let scope_borrow = scope.borrow();
+
+    let owner_v = scope_borrow.get_variable("@self".to_string(), program).unwrap();
+    let inputs = scope_borrow.get_inputs();
 
     if inputs.len() != 1 {
         let err_msg = format!("Called function 'push' with {} argument(s), but the function requires 1 arguments", inputs.len());
@@ -245,7 +284,13 @@ fn push(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
     }
 
 
-    let insert_value = match &inputs[0] {
+    let mut string = match owner_v.borrow().to_owned() {
+        Value::String(x) => x,
+        _ => panic!("Implementation of method 'insert' for type 'string' was called on a value of another type")
+    };
+
+
+    let insert_value = match inputs[0].borrow().to_owned() {
         Value::String(x) => x,
         v => {
             let err_msg = format!("Argument 1 of function 'push' is of type string, given a value of type {}", v.get_type());
@@ -253,16 +298,18 @@ fn push(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
         }
     };
     
-
-    let mut string = match owner_v {
-        Value::String(x) => x,
-        _ => panic!("Implementation of method 'push' for type 'string' was called on a value of another type")
+    string.push_str(&insert_value);
+    
+    // try to edit owner value
+    let res = match owner_v.try_borrow_mut() {
+        Ok(mut borrow) => {
+            *borrow = Value::String(string);
+            Ok(())
+        },
+        Err(e) => return Err(Error::new(ErrorMessage::RustError(e.to_string()), None))
     };
 
-    string.push_str(&insert_value);
-    scope.set_variable("@self".to_string(), Value::String(string));
-
-    Ok(())
+    res
 }
 
 
@@ -271,43 +318,37 @@ fn push(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
 
 
 
-fn remove(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
-    let owner_v = scope.get_variable("@self".to_string(), program).unwrap();
-    let inputs = scope.get_inputs();
+fn remove(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
+    let scope_borrow = scope.borrow();
+
+    let owner_v = scope_borrow.get_variable("@self".to_string(), program).unwrap();
+    let inputs = scope_borrow.get_inputs();
 
     if inputs.len() != 1 {
         let err_msg = format!("Called function 'remove' with {} argument(s), but the function requires 1 arguments", inputs.len());
         return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
     }
 
-    let idx = match &inputs[0] {
-        Value::Number(x) => {
-            if x < &0.0 {
-                let err_msg = format!("Cannot use a negative index ({}) to access a string character", x);
-                return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
-            }
-            *x as usize
-        },
-        v => {
-            let err_msg = format!("Argument 1 of function 'remove' is of type num, given a value of type {}", v.get_type());
-            return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
-        }
-    };
-    
-    let mut string = match owner_v {
+
+    let mut string = match owner_v.borrow().to_owned() {
         Value::String(x) => x,
-        _ => panic!("Implementation of method 'remove' for type 'string' was called on a value of another type")
+        _ => panic!("Implementation of method 'insert' for type 'string' was called on a value of another type")
     };
 
-    if idx > string.len() - 1 {
-        let err_msg = format!("Tried to remove character at position {} of a String with only {} characters", idx, string.len());
-        return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
-    }
+    let idx = expect_positive_index(inputs.get(0).map(|v| v.borrow().to_owned()), Some(string.len() - 1))?;
 
     string.remove(idx);
-    scope.set_variable("@self".to_string(), Value::String(string));
+    
+    // try to edit owner value
+    let res = match owner_v.try_borrow_mut() {
+        Ok(mut borrow) => {
+            *borrow = Value::String(string);
+            Ok(())
+        },
+        Err(e) => return Err(Error::new(ErrorMessage::RustError(e.to_string()), None))
+    };
 
-    Ok(())
+    res
 }
 
 
@@ -315,32 +356,39 @@ fn remove(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
 
 
 
-fn split(scope: &mut Scope, program: &mut SlothProgram) -> Result<(), Error> {
-    let owner_v = scope.get_variable("@self".to_string(), program).unwrap();
-    let inputs = scope.get_inputs();
+fn split(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
+    let (string, sep) = {
+        let scope_borrow = scope.borrow();
 
-    if inputs.len() != 1 {
-        let err_msg = format!("Called function 'split' with {} argument(s), but the function requires 1 arguments", inputs.len());
-        return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
-    }
+        let owner_v = scope_borrow.get_variable("@self".to_string(), program).unwrap();
+        let inputs = scope_borrow.get_inputs();
 
-    let sep = match &inputs[0] {
-        Value::String(x) => x,
-        v => {
-            let err_msg = format!("Argument 1 of function 'split' is of type string, given a value of type {}", v.get_type());
+        if inputs.len() != 1 {
+            let err_msg = format!("Called function 'split' with {} argument(s), but the function requires 1 arguments", inputs.len());
             return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
         }
+
+
+        let string = match owner_v.borrow().to_owned() {
+            Value::String(x) => x,
+            _ => panic!("Implementation of method 'insert' for type 'string' was called on a value of another type")
+        };
+
+        let sep = match inputs[0].borrow().to_owned() {
+            Value::String(x) => x,
+            v => {
+                let err_msg = format!("Argument 1 of function 'split' is of type string, given a value of type {}", v.get_type());
+                return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
+            }
+        };
+
+        (string, sep)
     };
     
-    let string = match owner_v {
-        Value::String(x) => x,
-        _ => panic!("Implementation of method 'split' for type 'string' was called on a value of another type")
-    };
 
+    let vec = string.split(&sep).map(|x| Rc::new(RefCell::new(Value::String(x.to_string())))).collect();
 
-    let vec = string.split(sep).map(|x| Value::String(x.to_string())).collect();
-
-    scope.set_variable("@return".to_string(), Value::List(Type::String, vec));
+    super::set_return(scope, program, Value::List(Type::String, vec))?;
 
     Ok(())
 }

@@ -1,3 +1,6 @@
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use super::types::Type;
 use super::structure::SlothObject;
 
@@ -8,7 +11,7 @@ pub enum Value {
     Number(f64),
     Boolean(bool),
     String(String),
-    List(Type, Vec<Value>),
+    List(Type, Vec<Rc<RefCell<Value>>>),
     Object(Box<dyn SlothObject>)
 }
 
@@ -70,14 +73,15 @@ impl Value {
             Value::List(_, values) => {
                 let mut string_vec: Vec<String> = Vec::new();
                 for v in values {
-                    if v.get_type() == Type::String {string_vec.push(format!("\"{}\"", v));}
-                    else {string_vec.push(v.to_string())}
+                    let borrow = v.borrow();
+                    if borrow.get_type() == Type::String {string_vec.push(format!("\"{}\"", borrow));}
+                    else {string_vec.push(borrow.to_string())}
                 }
                 format!("[{}]", string_vec.join(" ")).to_string()
             },
             Value::Object(object) => {
                 let mut string_vec: Vec<String> = Vec::new();
-                for f in object.get_fields().1 {string_vec.push(f.to_string())}
+                for f in object.get_fields().1 {string_vec.push(f.borrow().to_string())}
                 format!("{}({})", object.get_signature().name, string_vec.join(" ")).to_string()
             }
         }
@@ -121,8 +125,8 @@ impl Value {
     }
 
 
-
-    pub fn get_field(&self, field_name: &String) -> Result<Value, String> {
+    /// Return a smart pointer to the field of the value
+    pub fn get_field(&self, field_name: &String) -> Result<Rc<RefCell<Value>>, String> {
         match self {
             Value::Object(object) => object.get_field(field_name),
 
@@ -138,22 +142,12 @@ impl Value {
                 }
             },
 
-            Value::String(txt) => {
-                match field_name.parse::<usize>() {
-                    Ok(i) => {
-                        match txt.get(i..i+1) {
-                            Some(v) => Ok(Value::String(v.to_string())),
-                            None => {Err(format!("Tried to access the {}th character of a String of length {}", i, txt.len()))}
-                        }
-                    },
-                    Err(_) => {Err(format!("Cannot index a String with '{}'", field_name))}
-                }
-            },
-
             v => Err(format!("Type '{}' doesn't have a field '{}'", v.get_type(), field_name))
         }
     }
 
+
+    /*
     pub fn set_field(&mut self, field_name: &String, value: Value) -> Result<(), String> {
         match self {
             Value::Object(object) => object.set_field(field_name, value),
@@ -197,6 +191,7 @@ impl Value {
             v => Err(format!("Type '{}' doesn't have a field '{}'", v.get_type(), field_name))
         }
     }
+     */
 
 
 
