@@ -33,7 +33,15 @@ impl Statement {
                     Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                 };
 
-                let value = expr.evaluate(scope.clone(), program)?;
+                // The value assigned.
+                // Using this RC directly would lead to 'weird' behavior, like:
+                //      a = 3
+                //      b = a
+                //      a = 1
+                //      =>   b == 1 (true)
+                // so, we reallocate a copy of the inner value so it is not subject to changes
+                let inner_value = expr.evaluate(scope.clone(), program)?.borrow().to_owned();
+                let value = Rc::new(RefCell::new(inner_value));
 
 
                 // This is a simple assignment. In that case, we need to check if the variable exists. If not,
