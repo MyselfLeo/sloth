@@ -10,15 +10,15 @@ use super::scope::{Scope};
 
 #[derive(PartialEq, PartialOrd, Eq, Ord, Debug, Clone)]
 pub struct FunctionSignature {
-    pub module: Option<String>,           // In case of a function imported (from builtin for example)
-    pub name: String,                     // name of the function
-    pub owner_type: Option<Type>,         // in case the function is a method
-    pub input_types: Option<Vec<Type>>,   // Can be an option as some functions don't have a specific input types pattern (like the main function, or builtins)
+    pub module: Option<String>,                     // In case of a function imported (from builtin for example)
+    pub name: String,                               // name of the function
+    pub owner_type: Option<Type>,                   // in case the function is a method
+    pub input_types: Option<Vec<(Type, bool)>>,     // Can be an option as some functions don't have a specific input types pattern (like the main function, or builtins). The bool is whether to pass by reference or not
     pub output_type: Option<Type>,
 }
 
 impl FunctionSignature {
-    pub fn new(module: Option<String>, name: String, owner_type: Option<Type>, input_types: Option<Vec<Type>>, output_type: Option<Type>) -> FunctionSignature {
+    pub fn new(module: Option<String>, name: String, owner_type: Option<Type>, input_types: Option<Vec<(Type, bool)>>, output_type: Option<Type>) -> FunctionSignature {
         FunctionSignature {module, name, owner_type, input_types, output_type}
     }
 }
@@ -81,7 +81,7 @@ impl SlothFunction for CustomFunction {
 
         // Check that the given input types match the ones from the definition
         let mut i = 0;
-        for (given, required) in std::iter::zip(args, &self_inputs) {
+        for (given, (required, _)) in std::iter::zip(args, &self_inputs) {
             let given_type = given.borrow().get_type();
             if given_type != *required {
                 let err_msg = format!("Function {} was called with argument of type {} at position {}, where argument of type {} was required", self.get_name(), given_type, i, required);
