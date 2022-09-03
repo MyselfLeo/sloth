@@ -94,7 +94,7 @@ fn main() {
                     Err(e) => e.abort(),
                     Ok(v) => match v {
                         Value::Number(x) => {
-                            println!();
+                            if args.code || args.time {println!()}
                             if args.code {println!("\x1b[94mExited\x1b[0m with return code {}", x)};
                             if args.time {
                                 println!("\x1b[94mBuilt\x1b[0m in {}ms", build_time.as_millis());

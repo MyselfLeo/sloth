@@ -225,12 +225,12 @@ impl SlothProgram {
 
         if s_args.len() != main_inputs.len() {
             // Create a string representing the required arguments types, like "num, bool, string"
-            let input_types_list = formatted_vec_string(&main_inputs, ',');
+            let input_types_list = formatted_vec_string(&main_inputs.iter().map(|(t, _)| t).collect(), ',');
             let err_msg = format!("Given {} command-line argument(s), but the main function requires {} argument(s): {}", s_args.len(), main_inputs.len(), input_types_list);
             return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None))
         }
 
-        for (arg, t) in zip(s_args, main_inputs) {
+        for (arg, (t, _)) in zip(s_args, main_inputs) {
             let value = match Value::string_to_value(arg, t) {
                 Ok(v) => v,
                 Err(e) => {
@@ -271,9 +271,15 @@ impl SlothProgram {
             let input_types_txt = match signature.input_types {
                 Some(v) => {
                     let mut res = "".to_string();
-                    for t in v {
-                        if res.is_empty() {res = format!("{t}")}
-                        else {res = format!("{}, {}", res, t);}
+                    for (t, b) in v {
+                        if b {
+                            if res.is_empty() {res = format!("~{t}")}
+                            else {res = format!("{}, ~{}", res, t);}
+                        }
+                        else {
+                            if res.is_empty() {res = format!("{t}")}
+                            else {res = format!("{}, {}", res, t);}
+                        }
                     }
                     res
                 },

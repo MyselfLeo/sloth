@@ -5,7 +5,7 @@ use super::program::SlothProgram;
 use super::value::Value;
 
 
-
+#[derive(Debug)]
 /// A scope is an environment in which variables lives.
 pub struct Scope {
     pub variables: HashMap<String, Rc<RefCell<Value>>>,
