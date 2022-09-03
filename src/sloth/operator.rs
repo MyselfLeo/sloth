@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc, ops::Deref};
+use std::{cell::RefCell, rc::Rc};
 
 use super::value::Value;
 

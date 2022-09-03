@@ -52,6 +52,7 @@ impl CustomDefinition {
         CustomDefinition { signature, fields }
     }
 
+    /*
     /// should not be called without knowing the field exists first
     pub fn get_field_type(&self, field_name: &String) -> Result<Type, String> {
         for (n, t) in &self.fields {
@@ -59,6 +60,7 @@ impl CustomDefinition {
         }
         panic!("get_field_type() called on a non-existant field")
     }
+     */
 }
 
 impl ObjectBlueprint for CustomDefinition {

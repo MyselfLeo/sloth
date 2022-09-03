@@ -87,6 +87,6 @@ fn to_string(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<()
         _ => panic!("Implementation of method 'to_string' for type 'num' was called on a value of another type")
     };
 
-    super::set_return(scope, program, result);
+    super::set_return(scope, program, result)?;
     Ok(())
 }

@@ -192,7 +192,7 @@ fn to_num(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), E
         _ => panic!("Implementation of method 'to_num' for type 'string' was called on a value of another type")
     };
 
-    super::set_return(scope, program, result);
+    super::set_return(scope, program, result)?;
     Ok(())
 }
 
@@ -213,7 +213,7 @@ fn len(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Erro
         _ => panic!("Implementation of method 'len' for type 'string' was called on a value of another type")
     };
 
-    super::set_return(scope, program, result);
+    super::set_return(scope, program, result)?;
     Ok(())
 }
 

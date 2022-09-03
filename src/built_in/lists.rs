@@ -6,7 +6,7 @@ use crate::sloth::program::SlothProgram;
 use crate::sloth::scope::Scope;
 use crate::sloth::value::Value;
 use super::{BuiltInFunction, BuiltinTypes};
-use std::cell::{RefCell, RefMut};
+use std::cell::RefCell;
 use std::rc::Rc;
 
 
@@ -236,7 +236,7 @@ fn get(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Erro
 
     // Return the value
     let element_value = list_vec[index].borrow().to_owned();
-    super::set_return(scope.clone(), program, element_value);
+    super::set_return(scope.clone(), program, element_value)?;
     Ok(())
 }
 
@@ -263,7 +263,7 @@ fn push(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Err
 
     let scope_borrow = scope.borrow();
 
-    let mut list = scope_borrow.get_variable("@self".to_string(), program).unwrap();
+    let list = scope_borrow.get_variable("@self".to_string(), program).unwrap();
     let inputs = scope_borrow.get_inputs();
 
     if inputs.len() == 0 {
@@ -342,9 +342,9 @@ fn pull(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Err
     let index = expect_positive_index(inputs.get(0).map(|v| v.borrow().to_owned()), Some(list_vec.len() - 1))?;
 
 
-    if let Value::List(t, l) = Rc::get_mut(&mut list).unwrap().get_mut() {
+    if let Value::List(_, l) = Rc::get_mut(&mut list).unwrap().get_mut() {
        let pulled_value = (*l).remove(index);
-       super::set_return(scope.clone(), program, pulled_value.borrow().to_owned());
+       super::set_return(scope.clone(), program, pulled_value.borrow().to_owned())?;
     }
     else {panic!()}
 
@@ -371,6 +371,6 @@ fn len(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Erro
         Value::List(t, v) => (t, v),
         _ => panic!("Called 'set' on a value which is not a list")
     };
-    super::set_return(scope, program, Value::Number(list_vec.len() as f64));
+    super::set_return(scope, program, Value::Number(list_vec.len() as f64))?;
     Ok(())
 }

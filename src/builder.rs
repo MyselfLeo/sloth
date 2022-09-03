@@ -305,8 +305,8 @@ fn parse_list(iterator: &mut TokenIterator, program: &mut SlothProgram, warning:
 /// It is given the ExpressionID and ElementPosition of the first expression
 fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool, first_expr: (ExpressionID, ElementPosition), is_parenthesied: bool) -> Result<(ExpressionID, ElementPosition), Error> {
     // name of the variable or function to use
-    let ident = match iterator.next() {
-        Some((Token::Identifier(s), _)) => s,
+    match iterator.next() {
+        Some((Token::Identifier(_), _)) => (),
         Some((t, p)) => {
             let err_msg = format!("Expected identifier, got unexpected token '{}'", t.original_string());
             return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)));

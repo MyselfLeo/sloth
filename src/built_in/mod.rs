@@ -17,7 +17,7 @@ pub mod maths;
 
 
 
-
+#[allow(dead_code)]
 pub enum BuiltinTypes {
     Function,
     Structure

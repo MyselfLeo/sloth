@@ -1,4 +1,3 @@
-use crate::errors::ErrorMessage;
 use crate::sloth::structure::{ObjectBlueprint};
 use crate::{errors::Error, sloth::types::Type};
 use crate::sloth::function::SlothFunction;
