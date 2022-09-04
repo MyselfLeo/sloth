@@ -13,6 +13,7 @@ pub mod numbers;
 pub mod strings;
 pub mod lists;
 pub mod maths;
+pub mod files;
 
 
 
@@ -26,12 +27,13 @@ pub enum BuiltinTypes {
 
 
 
-pub const MODULES: [&str; 5] = [
+pub const MODULES: [&str; 6] = [
     "io",
     "numbers",
     "strings",
     "lists",
     "maths",
+    "files"
 ];
 
 
@@ -72,6 +74,7 @@ impl BuiltInImport {
                     "strings" => strings::BUILTINS.to_vec(),
                     "lists" => lists::BUILTINS.to_vec(),
                     "maths" => maths::BUILTINS.to_vec(),
+                    "files" => files::BUILTINS.to_vec(),
                     _ => panic!("Trying to access builtins of module '{}', which do not exists", self.module)
                 };
 
@@ -123,6 +126,7 @@ pub fn collapse_imports(mut imports: Vec<BuiltInImport>) -> Result<(Vec<Box<dyn 
                     "strings" => strings::BUILTINS.to_vec(),
                     "lists" => lists::BUILTINS.to_vec(),
                     "maths" => maths::BUILTINS.to_vec(),
+                    "files" => files::BUILTINS.to_vec(),
                     _ => panic!()
                 };
 
@@ -145,6 +149,7 @@ pub fn collapse_imports(mut imports: Vec<BuiltInImport>) -> Result<(Vec<Box<dyn 
                     "strings" => strings::get_type(&bi),
                     "lists" => lists::get_type(&bi),
                     "maths" => maths::get_type(&bi),
+                    "files" => files::get_type(&bi),
                     _ => panic!()
                 }?;
 
@@ -157,6 +162,7 @@ pub fn collapse_imports(mut imports: Vec<BuiltInImport>) -> Result<(Vec<Box<dyn 
                             "strings" => strings::get_function(bi),
                             "lists" => lists::get_function(bi),
                             "maths" => maths::get_function(bi),
+                            "files" => files::get_function(bi),
                             _ => panic!()
                         };
                         funcs.push(f);
@@ -169,6 +175,7 @@ pub fn collapse_imports(mut imports: Vec<BuiltInImport>) -> Result<(Vec<Box<dyn 
                             "strings" => strings::get_struct(bi),
                             "lists" => lists::get_struct(bi),
                             "maths" => maths::get_struct(bi),
+                            "files" => files::get_struct(bi),
                             _ => panic!()
                         };
 
