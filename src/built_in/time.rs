@@ -9,14 +9,16 @@ use super::{BuiltInFunction, BuiltinTypes};
 use std::time;
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::thread;
 
 
 
 
 
-pub const BUILTINS: [&str; 4] = [
+pub const BUILTINS: [&str; 5] = [
     "now",
     "since",
+    "sleep",
 
     "Date",
     "Duration"
@@ -28,6 +30,7 @@ pub fn get_type(builtin: &String) -> Result<BuiltinTypes, String> {
     match builtin.as_str() {
         "now" => Ok(BuiltinTypes::Function),
         "since" => Ok(BuiltinTypes::Function),
+        "sleep" => Ok(BuiltinTypes::Function),
 
         "Date" => Ok(BuiltinTypes::Structure),
         "Duration" => Ok(BuiltinTypes::Structure),
@@ -46,7 +49,7 @@ pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
                 "now",
                 Some("time"),
                 None,
-                Type::String,
+                Type::Object("Date".to_string()),
                 now
             )
         ),
@@ -56,8 +59,18 @@ pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
                 "since",
                 Some("time"),
                 Some(Type::Object("Date".to_string())),
-                Type::Number,
+                Type::Object("Duration".to_string()),
                 since
+            )
+        ),
+
+        "sleep" => Box::new(
+            BuiltInFunction::new(
+                "sleep",
+                Some("time"),
+                None,
+                Type::Number,
+                sleep
             )
         ),
 
@@ -96,6 +109,17 @@ pub fn get_struct(s_name: String) -> (Box<dyn ObjectBlueprint>, Vec<String>) {
 
 
 
+fn duration_from_sec_f64(x: f64) -> time::Duration {
+    let secs = x.floor() as u64;
+    let nanos = (x.fract() * 1e10) as u32;
+
+    time::Duration::new(secs, nanos)
+}
+
+
+
+
+
 
 #[derive(Clone)]
 pub struct DurationBlueprint {}
@@ -109,8 +133,23 @@ impl ObjectBlueprint for DurationBlueprint {
         StructSignature::new(Some("file".to_string()), "Duration".to_string())
     }
 
+    /// Duration as seconds (in f64)
     fn build(&self, given_values: Vec<Rc<RefCell<Value>>>) -> Result<Box<dyn SlothObject>, String> {
-        todo!()
+        if given_values.len() > 1 {return Err(format!("Structure 'Duration' requires 0 or 1 input, got {}", given_values.len()))}
+
+        let duration = {
+            if given_values.len() == 0 {time::Duration::new(0, 0)}
+            else {
+                let x = match given_values[0].borrow().to_owned() {
+                    Value::Number(x) => x,
+                    v => {return Err(format!("Structure 'Duration' expected a Number, got {}", v.get_type()))}
+                };
+
+                duration_from_sec_f64(x)
+            }
+        };
+
+        Ok(Box::new(Duration {inner: duration}))
     }
 }
 
@@ -172,8 +211,9 @@ impl ObjectBlueprint for DateBlueprint {
         StructSignature::new(Some("file".to_string()), "Date".to_string())
     }
 
-    fn build(&self, given_values: Vec<Rc<RefCell<Value>>>) -> Result<Box<dyn SlothObject>, String> {
-        todo!()
+    fn build(&self, _: Vec<Rc<RefCell<Value>>>) -> Result<Box<dyn SlothObject>, String> {
+        // TODO: maybe allow to build ?
+        Err("The structure 'Date' cannot be built".to_string())
     }
 }
 
@@ -199,11 +239,12 @@ impl SlothObject for Date {
     }
 
     fn get_field(&self, field_name: &String) -> Result<Rc<RefCell<Value>>, String> {
+        #[allow(unused_variables)]
         let value = match field_name.as_str() {
-            "epoch" => Value::Number(self.inner.),
-            s => return Err(format!("Structure 'Duration' does not have a field named '{}'", s))
+            s => return Err(format!("Structure 'Date' does not have a field named '{}'", s))
         };
 
+        #[allow(unreachable_code)]
         Ok(Rc::new(RefCell::new(value)))
     }
 
@@ -222,31 +263,79 @@ impl SlothObject for Date {
 
 
 
-
-/*/// Return the content of a file as a string
-fn load(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
+/// Return an Instant representing now
+fn now(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
     let inputs = scope.borrow().get_inputs();
 
-    if inputs.len() != 1 {
-        let err_msg = format!("Called function 'load' with {} argument(s), but the function requires 1 argument", inputs.len());
+    if inputs.len() != 0 {
+        let err_msg = format!("Called function 'load' with {} argument(s), but the function requires no arguments", inputs.len());
         return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
     }
 
-    let path = match inputs[0].borrow().to_owned() {
-        Value::String(x) => x,
-        v => {
-            let err_msg = format!("Argument 1 of function 'load' is of type string, given a value of type {}", v.get_type());
-            return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
+    super::set_return(scope, program, Value::Object(Box::new(Date {inner: time::Instant::now()})))
+}
+
+
+
+/// Return a Duration between the given Date and now
+fn since(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
+    let inputs = scope.borrow().get_inputs();
+
+    if inputs.len() != 0 {
+        let err_msg = format!("Called function 'since' with {} argument(s), but the function requires no arguments", inputs.len());
+        return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
+    }
+
+    // This should be an Instant object
+    let value = scope.borrow().get_variable("@self".to_string(), program).unwrap();
+
+    let duration = match value.borrow().to_owned() {
+        Value::Object(reference) => {
+            let mut any = reference.to_owned();
+            let object = match any.as_any().downcast_ref::<Date>() {
+                Some(v) => v,
+                None => return Err(Error::new(ErrorMessage::RustError("Called function 'since' on an object which is not a Date".to_string()), None))
+            };
+
+            object.inner.elapsed()
+        },
+        _ => {
+            return Err(Error::new(ErrorMessage::RustError("Called function 'since' on an object which is not a Date".to_string()), None))
         }
     };
 
-    let content = match fs::read_to_string(&path) {
-        Ok(f) => f,
-        Err(e) => {
-            let err_msg = format!("Could not open file '{}': {}", path, e.to_string());
-            return Err(Error::new(ErrorMessage::RuntimeError(err_msg), None))
-        },
-    };
+    super::set_return(scope, program, Value::Object(Box::new(Duration {inner: duration})))
+}
 
-    super::set_return(scope, program, Value::String(content))
-}*/
+
+
+
+
+/// Pauses the execution for the given duration in seconds
+fn sleep(scope: Rc<RefCell<Scope>>, _: &mut SlothProgram) -> Result<(), Error> {
+    let inputs = scope.borrow().get_inputs();
+
+    if inputs.len() != 1 {
+        let err_msg = format!("Called function 'sleep' with {} argument(s), but the function requires 1 argument", inputs.len());
+        return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
+    }
+
+    match inputs[0].borrow().to_owned() {
+        Value::Number(x) => {
+            if x < 0.0 {
+                let err_msg = format!("Cannot wait for a negative duration ({})", x);
+                return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
+            }
+
+            // The sleep occurs here
+            thread::sleep(duration_from_sec_f64(x))
+        },
+        v => {
+            let err_msg = format!("Argument 1 of function 'sleep' is of type Number, given a value of type {}", v.get_type());
+            return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
+        }
+    }
+
+
+    Ok(())
+}
