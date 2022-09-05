@@ -6,6 +6,7 @@ use crate::sloth::program::SlothProgram;
 use crate::sloth::scope::Scope;
 use crate::sloth::value::Value;
 use super::{BuiltInFunction, BuiltinTypes};
+use std::time;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -77,6 +78,14 @@ pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
 /// Return an ObjectBlueprint along with the list of requirements this structure has
 pub fn get_struct(s_name: String) -> (Box<dyn ObjectBlueprint>, Vec<String>) {
     match s_name.as_str() {
+        "Date" => (
+            Box::new(DateBlueprint {}),
+            Vec::new()
+        ),
+        "Duration" => (
+            Box::new(DurationBlueprint {}),
+            vec!["since".to_string()]
+        ),
         s => panic!("Requested unknown built-in structure '{}'", s)
     }
 }
@@ -89,7 +98,7 @@ pub fn get_struct(s_name: String) -> (Box<dyn ObjectBlueprint>, Vec<String>) {
 
 
 #[derive(Clone)]
-struct DurationBlueprint {}
+pub struct DurationBlueprint {}
 
 impl ObjectBlueprint for DurationBlueprint {
     fn box_clone(&self) -> Box<dyn ObjectBlueprint> {
@@ -110,7 +119,91 @@ impl ObjectBlueprint for DurationBlueprint {
 
 
 
+pub struct Duration {
+    inner: time::Duration,
+}
 
+impl SlothObject for Duration {
+    fn box_clone(&self) -> Box<dyn SlothObject> {
+        todo!()
+    }
+
+    fn get_signature(&self) -> StructSignature {
+        todo!()
+    }
+
+    fn get_blueprint(&self) -> Box<dyn ObjectBlueprint> {
+        todo!()
+    }
+
+    fn get_field(&self, field_name: &String) -> Result<Rc<RefCell<Value>>, String> {
+        todo!()
+    }
+
+    fn get_fields(&self) -> (Vec<String>, Vec<Rc<RefCell<Value>>>) {
+        todo!()
+    }
+
+    fn rereference(&self) -> Box<dyn SlothObject> {
+        todo!()
+    }
+}
+
+
+
+
+
+
+#[derive(Clone)]
+pub struct DateBlueprint {}
+
+impl ObjectBlueprint for DateBlueprint {
+    fn box_clone(&self) -> Box<dyn ObjectBlueprint> {
+        todo!()
+    }
+
+    fn get_signature(&self) -> StructSignature {
+        todo!()
+    }
+
+    fn build(&self, given_values: Vec<Rc<RefCell<Value>>>) -> Result<Box<dyn SlothObject>, String> {
+        todo!()
+    }
+}
+
+
+
+
+
+pub struct Date {
+    inner: time::Instant,
+}
+
+impl SlothObject for Date {
+    fn box_clone(&self) -> Box<dyn SlothObject> {
+        todo!()
+    }
+
+    fn get_signature(&self) -> StructSignature {
+        todo!()
+    }
+
+    fn get_blueprint(&self) -> Box<dyn ObjectBlueprint> {
+        todo!()
+    }
+
+    fn get_field(&self, field_name: &String) -> Result<Rc<RefCell<Value>>, String> {
+        todo!()
+    }
+
+    fn get_fields(&self) -> (Vec<String>, Vec<Rc<RefCell<Value>>>) {
+        todo!()
+    }
+
+    fn rereference(&self) -> Box<dyn SlothObject> {
+        todo!()
+    }
+}
 
 
 
