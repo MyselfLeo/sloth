@@ -118,34 +118,40 @@ impl ObjectBlueprint for DurationBlueprint {
 
 
 
-
+#[derive(Clone)]
 pub struct Duration {
     inner: time::Duration,
 }
 
 impl SlothObject for Duration {
     fn box_clone(&self) -> Box<dyn SlothObject> {
-        todo!()
+        Box::new(self.clone())
     }
 
     fn get_signature(&self) -> StructSignature {
-        todo!()
+        StructSignature {module: Some("time".to_string()), name: "Duration".to_string()}
     }
 
     fn get_blueprint(&self) -> Box<dyn ObjectBlueprint> {
-        todo!()
+        Box::new(DurationBlueprint {})
     }
 
     fn get_field(&self, field_name: &String) -> Result<Rc<RefCell<Value>>, String> {
-        todo!()
+        let value = match field_name.as_str() {
+            "s" => Value::Number(self.inner.as_secs() as f64 + self.inner.subsec_micros() as f64 * 1e-9),
+            "ms" => Value::Number(self.inner.as_millis() as f64),
+            s => return Err(format!("Structure 'Duration' does not have a field named '{}'", s))
+        };
+
+        Ok(Rc::new(RefCell::new(value)))
     }
 
     fn get_fields(&self) -> (Vec<String>, Vec<Rc<RefCell<Value>>>) {
-        todo!()
+        (Vec::new(), Vec::new())
     }
 
     fn rereference(&self) -> Box<dyn SlothObject> {
-        todo!()
+        Box::new(self.clone())
     }
 }
 
@@ -159,11 +165,11 @@ pub struct DateBlueprint {}
 
 impl ObjectBlueprint for DateBlueprint {
     fn box_clone(&self) -> Box<dyn ObjectBlueprint> {
-        todo!()
+        Box::new(self.clone())
     }
 
     fn get_signature(&self) -> StructSignature {
-        todo!()
+        StructSignature::new(Some("file".to_string()), "Date".to_string())
     }
 
     fn build(&self, given_values: Vec<Rc<RefCell<Value>>>) -> Result<Box<dyn SlothObject>, String> {
@@ -174,34 +180,39 @@ impl ObjectBlueprint for DateBlueprint {
 
 
 
-
+#[derive(Clone)]
 pub struct Date {
     inner: time::Instant,
 }
 
 impl SlothObject for Date {
     fn box_clone(&self) -> Box<dyn SlothObject> {
-        todo!()
+        Box::new(self.clone())
     }
 
     fn get_signature(&self) -> StructSignature {
-        todo!()
+        StructSignature::new(Some("file".to_string()), "Date".to_string())
     }
 
     fn get_blueprint(&self) -> Box<dyn ObjectBlueprint> {
-        todo!()
+        Box::new(DateBlueprint {})
     }
 
     fn get_field(&self, field_name: &String) -> Result<Rc<RefCell<Value>>, String> {
-        todo!()
+        let value = match field_name.as_str() {
+            "epoch" => Value::Number(self.inner.),
+            s => return Err(format!("Structure 'Duration' does not have a field named '{}'", s))
+        };
+
+        Ok(Rc::new(RefCell::new(value)))
     }
 
     fn get_fields(&self) -> (Vec<String>, Vec<Rc<RefCell<Value>>>) {
-        todo!()
+        (Vec::new(), Vec::new())
     }
 
     fn rereference(&self) -> Box<dyn SlothObject> {
-        todo!()
+        Box::new(self.clone())
     }
 }
 
