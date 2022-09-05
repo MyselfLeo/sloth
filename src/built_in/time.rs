@@ -196,6 +196,14 @@ impl SlothObject for Duration {
 
 
 
+impl std::fmt::Display for Duration {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Duration({}s)", self.inner.as_secs() as f64 + self.inner.subsec_micros() as f64 * 1e-9)
+    }
+}
+
+
+
 
 
 
@@ -257,6 +265,13 @@ impl SlothObject for Date {
     }
 }
 
+
+
+impl std::fmt::Display for Date {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Date()")
+    }
+}
 
 
 

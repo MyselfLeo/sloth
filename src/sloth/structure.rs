@@ -2,6 +2,7 @@ use std::any::Any;
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
+use std::iter::zip;
 
 use crate::sloth::types::Type;
 use crate::sloth::value::Value;
@@ -135,7 +136,7 @@ impl<T: 'static> ObjectToAny for T {
 
 /// An object with custom behaviors that can be stored in a Value enum. From the point of view of the program, it
 /// behaves like a structure, but it can have other features hidden from the user.
-pub trait SlothObject: ObjectToAny {
+pub trait SlothObject: ObjectToAny + std::fmt::Display {
     fn box_clone(&self) -> Box<dyn SlothObject>;
     fn get_signature(&self) -> StructSignature;
     fn get_blueprint(&self) -> Box<dyn ObjectBlueprint>;
@@ -234,6 +235,17 @@ impl SlothObject for StructureObject {
     }
 }
 
+
+impl std::fmt::Display for StructureObject {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let fields = self.get_fields();
+        let fields_str = zip(fields.0, fields.1)
+                                .map(|(s, v)| format!("{s}: {}", v.borrow().to_owned()))
+                                .collect::<Vec<String>>()
+                                .join(", ");
+        write!(f, "{} ({})", self.get_signature().name, fields_str)
+    }
+}
 
 
 

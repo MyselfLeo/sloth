@@ -58,6 +58,8 @@ impl std::fmt::Debug for Value {
 }
 
 
+
+
 impl RecursiveRereference for Value {
     fn rereference(&self) -> Rc<RefCell<Self>> {
         let new_value = match self {
@@ -113,11 +115,8 @@ impl Value {
                 }
                 format!("[{}]", string_vec.join(" ")).to_string()
             },
-            Value::Object(object) => {
-                let mut string_vec: Vec<String> = Vec::new();
-                for f in object.get_fields().1 {string_vec.push(f.borrow().to_string())}
-                format!("{}({})", object.get_signature().name, string_vec.join(" ")).to_string()
-            }
+
+            Value::Object(object) => {format!("{}", object)}
         }
     }
 
