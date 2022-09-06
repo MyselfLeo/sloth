@@ -550,7 +550,6 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
 
     let first_expr = (program.push_expr(expr.clone()), expr_pos);
 
-
     // determines whether the expression if finished here or not.
     match iterator.current() {
         Some((Token::Separator(Separator::CloseParenthesis), _)) => {
