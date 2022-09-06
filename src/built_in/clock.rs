@@ -20,7 +20,7 @@ pub const BUILTINS: [&str; 5] = [
     "since",
     "sleep",
 
-    "Date",
+    "Instant",
     "Duration"
 ];
 
@@ -32,7 +32,7 @@ pub fn get_type(builtin: &String) -> Result<BuiltinTypes, String> {
         "since" => Ok(BuiltinTypes::Function),
         "sleep" => Ok(BuiltinTypes::Function),
 
-        "Date" => Ok(BuiltinTypes::Structure),
+        "Instant" => Ok(BuiltinTypes::Structure),
         "Duration" => Ok(BuiltinTypes::Structure),
 
         _ => Err(format!("Builtin '{builtin}' not found in module 'files'"))
@@ -49,7 +49,7 @@ pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
                 "now",
                 Some("clock"),
                 None,
-                Type::Object("Date".to_string()),
+                Type::Object("Instant".to_string()),
                 now
             )
         ),
@@ -58,7 +58,7 @@ pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
             BuiltInFunction::new(
                 "since",
                 Some("clock"),
-                Some(Type::Object("Date".to_string())),
+                Some(Type::Object("Instant".to_string())),
                 Type::Object("Duration".to_string()),
                 since
             )
@@ -91,8 +91,8 @@ pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
 /// Return an ObjectBlueprint along with the list of requirements this structure has
 pub fn get_struct(s_name: String) -> (Box<dyn ObjectBlueprint>, Vec<String>) {
     match s_name.as_str() {
-        "Date" => (
-            Box::new(DateBlueprint {}),
+        "Instant" => (
+            Box::new(InstantBlueprint {}),
             Vec::new()
         ),
         "Duration" => (
@@ -208,20 +208,20 @@ impl std::fmt::Display for Duration {
 
 
 #[derive(Clone)]
-pub struct DateBlueprint {}
+pub struct InstantBlueprint {}
 
-impl ObjectBlueprint for DateBlueprint {
+impl ObjectBlueprint for InstantBlueprint {
     fn box_clone(&self) -> Box<dyn ObjectBlueprint> {
         Box::new(self.clone())
     }
 
     fn get_signature(&self) -> StructSignature {
-        StructSignature::new(Some("file".to_string()), "Date".to_string())
+        StructSignature::new(Some("file".to_string()), "Instant".to_string())
     }
 
     fn build(&self, _: Vec<Rc<RefCell<Value>>>) -> Result<Box<dyn SlothObject>, String> {
         // TODO: maybe allow to build ?
-        Err("The structure 'Date' cannot be built".to_string())
+        Err("The structure 'Instant' cannot be built".to_string())
     }
 }
 
@@ -239,17 +239,17 @@ impl SlothObject for Date {
     }
 
     fn get_signature(&self) -> StructSignature {
-        StructSignature::new(Some("file".to_string()), "Date".to_string())
+        StructSignature::new(Some("file".to_string()), "Instant".to_string())
     }
 
     fn get_blueprint(&self) -> Box<dyn ObjectBlueprint> {
-        Box::new(DateBlueprint {})
+        Box::new(InstantBlueprint {})
     }
 
     fn get_field(&self, field_name: &String) -> Result<Rc<RefCell<Value>>, String> {
         #[allow(unused_variables)]
         let value = match field_name.as_str() {
-            s => return Err(format!("Structure 'Date' does not have a field named '{}'", s))
+            s => return Err(format!("Structure 'Instant' does not have a field named '{}'", s))
         };
 
         #[allow(unreachable_code)]
@@ -269,7 +269,7 @@ impl SlothObject for Date {
 
 impl std::fmt::Display for Date {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Date()")
+        write!(f, "Instant()")
     }
 }
 
@@ -309,13 +309,13 @@ fn since(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Er
             let mut any = reference.to_owned();
             let object = match any.as_any().downcast_ref::<Date>() {
                 Some(v) => v,
-                None => return Err(Error::new(ErrorMessage::RustError("Called function 'since' on an object which is not a Date".to_string()), None))
+                None => return Err(Error::new(ErrorMessage::RustError("Called function 'since' on an object which is not a Instant".to_string()), None))
             };
 
             object.inner.elapsed()
         },
         _ => {
-            return Err(Error::new(ErrorMessage::RustError("Called function 'since' on an object which is not a Date".to_string()), None))
+            return Err(Error::new(ErrorMessage::RustError("Called function 'since' on an object which is not a Instant".to_string()), None))
         }
     };
 
