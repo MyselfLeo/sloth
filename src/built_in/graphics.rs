@@ -1,5 +1,5 @@
 use crate::errors::ErrorMessage;
-use crate::sloth::structure::{ObjectBlueprint, SlothObject};
+use crate::sloth::structure::{ObjectBlueprint, SlothObject, StructSignature};
 use crate::{errors::Error, sloth::types::Type};
 use crate::sloth::function::SlothFunction;
 use crate::sloth::program::SlothProgram;
@@ -9,7 +9,12 @@ use super::{BuiltInFunction, BuiltinTypes};
 use std::cell::RefCell;
 use std::rc::Rc;
 
+use sdl2::render::Canvas as SDL2Canvas;
+use sdl2::video::Window as SDL2Window;
+use sdl2::Sdl;
 
+
+static mut SDL_CONTEXT: Option<Sdl> = None;
 
 
 
@@ -68,26 +73,74 @@ pub fn get_struct(s_name: String) -> (Box<dyn ObjectBlueprint>, Vec<String>) {
 
 
 
+
+
+pub fn expect_positive_value(value: Value) -> Result<u32, String> {
+    match value {
+        Value::Number(x) => {
+            if x < 0.0 {Err(format!("Cannot use a negative index ({}) to access a string", x as i64))}
+
+            else {Ok(x as u32)}
+        },
+        v => Err(format!("Tried to index a string with an expression of type '{}'", v.get_type())),
+    }
+}
+
+
+
+
+
+
+
+
+
+
+#[derive(Clone)]
 pub struct CanvasBlueprint {}
 
 impl ObjectBlueprint for CanvasBlueprint {
     fn box_clone(&self) -> Box<dyn ObjectBlueprint> {
-        todo!()
+        Box::new(self.clone())
     }
 
-    fn get_signature(&self) -> crate::sloth::structure::StructSignature {
-        todo!()
+    fn get_signature(&self) -> StructSignature {
+        StructSignature::new(Some("graphics".to_string()), "Canvas".to_string())
     }
 
     fn build(&self, given_values: Vec<Rc<RefCell<Value>>>) -> Result<Box<dyn crate::sloth::structure::SlothObject>, String> {
-        todo!()
+        // 3 inputs: window name, window x and window y
+
+        if given_values.len() != 3 {return Err(format!("Structure 'Canvas' requires 3 inputs, got {}", given_values.len()))}
+
+        let window_name = match given_values[0].borrow().to_owned() {
+            Value::String(s) => s,
+            v => return Err(format!("Argument 1 of 'Canvas' is of type String, given a value of type '{}'", v.get_type()))
+        };
+        let window_x = expect_positive_value(given_values[1].borrow().to_owned())?;
+        let window_y = expect_positive_value(given_values[2].borrow().to_owned())?;
+
+        // create SDL Canvas
+        let canvas = unsafe {
+            if SDL_CONTEXT.is_none() {SDL_CONTEXT = Some(sdl2::init().unwrap())}
+            let video_subsystem = SDL_CONTEXT.clone().unwrap().video().unwrap();
+
+            let window = video_subsystem.window(&window_name, window_x, window_y)
+                                        .position_centered()
+                                        .build()
+                                        .unwrap();
+
+            window.into_canvas().build().unwrap()
+        };
+
+        // return object
+        Ok(Box::new(Canvas {inner: canvas}))
     }
 }
 
 
 
 pub struct Canvas {
-
+    inner: SDL2Canvas<SDL2Window>,
 }
 
 
@@ -100,7 +153,7 @@ impl std::fmt::Display for Canvas {
 
 impl SlothObject for Canvas {
     fn box_clone(&self) -> Box<dyn SlothObject> {
-        todo!()
+        panic!("Cannot be cloned")
     }
 
     fn get_signature(&self) -> crate::sloth::structure::StructSignature {
@@ -120,6 +173,6 @@ impl SlothObject for Canvas {
     }
 
     fn rereference(&self) -> Box<dyn SlothObject> {
-        todo!()
+        panic!("Cannot be cloned")
     }
 }
