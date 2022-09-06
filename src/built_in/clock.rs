@@ -47,7 +47,7 @@ pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
         "now" => Box::new(
             BuiltInFunction::new(
                 "now",
-                Some("time"),
+                Some("clock"),
                 None,
                 Type::Object("Date".to_string()),
                 now
@@ -57,7 +57,7 @@ pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
         "since" => Box::new(
             BuiltInFunction::new(
                 "since",
-                Some("time"),
+                Some("clock"),
                 Some(Type::Object("Date".to_string())),
                 Type::Object("Duration".to_string()),
                 since
@@ -67,7 +67,7 @@ pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
         "sleep" => Box::new(
             BuiltInFunction::new(
                 "sleep",
-                Some("time"),
+                Some("clock"),
                 None,
                 Type::Number,
                 sleep
@@ -168,7 +168,7 @@ impl SlothObject for Duration {
     }
 
     fn get_signature(&self) -> StructSignature {
-        StructSignature {module: Some("time".to_string()), name: "Duration".to_string()}
+        StructSignature {module: Some("clock".to_string()), name: "Duration".to_string()}
     }
 
     fn get_blueprint(&self) -> Box<dyn ObjectBlueprint> {
