@@ -15,7 +15,7 @@ pub mod lists;
 pub mod maths;
 pub mod files;
 pub mod clock;
-
+pub mod graphics;
 
 
 

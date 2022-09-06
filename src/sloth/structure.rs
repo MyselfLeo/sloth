@@ -117,6 +117,10 @@ pub trait ObjectToAny: 'static {
     fn as_any(&mut self) -> &mut dyn Any;
 }
 
+pub trait Downcast {
+    fn downcast<T>(&mut self) -> Result<T, String>;
+}
+
 
 impl<T: 'static> ObjectToAny for T {
     fn as_any(&mut self) -> &mut dyn Any {
@@ -169,6 +173,19 @@ impl PartialEq for Box<dyn SlothObject> {
         true
     }
 }
+
+
+/*
+
+impl Downcast for Box<dyn SlothObject> {
+    fn downcast<T>(&mut self) -> Result<T, String> {
+        match self.as_any().downcast_ref::<T>() {
+            Some(v) => Ok(*v),
+            None => Err(format!("Unable to downcast given SlothObject into {:?}", std::any::type_name::<T>()))
+        }
+    }
+}
+ */
 
 
 
