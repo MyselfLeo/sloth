@@ -28,14 +28,15 @@ pub enum BuiltinTypes {
 
 
 
-pub const MODULES: [&str; 7] = [
+pub const MODULES: [&str; 8] = [
     "io",
     "numbers",
     "strings",
     "lists",
     "maths",
     "files",
-    "clock"
+    "clock",
+    "graphics"
 ];
 
 
@@ -78,6 +79,7 @@ impl BuiltInImport {
                     "maths" => maths::BUILTINS.to_vec(),
                     "files" => files::BUILTINS.to_vec(),
                     "clock" => clock::BUILTINS.to_vec(),
+                    "graphics" => graphics::BUILTINS.to_vec(),
                     _ => panic!("Trying to access builtins of module '{}', which do not exists", self.module)
                 };
 
@@ -131,6 +133,7 @@ pub fn collapse_imports(mut imports: Vec<BuiltInImport>) -> Result<(Vec<Box<dyn 
                     "maths" => maths::BUILTINS.to_vec(),
                     "files" => files::BUILTINS.to_vec(),
                     "clock" => clock::BUILTINS.to_vec(),
+                    "graphics" => graphics::BUILTINS.to_vec(),
                     _ => panic!()
                 };
 
@@ -155,6 +158,7 @@ pub fn collapse_imports(mut imports: Vec<BuiltInImport>) -> Result<(Vec<Box<dyn 
                     "maths" => maths::get_type(&bi),
                     "files" => files::get_type(&bi),
                     "clock" => clock::get_type(&bi),
+                    "graphics" => graphics::get_type(&bi),
                     _ => panic!()
                 }?;
 
@@ -169,6 +173,7 @@ pub fn collapse_imports(mut imports: Vec<BuiltInImport>) -> Result<(Vec<Box<dyn 
                             "maths" => maths::get_function(bi),
                             "files" => files::get_function(bi),
                             "clock" => clock::get_function(bi),
+                            "graphics" => graphics::get_function(bi),
                             _ => panic!()
                         };
                         funcs.push(f);
@@ -183,6 +188,7 @@ pub fn collapse_imports(mut imports: Vec<BuiltInImport>) -> Result<(Vec<Box<dyn 
                             "maths" => maths::get_struct(bi),
                             "files" => files::get_struct(bi),
                             "clock" => clock::get_struct(bi),
+                            "graphics" => graphics::get_struct(bi),
                             _ => panic!()
                         };
 

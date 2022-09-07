@@ -18,13 +18,17 @@ static mut SDL_CONTEXT: Option<Sdl> = None;
 
 
 
-pub const BUILTINS: [&str; 0] = [
+pub const BUILTINS: [&str; 1] = [
+    "Canvas"
 ];
 
 
 /// Return whether each builtin is a function or a structure
 pub fn get_type(builtin: &String) -> Result<BuiltinTypes, String> {
     match builtin.as_str() {
+        
+
+        "Canvas" => Ok(BuiltinTypes::Structure),
 
         _ => Err(format!("Builtin '{builtin}' not found in module 'graphics'"))
     }
@@ -64,6 +68,7 @@ pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
 /// Return an ObjectBlueprint along with the list of requirements this structure has
 pub fn get_struct(s_name: String) -> (Box<dyn ObjectBlueprint>, Vec<String>) {
     match s_name.as_str() {
+        "Canvas" => (Box::new(CanvasBlueprint {}), Vec::new()),
         s => panic!("Requested unknown built-in structure '{}'", s)
     }
 }
@@ -121,8 +126,8 @@ impl ObjectBlueprint for CanvasBlueprint {
 
         // create SDL Canvas
         let canvas = unsafe {
-            if SDL_CONTEXT.is_none() {SDL_CONTEXT = Some(sdl2::init().unwrap())}
-            let video_subsystem = SDL_CONTEXT.clone().unwrap().video().unwrap();
+            if SDL_CONTEXT.is_none() {SDL_CONTEXT = Some(sdl2::init()?)}
+            let video_subsystem = SDL_CONTEXT.clone().unwrap().video()?;
 
             let window = video_subsystem.window(&window_name, window_x, window_y)
                                         .position_centered()
@@ -157,19 +162,19 @@ impl SlothObject for Canvas {
     }
 
     fn get_signature(&self) -> crate::sloth::structure::StructSignature {
-        todo!()
+        StructSignature::new(Some("graphics".to_string()), "Canvas".to_string())
     }
 
     fn get_blueprint(&self) -> Box<dyn ObjectBlueprint> {
-        todo!()
+        Box::new(CanvasBlueprint {})
     }
 
     fn get_field(&self, field_name: &String) -> Result<Rc<RefCell<Value>>, String> {
-        todo!()
+        Err(format!("No fields in Canvas"))
     }
 
     fn get_fields(&self) -> (Vec<String>, Vec<Rc<RefCell<Value>>>) {
-        todo!()
+        (Vec::new(), Vec::new())
     }
 
     fn rereference(&self) -> Box<dyn SlothObject> {

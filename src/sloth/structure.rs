@@ -33,7 +33,7 @@ impl StructSignature {
 pub trait ObjectBlueprint {
     fn box_clone(&self) -> Box<dyn ObjectBlueprint>;
     fn get_signature(&self) -> StructSignature;
-    fn build(&self, given_values: Vec<Rc<RefCell<Value>>>) -> Result<Box<dyn SlothObject>, String>;
+    fn build(&self, given_values: Vec<Rc<RefCell<Value>>>) -> Result<Box<dyn SlothObject>, String>; // TODO: Change the Err from String to errors::Error to allow the builder to return any error msg
 }
 
 
