@@ -43,6 +43,7 @@ pub enum Expression {
 impl Expression {
     /// Evaluate the expression in the given context (scope and program) and return its value
     pub unsafe fn evaluate(&self, scope: Rc<RefCell<Scope>>, program: *mut SlothProgram) -> Result<Rc<RefCell<Value>>, Error> {
+
         match self {
             // return this literal value
             Expression::Literal(v, _) => Ok(Rc::new(RefCell::new(v.clone()))),

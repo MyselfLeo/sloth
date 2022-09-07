@@ -33,6 +33,7 @@ impl Statement {
                     Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                 };
 
+
                 // The value assigned.
                 // Using this RC directly would lead to 'weird' behavior, like:
                 //      a = 3

@@ -138,14 +138,16 @@ impl ObjectBlueprint for CanvasBlueprint {
         };
 
         // return object
-        Ok(Box::new(Canvas {inner: canvas}))
+        Ok(Box::new(Canvas {inner: Rc::new(RefCell::new(canvas))}))
     }
 }
 
 
 
+
+#[derive(Clone)]
 pub struct Canvas {
-    inner: SDL2Canvas<SDL2Window>,
+    inner: Rc<RefCell<SDL2Canvas<SDL2Window>>>,
 }
 
 
@@ -158,7 +160,7 @@ impl std::fmt::Display for Canvas {
 
 impl SlothObject for Canvas {
     fn box_clone(&self) -> Box<dyn SlothObject> {
-        panic!("Cannot be cloned")
+        Box::new(self.clone())
     }
 
     fn get_signature(&self) -> crate::sloth::structure::StructSignature {
@@ -178,6 +180,6 @@ impl SlothObject for Canvas {
     }
 
     fn rereference(&self) -> Box<dyn SlothObject> {
-        panic!("Cannot be cloned")
+        panic!("Cannot be rereferenced")
     }
 }
