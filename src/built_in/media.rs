@@ -30,7 +30,7 @@ pub fn get_type(builtin: &String) -> Result<BuiltinTypes, String> {
 
         "Canvas" => Ok(BuiltinTypes::Structure),
 
-        _ => Err(format!("Builtin '{builtin}' not found in module 'graphics'"))
+        _ => Err(format!("Builtin '{builtin}' not found in module 'media'"))
     }
 }
 
@@ -109,7 +109,7 @@ impl ObjectBlueprint for CanvasBlueprint {
     }
 
     fn get_signature(&self) -> StructSignature {
-        StructSignature::new(Some("graphics".to_string()), "Canvas".to_string())
+        StructSignature::new(Some("media".to_string()), "Canvas".to_string())
     }
 
     fn build(&self, given_values: Vec<Rc<RefCell<Value>>>) -> Result<Box<dyn crate::sloth::structure::SlothObject>, String> {
@@ -164,7 +164,7 @@ impl SlothObject for Canvas {
     }
 
     fn get_signature(&self) -> crate::sloth::structure::StructSignature {
-        StructSignature::new(Some("graphics".to_string()), "Canvas".to_string())
+        StructSignature::new(Some("media".to_string()), "Canvas".to_string())
     }
 
     fn get_blueprint(&self) -> Box<dyn ObjectBlueprint> {
