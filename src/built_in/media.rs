@@ -11,7 +11,7 @@ use std::rc::Rc;
 
 use sdl2::render::Canvas as SDL2Canvas;
 use sdl2::video::Window as SDL2Window;
-use sdl2::Sdl;
+use sdl2::{Sdl, event::Event};
 
 
 static mut SDL_CONTEXT: Option<Sdl> = None;
@@ -182,4 +182,48 @@ impl SlothObject for Canvas {
     fn rereference(&self) -> Box<dyn SlothObject> {
         panic!("Cannot be rereferenced")
     }
+}
+
+
+
+
+
+fn event_exit(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
+    let inputs = scope.borrow().get_inputs();
+    if inputs.len() != 0 {
+        let err_msg = format!("Function 'event_exit' requires no argument, given {}", inputs.len());
+        return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None))
+    }
+
+    let called = unsafe {
+        if SDL_CONTEXT.is_none() {
+            SDL_CONTEXT = match sdl2::init() {
+                Ok(v) => Some(v),
+                Err(e) => return Err(Error::new(ErrorMessage::RustError(e.to_string()), None))
+            }
+        };
+
+        let ep = (&SDL_CONTEXT).unwrap().event_pump();
+        let mut event_pump = match ep {
+            Ok(v) => v,
+            Err(e) => return Err(Error::new(ErrorMessage::RustError(e.to_string()), None))
+        };
+
+        // find requested event
+        let mut res = false;
+        for event in event_pump.poll_iter() {
+            match event {
+                Event::Quit {..} => {
+                    res = true;
+                    break;
+                }
+                _ => ()
+            }
+        }
+
+        res
+    };
+
+
+    super::set_return(scope, program, Value::Boolean(called))
 }
