@@ -50,7 +50,7 @@ pub const MODULES: [&str; 8] = [
 /// Note: This struct CAN represent builtins that do not exists (either a fake module or fake builtin)
 #[derive(Clone, PartialEq)]
 pub struct BuiltInImport {
-    module: String,
+    pub module: String,
     builtins: Option<Vec<String>>
 }
 
