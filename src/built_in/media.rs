@@ -18,8 +18,10 @@ static mut SDL_CONTEXT: Option<Sdl> = None;
 
 
 
-pub const BUILTINS: [&str; 1] = [
-    "Canvas"
+pub const BUILTINS: [&str; 2] = [
+    "Canvas",
+
+    "event_exit"
 ];
 
 
@@ -30,6 +32,8 @@ pub fn get_type(builtin: &String) -> Result<BuiltinTypes, String> {
 
         "Canvas" => Ok(BuiltinTypes::Structure),
 
+        "event_exit" => Ok(BuiltinTypes::Function),
+
         _ => Err(format!("Builtin '{builtin}' not found in module 'media'"))
     }
 }
@@ -39,17 +43,15 @@ pub fn get_type(builtin: &String) -> Result<BuiltinTypes, String> {
 /// Return a reference to a new SlothFunction. Panics if the function does not exists
 pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
     match f_name.as_str() {
-        /*
-        "save" => Box::new(
+        "event_exit" => Box::new(
             BuiltInFunction::new(
-                "save",
-                Some("files"),
+                "event_exit",
+                Some("media"),
                 None,
-                Type::Number,
-                save
+                Type::Boolean,
+                event_exit
             )
         ),
-        */
 
         n => panic!("Requested unknown built-in '{}'", n)
     }
@@ -203,7 +205,7 @@ fn event_exit(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(
             }
         };
 
-        let ep = (&SDL_CONTEXT).unwrap().event_pump();
+        let ep = SDL_CONTEXT.as_ref().unwrap().event_pump();
         let mut event_pump = match ep {
             Ok(v) => v,
             Err(e) => return Err(Error::new(ErrorMessage::RustError(e.to_string()), None))
