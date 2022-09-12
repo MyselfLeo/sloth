@@ -191,11 +191,7 @@ impl SlothObject for Canvas {
 
 
 fn event_exit(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
-    let inputs = scope.borrow().get_inputs();
-    if inputs.len() != 0 {
-        let err_msg = format!("Function 'event_exit' requires no argument, given {}", inputs.len());
-        return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None))
-    }
+    super::query_inputs(&scope, vec![], "event_exit")?;
 
     let called = unsafe {
         if SDL_CONTEXT.is_none() {

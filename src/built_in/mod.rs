@@ -270,6 +270,7 @@ impl BuiltInFunction {
 // USEFUL FUNCTIONS
 
 
+/// Set the return value of the scope to the given value
 pub fn set_return(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram, value: Value) -> Result<(), Error> {
     match scope.borrow().get_variable("@return".to_string(), program) {
         Ok(r) => {
@@ -284,4 +285,39 @@ pub fn set_return(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram, value: 
         },
         Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e), None))
     }
+}
+
+
+
+
+/// Specify argument types, return Error if not matched
+pub fn query_inputs(scope: &Rc<RefCell<Scope>>, expected: Vec<Type>, func_name: &str) -> Result<Vec<Value>, Error> {
+    let inputs = scope.borrow().get_inputs();
+
+    if inputs.len() != expected.len() {
+        let err_msg = match expected.len() {
+            0 => format!("Function '{}' requires no arguments, but was given {}", func_name, inputs.len()),
+            1 => format!("Function '{}' requires 1 argument, but was given {}", func_name, inputs.len()),
+            x => format!("Function '{}' requires {} argument(s), but was given {}", func_name, expected.len(), x)
+        };
+        return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
+    }
+
+    let mut res = Vec::new();
+    
+    let mut i = 0;
+    for (given, expected) in std::iter::zip(inputs, expected) {
+        let brrw = given.borrow();
+        if brrw.get_type() != expected {
+            let err_msg = format!("Argument {} of function '{}' must be of type '{}', but was given a value of type '{}'", i, func_name, expected, brrw.get_type());
+            return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
+        }
+        else {
+            res.push(brrw.to_owned())
+        }
+
+        i += 1;
+    }
+
+    Ok(res)
 }

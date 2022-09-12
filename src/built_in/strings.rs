@@ -238,6 +238,8 @@ fn len(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Erro
 
 
 fn insert(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
+
+    
     let scope_borrow = scope.borrow();
 
     let owner_v = scope_borrow.get_variable("@self".to_string(), program).unwrap();
