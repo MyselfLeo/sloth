@@ -204,7 +204,7 @@ fn to_num(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), E
         _ => panic!("Implementation of method 'to_num' for type 'string' was called on a value of another type")
     };
 
-    super::set_return(scope, program, result)?;
+    super::set_return(&scope, program, result)?;
     Ok(())
 }
 
@@ -225,7 +225,7 @@ fn len(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Erro
         _ => panic!("Implementation of method 'len' for type 'string' was called on a value of another type")
     };
 
-    super::set_return(scope, program, result)?;
+    super::set_return(&scope, program, result)?;
     Ok(())
 }
 
@@ -239,47 +239,26 @@ fn len(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Erro
 
 fn insert(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
 
-    
-    let scope_borrow = scope.borrow();
+    let inputs = super::query_inputs(&scope, vec![Type::Number, Type::String], "insert")?;
 
-    let owner_v = scope_borrow.get_variable("@self".to_string(), program).unwrap();
-    let inputs = scope_borrow.get_inputs();
-
-    if inputs.len() != 2 {
-        let err_msg = format!("Called function 'insert' with {} argument(s), but the function requires 2 arguments", inputs.len());
-        return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
-    }
-
-
-    let mut string = match owner_v.borrow().to_owned() {
+    let self_value = super::get_self(&scope, program)?;
+    let mut string = match self_value {
         Value::String(x) => x,
         _ => panic!("Implementation of method 'insert' for type 'string' was called on a value of another type")
     };
 
-
-    let idx = expect_positive_index(inputs.get(0).map(|v| v.borrow().to_owned()), Some(string.len() - 1))?;
-
-
-    let insert_value = match inputs[1].borrow().to_owned() {
-        Value::String(x) => x,
-        v => {
-            let err_msg = format!("Argument 2 of function 'insert' is of type string, given a value of type {}", v.get_type());
-            return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
-        }
-    };
-
-    string.insert_str(idx, &insert_value);
+    let idx = super::expect_natural(inputs[0].clone(), Some((string.len(), "length of string")), 1)?;
     
-    // try to edit owner value
-    let res = match owner_v.try_borrow_mut() {
-        Ok(mut borrow) => {
-            *borrow = Value::String(string);
-            Ok(())
-        },
-        Err(e) => return Err(Error::new(ErrorMessage::RustError(e.to_string()), None))
+
+    let insertion = match &inputs[1] {
+        Value::String(v) => v,
+        _ => panic!()
     };
 
-    res
+
+    string.insert_str(idx, insertion);
+    
+    super::set_self(&scope, program, Value::String(string))
 }
 
 

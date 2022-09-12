@@ -271,8 +271,29 @@ impl BuiltInFunction {
 
 
 /// Set the return value of the scope to the given value
-pub fn set_return(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram, value: Value) -> Result<(), Error> {
+pub fn set_return(scope: &Rc<RefCell<Scope>>, program: &mut SlothProgram, value: Value) -> Result<(), Error> {
     match scope.borrow().get_variable("@return".to_string(), program) {
+        Ok(r) => {
+            // Try to set the value
+            match r.try_borrow_mut() {
+                Ok(mut borrow) => {
+                    *borrow = value;
+                    Ok(())
+                },
+                Err(e) => return Err(Error::new(ErrorMessage::RustError(e.to_string()), None))
+            }
+        },
+        Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e), None))
+    }
+}
+
+
+
+
+
+/// Set the self value of the scope to the given value
+pub fn set_self(scope: &Rc<RefCell<Scope>>, program: &mut SlothProgram, value: Value) -> Result<(), Error> {
+    match scope.borrow().get_variable("@self".to_string(), program) {
         Ok(r) => {
             // Try to set the value
             match r.try_borrow_mut() {
@@ -320,4 +341,45 @@ pub fn query_inputs(scope: &Rc<RefCell<Scope>>, expected: Vec<Type>, func_name: 
     }
 
     Ok(res)
+}
+
+
+
+
+/// Return the given value as a natural. Return Error if not a positive number, panics if not enum object Value::Number
+pub fn expect_natural(value: Value, limit: Option<(usize, &str)>, arg_pos: usize) -> Result<usize, Error> {
+    let res = match value {
+        Value::Number(x) => {
+            if x < 0.0 {Err(format!("Argument {} cannot be negative ({})", arg_pos, x))}
+
+            else {
+                match limit {
+                    Some((l, reason)) => {
+                        if (x as usize) > l {Err(format!("Argument {} cannot be greater than {} ({})", arg_pos, l + 1, reason))}
+                        else {Ok(x as usize)}
+                    },
+                    None => Ok(x as usize)
+                }
+            }
+        },
+        _ => panic!("expect_natural given a non-Number value"),
+    };
+
+    match res {
+        Ok(u) => Ok(u),
+        Err(e) => Err(Error::new(ErrorMessage::InvalidArguments(e), None))
+    }
+}
+
+
+
+/// Return the value stored by the method's caller
+pub fn get_self(scope: &Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<Value, Error> {
+
+    let value = match scope.borrow().get_variable("@self".to_string(), program) {
+        Ok(v) => v.borrow().to_owned(),
+        Err(e) => return Err(Error::new(ErrorMessage::RustError(e), None)),
+    };
+
+    Ok(value)
 }

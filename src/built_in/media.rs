@@ -223,5 +223,5 @@ fn event_exit(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(
     };
 
 
-    super::set_return(scope, program, Value::Boolean(called))
+    super::set_return(&scope, program, Value::Boolean(called))
 }
