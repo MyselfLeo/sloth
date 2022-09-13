@@ -137,21 +137,22 @@ impl<T: 'static> ObjectToAny for T {
 /// An object with custom behaviors that can be stored in a Value enum. From the point of view of the program, it
 /// behaves like a structure, but it can have other features hidden from the user.
 pub trait SlothObject: ObjectToAny + std::fmt::Display {
-    fn box_clone(&self) -> Box<dyn SlothObject>;
     fn get_signature(&self) -> StructSignature;
     fn get_blueprint(&self) -> Box<dyn ObjectBlueprint>;
     fn get_field(&self, field_name: &String) -> Result<Rc<RefCell<Value>>, String>;
     fn get_fields(&self) -> (Vec<String>, Vec<Rc<RefCell<Value>>>);
 
     /// Return a clone of the object, with all its inner values re-allocated
-    fn rereference(&self) -> Box<dyn SlothObject>;
+    fn rereference(&self) -> Result<Box<dyn SlothObject>, String>;
 }
 
 
 
 impl Clone for Box<dyn SlothObject> {
+    #[track_caller]
     fn clone(&self) -> Box<dyn SlothObject> {
-        self.box_clone()
+        println!("SLOTHOBJECT CLONE called from {:?}", std::panic::Location::caller());
+        self.rereference().expect("Called clone but rereference failed")
     }
 }
 
@@ -209,10 +210,6 @@ impl StructureObject {
 }
 
 impl SlothObject for StructureObject {
-    fn box_clone(&self) -> Box<dyn SlothObject> {
-        Box::new(self.clone())
-    }
-
     fn get_signature(&self) -> StructSignature {
         self.definition.signature.clone()
     }
@@ -242,13 +239,13 @@ impl SlothObject for StructureObject {
         res
     }
 
-    fn rereference(&self) -> Box<dyn SlothObject> {
+    fn rereference(&self) -> Result<Box<dyn SlothObject>, String> {
         let mut new_fields = HashMap::new();
         for (k,v) in &self.fields {
-            new_fields.insert(k.clone(), v.borrow().to_owned().rereference());
+            new_fields.insert(k.clone(), v.borrow().rereference()?);
         };
 
-        Box::new(StructureObject::new(self.definition.clone(), new_fields))
+        Ok(Box::new(StructureObject::new(self.definition.clone(), new_fields)))
     }
 }
 
@@ -257,7 +254,7 @@ impl std::fmt::Display for StructureObject {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let fields = self.get_fields();
         let fields_str = zip(fields.0, fields.1)
-                                .map(|(s, v)| format!("{s}: {}", v.borrow().to_owned()))
+                                .map(|(s, v)| format!("{s}: {}", v.borrow()))
                                 .collect::<Vec<String>>()
                                 .join(", ");
         write!(f, "{} ({})", self.get_signature().name, fields_str)

@@ -163,10 +163,6 @@ pub struct Duration {
 }
 
 impl SlothObject for Duration {
-    fn box_clone(&self) -> Box<dyn SlothObject> {
-        Box::new(self.clone())
-    }
-
     fn get_signature(&self) -> StructSignature {
         StructSignature {module: Some("clock".to_string()), name: "Duration".to_string()}
     }
@@ -189,8 +185,8 @@ impl SlothObject for Duration {
         (Vec::new(), Vec::new())
     }
 
-    fn rereference(&self) -> Box<dyn SlothObject> {
-        Box::new(self.clone())
+    fn rereference(&self) -> Result<Box<dyn SlothObject>, String> {
+        Ok(Box::new(self.clone()))
     }
 }
 
@@ -234,10 +230,6 @@ pub struct Date {
 }
 
 impl SlothObject for Date {
-    fn box_clone(&self) -> Box<dyn SlothObject> {
-        Box::new(self.clone())
-    }
-
     fn get_signature(&self) -> StructSignature {
         StructSignature::new(Some("file".to_string()), "Instant".to_string())
     }
@@ -260,8 +252,8 @@ impl SlothObject for Date {
         (Vec::new(), Vec::new())
     }
 
-    fn rereference(&self) -> Box<dyn SlothObject> {
-        Box::new(self.clone())
+    fn rereference(&self) -> Result<Box<dyn SlothObject>, String> {
+        Ok(Box::new(self.clone()))
     }
 }
 

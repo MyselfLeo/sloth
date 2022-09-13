@@ -142,7 +142,6 @@ impl Expression {
                     Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                 };
 
-
                 let inputs_ref_or_cloned: Vec<bool> = match function.get_signature().input_types {
                     Some(v) => v.iter().map(|(_, b)| *b).collect(),
                     None => vec![true; param.len()]
@@ -157,13 +156,15 @@ impl Expression {
                     };
 
                     let mut value = expr.evaluate(scope.clone(), program)?;
-                    
 
 
                     // if the values are cloned, allocate a new Value instead of using the reference given by expr.evaluate()
                     if !inputs_ref_or_cloned[i] {
-                        let cloned_value = value.borrow().to_owned().rereference();
-                        value = cloned_value;
+                        let cloned_value = value.borrow().rereference();
+                        value = match cloned_value {
+                            Ok(v) => v,
+                            Err(e) => return Err(Error::new(ErrorMessage::RustError(e), Some(p.clone())))
+                        };
                     }
 
                     match func_scope.try_borrow_mut() {

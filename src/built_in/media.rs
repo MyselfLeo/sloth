@@ -196,10 +196,6 @@ impl std::fmt::Display for Canvas {
 
 
 impl SlothObject for Canvas {
-    fn box_clone(&self) -> Box<dyn SlothObject> {
-        Box::new(self.clone())
-    }
-
     fn get_signature(&self) -> crate::sloth::structure::StructSignature {
         StructSignature::new(Some("media".to_string()), "Canvas".to_string())
     }
@@ -216,12 +212,10 @@ impl SlothObject for Canvas {
         (Vec::new(), Vec::new())
     }
 
-    fn rereference(&self) -> Box<dyn SlothObject> {
-        panic!("Cannot be rereferenced")
+    fn rereference(&self) -> Result<Box<dyn SlothObject>, String> {
+        Err("Canvas cannot be copied: you must use it as a reference (define myfunc: ~Canvas -> ...)".to_string())
     }
 }
-
-
 
 
 

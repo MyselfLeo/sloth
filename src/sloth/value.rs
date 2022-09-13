@@ -10,7 +10,7 @@ use super::structure::SlothObject;
 /// Returns a smart pointer (Rc<RefCell<V>>) to the object,
 /// with all its inner values rereferences the same way
 pub trait RecursiveRereference {
-    fn rereference(&self) -> Rc<RefCell<Self>>;
+    fn rereference(&self) -> Result<Rc<RefCell<Self>>, String>;
 }
 
 
@@ -18,7 +18,7 @@ pub trait RecursiveRereference {
 
 
 
-#[derive(Clone)]
+//#[derive(Clone)]
 pub enum Value {
     Number(f64),
     Boolean(bool),
@@ -61,21 +61,37 @@ impl std::fmt::Debug for Value {
 
 
 impl RecursiveRereference for Value {
-    fn rereference(&self) -> Rc<RefCell<Self>> {
+    fn rereference(&self) -> Result<Rc<RefCell<Value>>, String> {
         let new_value = match self {
             Self::Number(_) => self.clone(),
             Self::Boolean(_) => self.clone(),
             Self::String(_) => self.clone(),
             Self::List(t, v) => {
-                let new_vec: Vec<Rc<RefCell<Value>>> = v.iter()
-                                                        .map(|r| r.borrow().to_owned().rereference())
+                let new_vec: Result<Vec<Rc<RefCell<Value>>>, String> = v.iter()
+                                                        .map(|r| r.borrow().rereference())
                                                         .collect();
-                Value::List(t.clone(), new_vec)
+                Value::List(t.clone(), new_vec?)
             },
-            Self::Object(o) => Value::Object(o.rereference()),
+            Self::Object(o) => Value::Object(o.rereference()?),
         };
 
-        Rc::new(RefCell::new(new_value))
+        Ok(Rc::new(RefCell::new(new_value)))
+    }
+}
+
+
+impl Clone for Value {
+    #[track_caller]
+    fn clone(&self) -> Self {
+        let caller_location = std::panic::Location::caller();
+        println!("called from {:?}", caller_location);
+        match self {
+            Self::Number(arg0) => Self::Number(arg0.clone()),
+            Self::Boolean(arg0) => Self::Boolean(arg0.clone()),
+            Self::String(arg0) => Self::String(arg0.clone()),
+            Self::List(arg0, arg1) => Self::List(arg0.clone(), arg1.clone()),
+            Self::Object(arg0) => Self::Object(arg0.clone()),
+        }
     }
 }
 
