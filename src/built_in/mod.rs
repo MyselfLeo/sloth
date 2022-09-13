@@ -347,18 +347,18 @@ pub fn query_inputs(scope: &Rc<RefCell<Scope>>, expected: Vec<Type>, func_name: 
 
 
 /// Return the given value as a natural. Return Error if not a positive number, panics if not enum object Value::Number
-pub fn expect_natural(value: Value, limit: Option<(usize, &str)>, arg_pos: usize) -> Result<usize, Error> {
+pub fn expect_natural(value: &Value, limit: Option<(usize, &str)>, arg_pos: usize) -> Result<usize, Error> {
     let res = match value {
         Value::Number(x) => {
-            if x < 0.0 {Err(format!("Argument {} cannot be negative ({})", arg_pos, x))}
+            if *x < 0.0 {Err(format!("Argument {} cannot be negative ({})", arg_pos, x))}
 
             else {
                 match limit {
                     Some((l, reason)) => {
-                        if (x as usize) > l {Err(format!("Argument {} cannot be greater than {} ({})", arg_pos, l + 1, reason))}
-                        else {Ok(x as usize)}
+                        if (*x as usize) > l {Err(format!("Argument {} cannot be greater than {} ({})", arg_pos, l + 1, reason))}
+                        else {Ok(*x as usize)}
                     },
-                    None => Ok(x as usize)
+                    None => Ok(*x as usize)
                 }
             }
         },

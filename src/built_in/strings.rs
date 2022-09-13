@@ -247,7 +247,7 @@ fn insert(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), E
     };
 
 
-    let idx = super::expect_natural(inputs[0].clone(), Some((string.len(), "length of string")), 1)?;
+    let idx = super::expect_natural(&inputs[0], Some((string.len(), "length of string")), 1)?;
     
     let insertion = match &inputs[1] {
         Value::String(v) => v,
@@ -273,7 +273,7 @@ fn push(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Err
     };
 
 
-    let insert_value = match inputs[0] {
+    let insert_value = match &inputs[0] {
         Value::String(x) => x,
         _ => panic!()
     };
@@ -301,7 +301,7 @@ fn remove(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), E
         _ => panic!("Implementation of method 'remove' for type 'string' was called on a value of another type")
     };
 
-    let idx = super::expect_natural(inputs[0], Some((string.len(), "string length")), 0)?;
+    let idx = super::expect_natural(&inputs[0], Some((string.len(), "string length")), 0)?;
     string.remove(idx);
     
     super::set_self(&scope, program, Value::String(string))

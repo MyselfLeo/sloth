@@ -280,31 +280,22 @@ impl std::fmt::Display for Date {
 
 /// Return an Instant representing now
 fn now(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
-    let inputs = scope.borrow().get_inputs();
+    super::query_inputs(&scope, vec![], "now")?;
 
-    if inputs.len() != 0 {
-        let err_msg = format!("Called function 'load' with {} argument(s), but the function requires no arguments", inputs.len());
-        return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
-    }
-
-    super::set_return(scope, program, Value::Object(Box::new(Date {inner: time::Instant::now()})))
+    let instant = Box::new(Date {inner: time::Instant::now()});
+    super::set_return(&scope, program, Value::Object(instant))
 }
 
 
 
 /// Return a Duration between the given Date and now
 fn since(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
-    let inputs = scope.borrow().get_inputs();
-
-    if inputs.len() != 0 {
-        let err_msg = format!("Called function 'since' with {} argument(s), but the function requires no arguments", inputs.len());
-        return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
-    }
+    super::query_inputs(&scope, vec![], "now")?;
 
     // This should be an Instant object
-    let value = scope.borrow().get_variable("@self".to_string(), program).unwrap();
+    let value_self = super::get_self(&scope, program)?;
 
-    let duration = match value.borrow().to_owned() {
+    let duration = match value_self {
         Value::Object(reference) => {
             let mut any = reference.to_owned();
             let object = match any.as_any().downcast_ref::<Date>() {
@@ -319,7 +310,8 @@ fn since(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Er
         }
     };
 
-    super::set_return(scope, program, Value::Object(Box::new(Duration {inner: duration})))
+    let res = Box::new(Duration {inner: duration});
+    super::set_return(&scope, program, Value::Object(res))
 }
 
 
@@ -328,29 +320,20 @@ fn since(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Er
 
 /// Pauses the execution for the given duration in seconds
 fn sleep(scope: Rc<RefCell<Scope>>, _: &mut SlothProgram) -> Result<(), Error> {
-    let inputs = scope.borrow().get_inputs();
+    let inputs = super::query_inputs(&scope, vec![Type::Number], "sleep")?;
 
-    if inputs.len() != 1 {
-        let err_msg = format!("Called function 'sleep' with {} argument(s), but the function requires 1 argument", inputs.len());
-        return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
-    }
-
-    match inputs[0].borrow().to_owned() {
+    match inputs[0] {
         Value::Number(x) => {
             if x < 0.0 {
                 let err_msg = format!("Cannot wait for a negative duration ({})", x);
-                return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
+                Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None))
             }
-
-            // The sleep occurs here
-            thread::sleep(duration_from_sec_f64(x))
+            else {
+                // The sleep occurs here
+                thread::sleep(duration_from_sec_f64(x));
+                Ok(())
+            }
         },
-        v => {
-            let err_msg = format!("Argument 1 of function 'sleep' is of type Number, given a value of type {}", v.get_type());
-            return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
-        }
+        _ => panic!("query_inputs failed")
     }
-
-
-    Ok(())
 }
