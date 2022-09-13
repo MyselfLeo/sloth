@@ -172,20 +172,20 @@ impl PartialEq for Box<dyn SlothObject> {
 
 
 /*
-
-pub trait Downcast {
-    fn downcast<T>(&mut self) -> Result<T, String>;
+pub trait Downcast: ObjectToAny {
+    fn downcast<T>(&mut self) -> Result<&T, String> where T: 'static;
 }
 
 impl Downcast for Box<dyn SlothObject> {
-    fn downcast<T>(&mut self) -> Result<T, String> {
+    fn downcast<T>(&mut self) -> Result<&T, String> where T: 'static {
         match self.as_any().downcast_ref::<T>() {
-            Some(v) => Ok(*v),
+            Some(v) => Ok(v),
             None => Err(format!("Unable to downcast given SlothObject into {:?}", std::any::type_name::<T>()))
         }
     }
 }
- */
+*/
+
 
 
 
