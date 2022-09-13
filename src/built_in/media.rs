@@ -9,6 +9,7 @@ use super::{BuiltInFunction, BuiltinTypes};
 use std::cell::RefCell;
 use std::rc::Rc;
 
+use sdl2::rect::Rect;
 use sdl2::render::Canvas as SDL2Canvas;
 use sdl2::video::Window as SDL2Window;
 use sdl2::{Sdl, event::Event};
@@ -18,12 +19,13 @@ static mut SDL_CONTEXT: Option<Sdl> = None;
 
 
 
-pub const BUILTINS: [&str; 4] = [
+pub const BUILTINS: [&str; 5] = [
     "Canvas",
 
     "event_exit",
     "update",
-    "set_pixel"
+    "set_pixel",
+    "set_rect"
 ];
 
 
@@ -35,6 +37,7 @@ pub fn get_type(builtin: &String) -> Result<BuiltinTypes, String> {
         "event_exit" => Ok(BuiltinTypes::Function),
         "update" => Ok(BuiltinTypes::Function),
         "set_pixel" => Ok(BuiltinTypes::Function),
+        "set_rect" => Ok(BuiltinTypes::Function),
 
         _ => Err(format!("Builtin '{builtin}' not found in module 'media'"))
     }
@@ -72,6 +75,16 @@ pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
                 Some(Type::Object("Canvas".to_string())),
                 Type::Number,
                 set_pixel
+            )
+        ),
+
+        "set_rect" => Box::new(
+            BuiltInFunction::new(
+                "set_rect",
+                Some("media"),
+                Some(Type::Object("Canvas".to_string())),
+                Type::Number,
+                set_rect
             )
         ),
 
@@ -309,6 +322,58 @@ fn set_pixel(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<()
         Ok(mut reference) => {
             reference.set_draw_color((r, g, b));
             match reference.draw_point((x, y)) {
+                Ok(()) => Ok(()),
+                Err(e) => Err(Error::new(ErrorMessage::RustError(e.to_string()), None))
+            }
+        },
+        Err(e) => Err(Error::new(ErrorMessage::RustError(e.to_string()), None)),
+    };
+    
+    res
+}
+
+
+
+
+
+
+
+
+
+
+
+fn set_rect(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
+    let value_self = super::get_self(&scope, program)?;
+    let inputs = super::query_inputs(&scope, vec![Type::Number, Type::Number, Type::Number, Type::Number, Type::Number, Type::Number, Type::Number], "set_pixel")?;
+
+    let mut obj = match value_self {
+        Value::Object(obj) => {obj},
+        _ => panic!()
+    };
+    let canvas = match obj.as_any().downcast_ref::<Canvas>() {
+        Some(v) => v,
+        None => return Err(Error::new(ErrorMessage::RustError("here".to_string()), None))
+    };
+
+
+    let window_size = canvas.inner.borrow().window().size();
+
+
+    let x = super::expect_natural(&inputs[0], Some((window_size.0 as usize, "Window width")), 0)? as i32;
+    let y = super::expect_natural(&inputs[1], Some((window_size.1 as usize, "Window height")), 1)? as i32;
+    
+    let width = super::expect_natural(&inputs[2], None, 2)? as u32;
+    let height = super::expect_natural(&inputs[3], None, 3)? as u32;
+
+    let r = super::expect_natural(&inputs[4], None, 4)? as u8;
+    let g = super::expect_natural(&inputs[5], None,5)? as u8;
+    let b = super::expect_natural(&inputs[6], None, 6)? as u8;
+
+
+    let res = match canvas.inner.try_borrow_mut() {
+        Ok(mut reference) => {
+            reference.set_draw_color((r, g, b));
+            match reference.draw_rect(Rect::new(x, y, width, height)) {
                 Ok(()) => Ok(()),
                 Err(e) => Err(Error::new(ErrorMessage::RustError(e.to_string()), None))
             }
