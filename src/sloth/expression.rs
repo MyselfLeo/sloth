@@ -5,7 +5,7 @@ use super::function::{FunctionSignature};
 use super::statement::IdentifierWrapper;
 use super::structure::{StructSignature};
 use super::types::Type;
-use super::value::{Value, RecursiveRereference};
+use super::value::{Value, DeepClone};
 use super::operator::{Operator, apply_op};
 use super::scope::Scope;
 use super::program::SlothProgram;
@@ -160,10 +160,10 @@ impl Expression {
 
                     // if the values are cloned, allocate a new Value instead of using the reference given by expr.evaluate()
                     if !inputs_ref_or_cloned[i] {
-                        let cloned_value = value.borrow().rereference();
+                        let cloned_value = value.borrow().deep_clone();
                         value = match cloned_value {
                             Ok(v) => v,
-                            Err(e) => return Err(Error::new(ErrorMessage::RustError(e), Some(p.clone())))
+                            Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))
                         };
                     }
 

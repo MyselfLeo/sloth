@@ -185,7 +185,11 @@ impl SlothObject for Duration {
         (Vec::new(), Vec::new())
     }
 
-    fn rereference(&self) -> Result<Box<dyn SlothObject>, String> {
+    fn shallow_clone(&self) -> Box<dyn SlothObject> {
+        Box::new(self.clone())
+    }
+
+    fn deep_clone(&self) -> Result<Box<dyn SlothObject>, String> {
         Ok(Box::new(self.clone()))
     }
 }
@@ -252,7 +256,11 @@ impl SlothObject for Date {
         (Vec::new(), Vec::new())
     }
 
-    fn rereference(&self) -> Result<Box<dyn SlothObject>, String> {
+    fn shallow_clone(&self) -> Box<dyn SlothObject> {
+        Box::new(self.clone())
+    }
+
+    fn deep_clone(&self) -> Result<Box<dyn SlothObject>, String> {
         Ok(Box::new(self.clone()))
     }
 }

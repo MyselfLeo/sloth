@@ -6,7 +6,7 @@ use crate::tokenizer::ElementPosition;
 use super::expression::ExpressionID;
 use super::scope::Scope;
 use super::program::SlothProgram;
-use super::value::{Value, RecursiveRereference};
+use super::value::{Value, DeepClone};
 
 /// Statements are instructions that modify a scope (variable assignment for example)
 #[derive(Clone, Debug)]
@@ -42,7 +42,7 @@ impl Statement {
                 //      =>   b == 1 (true)
                 // so, we reallocate a copy (if possible) of the inner value so it is not subject to changes
                 let reference = expr.evaluate(scope.clone(), program)?;
-                let value = match reference.clone().borrow().rereference() {
+                let value = match reference.clone().borrow().deep_clone() {
                     Ok(v) => v, 
                     Err(_) => reference
                 };
@@ -85,7 +85,6 @@ impl Statement {
                             }
 
                             // Try to set the value
-                            println!("88 statement.rs");
                             match reference.try_borrow_mut() {
                                 Ok(mut borrow) => *borrow = value.borrow().to_owned(),
                                 Err(e) => return Err(Error::new(ErrorMessage::RustError(e.to_string()), Some(p.clone())))
@@ -117,8 +116,6 @@ impl Statement {
                 };
 
                 let cond_value = expr.evaluate(scope.clone(), program)?;
-                
-                println!("121 statement.rs");
                 match cond_value.borrow().to_owned() {
                     Value::Boolean(true) => {
                         for statement in statements {statement.apply(scope.clone(), program)?}
@@ -140,7 +137,6 @@ impl Statement {
                 
                 while loop_cond {
                     for statement in statements {statement.apply(scope.clone(), program)?}
-                    println!("144 statement.rs");
                     loop_cond = expr.evaluate(scope.clone(), program)?.borrow().to_owned() == Value::Boolean(true);
                 }
 

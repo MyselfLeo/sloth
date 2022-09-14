@@ -212,7 +212,11 @@ impl SlothObject for Canvas {
         (Vec::new(), Vec::new())
     }
 
-    fn rereference(&self) -> Result<Box<dyn SlothObject>, String> {
+    fn shallow_clone(&self) -> Box<dyn SlothObject> {
+        Box::new(Canvas {inner: self.inner.clone()})
+    }
+
+    fn deep_clone(&self) -> Result<Box<dyn SlothObject>, String> {
         Err("Canvas cannot be copied: you must use it as a reference (define myfunc: ~Canvas -> ...)".to_string())
     }
 }

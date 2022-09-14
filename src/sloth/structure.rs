@@ -7,7 +7,7 @@ use std::iter::zip;
 use crate::sloth::types::Type;
 use crate::sloth::value::Value;
 
-use super::value::RecursiveRereference;
+use super::value::DeepClone;
 
 
 
@@ -142,8 +142,11 @@ pub trait SlothObject: ObjectToAny + std::fmt::Display {
     fn get_field(&self, field_name: &String) -> Result<Rc<RefCell<Value>>, String>;
     fn get_fields(&self) -> (Vec<String>, Vec<Rc<RefCell<Value>>>);
 
+
+    /// Return a clone of the object, without reallocating its inner values
+    fn shallow_clone(&self) -> Box<dyn SlothObject>;
     /// Return a clone of the object, with all its inner values re-allocated
-    fn rereference(&self) -> Result<Box<dyn SlothObject>, String>;
+    fn deep_clone(&self) -> Result<Box<dyn SlothObject>, String>;
 }
 
 
@@ -151,8 +154,7 @@ pub trait SlothObject: ObjectToAny + std::fmt::Display {
 impl Clone for Box<dyn SlothObject> {
     #[track_caller]
     fn clone(&self) -> Box<dyn SlothObject> {
-        println!("SLOTHOBJECT CLONE called from {:?}", std::panic::Location::caller());
-        self.rereference().expect("Called clone but rereference failed")
+        self.shallow_clone()
     }
 }
 
@@ -165,6 +167,7 @@ impl PartialEq for Box<dyn SlothObject> {
         let other_fields = other.get_fields().1;
 
         for i in 0..self_fields.len() {
+            println!("at comparaison");
             if self_fields[i].borrow().to_owned() != other_fields[i].borrow().to_owned() {return false}
         }
         true
@@ -239,10 +242,14 @@ impl SlothObject for StructureObject {
         res
     }
 
-    fn rereference(&self) -> Result<Box<dyn SlothObject>, String> {
+    fn shallow_clone(&self) -> Box<dyn SlothObject> {
+        Box::new(self.clone())
+    }
+
+    fn deep_clone(&self) -> Result<Box<dyn SlothObject>, String> {
         let mut new_fields = HashMap::new();
         for (k,v) in &self.fields {
-            new_fields.insert(k.clone(), v.borrow().rereference()?);
+            new_fields.insert(k.clone(), v.borrow().deep_clone()?);
         };
 
         Ok(Box::new(StructureObject::new(self.definition.clone(), new_fields)))
