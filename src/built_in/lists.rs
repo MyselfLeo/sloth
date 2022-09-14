@@ -117,36 +117,6 @@ pub fn get_struct(s_name: String) -> (Box<dyn ObjectBlueprint>, Vec<String>) {
 
 
 
-/// Check if the given value is Some and is a positive number (>= 0). Returns it as usize or an error string if it's not the case. Optional limit
-pub fn expect_positive_index(value: Option<Value>, limit: Option<usize>) -> Result<usize, Error> {
-    let res = match value {
-        Some(Value::Number(x)) => {
-            if (x as i128) < 0 {Err(format!("Cannot use a negative index ({}) to access a list", x as i128))}
-
-            else {
-                match limit {
-                    Some(l) => {
-                        if (x as usize) > l {Err(format!("Tried to set the {}th element of a list of only {} elements", x as usize, l + 1))}
-                        else {Ok(x as usize)}
-                    },
-                    None => Ok(x as usize)
-                }
-            }
-        },
-        Some(v) => Err(format!("Tried to index a list with an expression of type '{}'", v.get_type())),
-        None => Err(format!("Expected an index"))
-    };
-
-    match res {
-        Ok(u) => Ok(u),
-        Err(e) => Err(Error::new(ErrorMessage::InvalidArguments(e), None))
-    }
-}
-
-
-
-
-
 
 
 
@@ -326,7 +296,7 @@ fn len(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Erro
     let list_self = super::get_self(&scope, program)?;
 
     let list_vec = match list_self {
-        Value::List(t, v) => v,
+        Value::List(_, v) => v,
         _ => panic!("Called 'set' on a value which is not a list")
     };
     super::set_return(&scope, program, Value::Number(list_vec.len() as f64))?;

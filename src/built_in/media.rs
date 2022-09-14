@@ -190,7 +190,7 @@ pub struct Canvas {
 
 impl std::fmt::Display for Canvas {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        write!(f, "Canvas Object")
     }
 }
 
@@ -204,7 +204,7 @@ impl SlothObject for Canvas {
         Box::new(CanvasBlueprint {})
     }
 
-    fn get_field(&self, field_name: &String) -> Result<Rc<RefCell<Value>>, String> {
+    fn get_field(&self, _: &String) -> Result<Rc<RefCell<Value>>, String> {
         Err(format!("No fields in Canvas"))
     }
 
