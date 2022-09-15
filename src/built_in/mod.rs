@@ -15,7 +15,7 @@ pub mod lists;
 pub mod maths;
 pub mod files;
 pub mod clock;
-
+pub mod media;
 
 
 
@@ -28,14 +28,15 @@ pub enum BuiltinTypes {
 
 
 
-pub const MODULES: [&str; 7] = [
+pub const MODULES: [&str; 8] = [
     "io",
     "numbers",
     "strings",
     "lists",
     "maths",
     "files",
-    "clock"
+    "clock",
+    "media"
 ];
 
 
@@ -49,7 +50,7 @@ pub const MODULES: [&str; 7] = [
 /// Note: This struct CAN represent builtins that do not exists (either a fake module or fake builtin)
 #[derive(Clone, PartialEq)]
 pub struct BuiltInImport {
-    module: String,
+    pub module: String,
     builtins: Option<Vec<String>>
 }
 
@@ -78,6 +79,7 @@ impl BuiltInImport {
                     "maths" => maths::BUILTINS.to_vec(),
                     "files" => files::BUILTINS.to_vec(),
                     "clock" => clock::BUILTINS.to_vec(),
+                    "media" => media::BUILTINS.to_vec(),
                     _ => panic!("Trying to access builtins of module '{}', which do not exists", self.module)
                 };
 
@@ -131,6 +133,7 @@ pub fn collapse_imports(mut imports: Vec<BuiltInImport>) -> Result<(Vec<Box<dyn 
                     "maths" => maths::BUILTINS.to_vec(),
                     "files" => files::BUILTINS.to_vec(),
                     "clock" => clock::BUILTINS.to_vec(),
+                    "media" => media::BUILTINS.to_vec(),
                     _ => panic!()
                 };
 
@@ -155,6 +158,7 @@ pub fn collapse_imports(mut imports: Vec<BuiltInImport>) -> Result<(Vec<Box<dyn 
                     "maths" => maths::get_type(&bi),
                     "files" => files::get_type(&bi),
                     "clock" => clock::get_type(&bi),
+                    "media" => media::get_type(&bi),
                     _ => panic!()
                 }?;
 
@@ -169,6 +173,7 @@ pub fn collapse_imports(mut imports: Vec<BuiltInImport>) -> Result<(Vec<Box<dyn 
                             "maths" => maths::get_function(bi),
                             "files" => files::get_function(bi),
                             "clock" => clock::get_function(bi),
+                            "media" => media::get_function(bi),
                             _ => panic!()
                         };
                         funcs.push(f);
@@ -183,6 +188,7 @@ pub fn collapse_imports(mut imports: Vec<BuiltInImport>) -> Result<(Vec<Box<dyn 
                             "maths" => maths::get_struct(bi),
                             "files" => files::get_struct(bi),
                             "clock" => clock::get_struct(bi),
+                            "media" => media::get_struct(bi),
                             _ => panic!()
                         };
 
@@ -264,7 +270,8 @@ impl BuiltInFunction {
 // USEFUL FUNCTIONS
 
 
-pub fn set_return(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram, value: Value) -> Result<(), Error> {
+/// Set the return value of the scope to the given value
+pub fn set_return(scope: &Rc<RefCell<Scope>>, program: &mut SlothProgram, value: Value) -> Result<(), Error> {
     match scope.borrow().get_variable("@return".to_string(), program) {
         Ok(r) => {
             // Try to set the value
@@ -278,4 +285,100 @@ pub fn set_return(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram, value: 
         },
         Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e), None))
     }
+}
+
+
+
+
+
+/// Set the self value of the scope to the given value
+pub fn set_self(scope: &Rc<RefCell<Scope>>, program: &mut SlothProgram, value: Value) -> Result<(), Error> {
+    match scope.borrow().get_variable("@self".to_string(), program) {
+        Ok(r) => {
+            // Try to set the value
+            match r.try_borrow_mut() {
+                Ok(mut borrow) => {
+                    *borrow = value;
+                    Ok(())
+                },
+                Err(e) => return Err(Error::new(ErrorMessage::RustError(e.to_string()), None))
+            }
+        },
+        Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e), None))
+    }
+}
+
+
+
+
+/// Specify argument types, return Error if not matched
+pub fn query_inputs(scope: &Rc<RefCell<Scope>>, expected: Vec<Type>, func_name: &str) -> Result<Vec<Value>, Error> {
+    let inputs = scope.borrow().get_inputs();
+
+    if inputs.len() != expected.len() {
+        let err_msg = match expected.len() {
+            0 => format!("Function '{}' requires no arguments, but was given {}", func_name, inputs.len()),
+            1 => format!("Function '{}' requires 1 argument, but was given {}", func_name, inputs.len()),
+            x => format!("Function '{}' requires {} argument(s), but was given {}", func_name, expected.len(), x)
+        };
+        return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
+    }
+
+    let mut res = Vec::new();
+    
+    let mut i = 0;
+    for (given, expected) in std::iter::zip(inputs, expected) {
+        let brrw = given.borrow();
+        if brrw.get_type() != expected {
+            let err_msg = format!("Argument {} of function '{}' must be of type '{}', but was given a value of type '{}'", i, func_name, expected, brrw.get_type());
+            return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
+        }
+        else {
+            res.push(brrw.to_owned())
+        }
+
+        i += 1;
+    }
+
+    Ok(res)
+}
+
+
+
+
+/// Return the given value as a natural. Return Error if not a positive number, panics if not enum object Value::Number
+pub fn expect_natural(value: &Value, limit: Option<(usize, &str)>, arg_pos: usize) -> Result<usize, Error> {
+    let res = match value {
+        Value::Number(x) => {
+            if *x < 0.0 {Err(format!("Argument {} cannot be negative ({})", arg_pos, x))}
+
+            else {
+                match limit {
+                    Some((l, reason)) => {
+                        if (*x as usize) > l {Err(format!("Argument {} cannot be greater than {} ({})", arg_pos, l + 1, reason))}
+                        else {Ok(*x as usize)}
+                    },
+                    None => Ok(*x as usize)
+                }
+            }
+        },
+        _ => panic!("expect_natural given a non-Number value"),
+    };
+
+    match res {
+        Ok(u) => Ok(u),
+        Err(e) => Err(Error::new(ErrorMessage::InvalidArguments(e), None))
+    }
+}
+
+
+
+/// Return the value stored by the method's caller
+pub fn get_self(scope: &Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<Value, Error> {
+    let value = match scope.borrow().get_variable("@self".to_string(), program) {
+        Ok(v) => v.borrow().to_owned(),
+        Err(e) => return Err(Error::new(ErrorMessage::RustError(e), None)),
+    };
+
+    Ok(value)
 }

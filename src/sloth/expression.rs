@@ -5,7 +5,7 @@ use super::function::{FunctionSignature};
 use super::statement::IdentifierWrapper;
 use super::structure::{StructSignature};
 use super::types::Type;
-use super::value::{Value, RecursiveRereference};
+use super::value::{Value, DeepClone};
 use super::operator::{Operator, apply_op};
 use super::scope::Scope;
 use super::program::SlothProgram;
@@ -43,6 +43,7 @@ pub enum Expression {
 impl Expression {
     /// Evaluate the expression in the given context (scope and program) and return its value
     pub unsafe fn evaluate(&self, scope: Rc<RefCell<Scope>>, program: *mut SlothProgram) -> Result<Rc<RefCell<Value>>, Error> {
+
         match self {
             // return this literal value
             Expression::Literal(v, _) => Ok(Rc::new(RefCell::new(v.clone()))),
@@ -141,7 +142,6 @@ impl Expression {
                     Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                 };
 
-
                 let inputs_ref_or_cloned: Vec<bool> = match function.get_signature().input_types {
                     Some(v) => v.iter().map(|(_, b)| *b).collect(),
                     None => vec![true; param.len()]
@@ -156,13 +156,15 @@ impl Expression {
                     };
 
                     let mut value = expr.evaluate(scope.clone(), program)?;
-                    
 
 
                     // if the values are cloned, allocate a new Value instead of using the reference given by expr.evaluate()
                     if !inputs_ref_or_cloned[i] {
-                        let cloned_value = value.borrow().to_owned().rereference();
-                        value = cloned_value;
+                        let cloned_value = value.borrow().deep_clone();
+                        value = match cloned_value {
+                            Ok(v) => v,
+                            Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))
+                        };
                     }
 
                     match func_scope.try_borrow_mut() {

@@ -32,6 +32,7 @@ pub struct SlothProgram {
     expressions: HashMap<ExpressionID, Expression>,
     expressions_nb: u64,
 
+    imported_modules: Vec<String>,
     builtins: Vec<built_in::BuiltInImport>,
 
     main_scope: Rc<RefCell<Scope>>
@@ -46,6 +47,7 @@ impl SlothProgram {
             expressions: HashMap::new(),
             expressions_nb: 0,
 
+            imported_modules: Vec::new(),
             builtins: Vec::new(),
 
             main_scope: Rc::new(RefCell::new(Scope::new(None)))
@@ -135,6 +137,17 @@ impl SlothProgram {
 
     /// Return the blueprint of the given object name
     pub fn get_struct(&self, signature: &StructSignature) -> Result<Box<dyn ObjectBlueprint>, String> {
+
+        // Check that if the potentially specified module exists
+        match &signature.module {
+            Some(n) => {
+                if !self.imported_modules.contains(n) {
+                    return Err(format!("Unknown module '{}'", n))
+                }
+            },
+            None => ()
+        };
+
         // A perfect fit is found
         match self.structures.get(signature) {
             None => (),
@@ -187,6 +200,9 @@ impl SlothProgram {
     /// Add a new import to the program
     pub fn add_import(&mut self, import: built_in::BuiltInImport) {
         if !self.builtins.contains(&import) {
+            if !self.imported_modules.contains(&import.module) {
+                self.imported_modules.push(import.module.clone())
+            }
             self.builtins.push(import)
         }
     }

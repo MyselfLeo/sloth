@@ -106,27 +106,20 @@ pub fn get_struct(s_name: String) -> (Box<dyn ObjectBlueprint>, Vec<String>) {
 
 
 fn pow(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
-    let scope_borrow = scope.borrow();
+    let value_self = super::get_self(&scope, program)?;
+    let inputs = super::query_inputs(&scope, vec![Type::Number], "pow")?;
 
-    let value = scope_borrow.get_variable("@self".to_string(), program).unwrap();
-    let inputs = scope_borrow.get_inputs();
-
-
-    let power = match inputs.get(0).map(|v| v.borrow().to_owned()) {
-        Some(Value::Number(x)) => x,
-        _ => {
-            let err_msg = "The 'pow' method requires a 'num' input".to_string();
-            return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
-        }
+    let power = match inputs[0] {
+        Value::Number(x) => x,
+        _ => panic!("'query_inputs' failed to meet its little small goal")
     };
 
-    let result = match value.borrow().to_owned() {
+    let result = match value_self {
         Value::Number(x) => Value::Number(x.powf(power)),
         _ => panic!("Implementation of method 'pow' for type 'num' was called on a value of another type")
     };
 
-    super::set_return(scope.clone(), program, result)?;
-    Ok(())
+    super::set_return(&scope, program, result)
 }
 
 
@@ -140,19 +133,18 @@ fn pow(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Erro
 
 
 fn sqrt(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
-    let value = scope.borrow().get_variable("@self".to_string(), program).unwrap();
+    let value_self = super::get_self(&scope, program)?;
 
-    let result = match value.borrow().to_owned() {
+    let result = match value_self {
         Value::Number(x) => {
             if x < 0.0 {
-                return Err(Error::new(ErrorMessage::InvalidArguments(format!("Called sqrt on a negative number ({})", x)), None))
+                let err_msg = format!("Called sqrt on a negative number ({})", x);
+                return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None))
             }
-
             Value::Number(x.sqrt())
         },
         _ => panic!("Implementation of method 'sqrt' for type 'num' was called on a value of another type")
     };
 
-    super::set_return(scope, program, result)?;
-    Ok(())
+    super::set_return(&scope, program, result)
 }

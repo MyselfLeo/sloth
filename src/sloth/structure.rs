@@ -7,7 +7,7 @@ use std::iter::zip;
 use crate::sloth::types::Type;
 use crate::sloth::value::Value;
 
-use super::value::RecursiveRereference;
+use super::value::DeepClone;
 
 
 
@@ -33,7 +33,7 @@ impl StructSignature {
 pub trait ObjectBlueprint {
     fn box_clone(&self) -> Box<dyn ObjectBlueprint>;
     fn get_signature(&self) -> StructSignature;
-    fn build(&self, given_values: Vec<Rc<RefCell<Value>>>) -> Result<Box<dyn SlothObject>, String>;
+    fn build(&self, given_values: Vec<Rc<RefCell<Value>>>) -> Result<Box<dyn SlothObject>, String>; // TODO: Change the Err from String to errors::Error to allow the builder to return any error msg
 }
 
 
@@ -137,21 +137,24 @@ impl<T: 'static> ObjectToAny for T {
 /// An object with custom behaviors that can be stored in a Value enum. From the point of view of the program, it
 /// behaves like a structure, but it can have other features hidden from the user.
 pub trait SlothObject: ObjectToAny + std::fmt::Display {
-    fn box_clone(&self) -> Box<dyn SlothObject>;
     fn get_signature(&self) -> StructSignature;
     fn get_blueprint(&self) -> Box<dyn ObjectBlueprint>;
     fn get_field(&self, field_name: &String) -> Result<Rc<RefCell<Value>>, String>;
     fn get_fields(&self) -> (Vec<String>, Vec<Rc<RefCell<Value>>>);
 
+
+    /// Return a clone of the object, without reallocating its inner values
+    fn shallow_clone(&self) -> Box<dyn SlothObject>;
     /// Return a clone of the object, with all its inner values re-allocated
-    fn rereference(&self) -> Box<dyn SlothObject>;
+    fn deep_clone(&self) -> Result<Box<dyn SlothObject>, String>;
 }
 
 
 
 impl Clone for Box<dyn SlothObject> {
+    #[track_caller]
     fn clone(&self) -> Box<dyn SlothObject> {
-        self.box_clone()
+        self.shallow_clone()
     }
 }
 
@@ -164,11 +167,29 @@ impl PartialEq for Box<dyn SlothObject> {
         let other_fields = other.get_fields().1;
 
         for i in 0..self_fields.len() {
+            println!("at comparaison");
             if self_fields[i].borrow().to_owned() != other_fields[i].borrow().to_owned() {return false}
         }
         true
     }
 }
+
+
+/*
+pub trait Downcast: ObjectToAny {
+    fn downcast<T>(&mut self) -> Result<&T, String> where T: 'static;
+}
+
+impl Downcast for Box<dyn SlothObject> {
+    fn downcast<T>(&mut self) -> Result<&T, String> where T: 'static {
+        match self.as_any().downcast_ref::<T>() {
+            Some(v) => Ok(v),
+            None => Err(format!("Unable to downcast given SlothObject into {:?}", std::any::type_name::<T>()))
+        }
+    }
+}
+*/
+
 
 
 
@@ -192,10 +213,6 @@ impl StructureObject {
 }
 
 impl SlothObject for StructureObject {
-    fn box_clone(&self) -> Box<dyn SlothObject> {
-        Box::new(self.clone())
-    }
-
     fn get_signature(&self) -> StructSignature {
         self.definition.signature.clone()
     }
@@ -225,13 +242,17 @@ impl SlothObject for StructureObject {
         res
     }
 
-    fn rereference(&self) -> Box<dyn SlothObject> {
+    fn shallow_clone(&self) -> Box<dyn SlothObject> {
+        Box::new(self.clone())
+    }
+
+    fn deep_clone(&self) -> Result<Box<dyn SlothObject>, String> {
         let mut new_fields = HashMap::new();
         for (k,v) in &self.fields {
-            new_fields.insert(k.clone(), v.borrow().to_owned().rereference());
+            new_fields.insert(k.clone(), v.borrow().deep_clone()?);
         };
 
-        Box::new(StructureObject::new(self.definition.clone(), new_fields))
+        Ok(Box::new(StructureObject::new(self.definition.clone(), new_fields)))
     }
 }
 
@@ -240,7 +261,7 @@ impl std::fmt::Display for StructureObject {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let fields = self.get_fields();
         let fields_str = zip(fields.0, fields.1)
-                                .map(|(s, v)| format!("{s}: {}", v.borrow().to_owned()))
+                                .map(|(s, v)| format!("{s}: {}", v.borrow()))
                                 .collect::<Vec<String>>()
                                 .join(", ");
         write!(f, "{} ({})", self.get_signature().name, fields_str)

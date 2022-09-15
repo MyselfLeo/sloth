@@ -106,9 +106,7 @@ fn print(scope: Rc<RefCell<Scope>>, _: &mut SlothProgram) -> Result<(), Error> {
         text += &format!("{}", v.borrow()).replace("\\n", "\n");
     }
     print!("{}", text);
-
     std::io::stdout().flush().unwrap();
-    
     Ok(())
 }
 
@@ -131,5 +129,5 @@ fn read(scope: Rc<RefCell<Scope>>, p: &mut SlothProgram) -> Result<(), Error> {
     let console_input: String = read!("{}\n");
     let return_value = Value::String(console_input);
 
-    super::set_return(scope, p, return_value)
+    super::set_return(&scope, p, return_value)
 }

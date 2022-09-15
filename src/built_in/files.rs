@@ -91,19 +91,11 @@ pub fn get_struct(s_name: String) -> (Box<dyn ObjectBlueprint>, Vec<String>) {
 
 /// Return the content of a file as a string
 fn load(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
-    let inputs = scope.borrow().get_inputs();
+    let inputs = super::query_inputs(&scope, vec![Type::String], "load")?;
 
-    if inputs.len() != 1 {
-        let err_msg = format!("Called function 'load' with {} argument(s), but the function requires 1 argument", inputs.len());
-        return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
-    }
-
-    let path = match inputs[0].borrow().to_owned() {
+    let path = match &inputs[0] {
         Value::String(x) => x,
-        v => {
-            let err_msg = format!("Argument 1 of function 'load' is of type string, given a value of type {}", v.get_type());
-            return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
-        }
+        _ => panic!("'query_inputs' failed")
     };
 
     let content = match fs::read_to_string(&path) {
@@ -114,7 +106,7 @@ fn load(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Err
         },
     };
 
-    super::set_return(scope, program, Value::String(content))
+    super::set_return(&scope, program, Value::String(content))
 }
 
 
@@ -123,27 +115,16 @@ fn load(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Err
 
 /// Save the content of the string to a file with the given path
 fn save(scope: Rc<RefCell<Scope>>, _: &mut SlothProgram) -> Result<(), Error> {
-    let inputs = scope.borrow().get_inputs();
+    let inputs = super::query_inputs(&scope, vec![Type::String, Type::String], "save")?;
 
-    if inputs.len() != 2 {
-        let err_msg = format!("Called function 'save' with {} argument(s), but the function requires 2 arguments", inputs.len());
-        return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
-    }
-
-    let path = match inputs[0].borrow().to_owned() {
+    let path = match &inputs[0] {
         Value::String(x) => x,
-        v => {
-            let err_msg = format!("Argument 1 of function 'save' is of type string, given a value of type {}", v.get_type());
-            return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
-        }
+        _ => panic!("'query_inputs' failed")
     };
 
-    let string = match inputs[1].borrow().to_owned() {
+    let string = match &inputs[1] {
         Value::String(x) => x,
-        v => {
-            let err_msg = format!("Argument 2 of function 'save' is of type string, given a value of type {}", v.get_type());
-            return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
-        }
+        _ => panic!("'query_inputs' failed")
     };
 
     match fs::write(&path, string) {
