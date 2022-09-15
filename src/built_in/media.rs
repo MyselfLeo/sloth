@@ -365,14 +365,6 @@ fn check_event(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<
         _ => panic!()
     };
 
-    let requested_event = match event_id {
-        "EVENT_QUIT" => EventType::Quit,
-        _ => {
-            let err_msg = format!("Event '{}' does not exists", event_id);
-            return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None))
-        }
-    };
-
 
     let called = unsafe {
         if SDL_CONTEXT.is_none() {
@@ -395,12 +387,12 @@ fn check_event(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<
             // skip unknown events
             if event.is_unknown() {continue}
 
-            let event_type = match get_event_type(&event) {
+            let check = match check_code_event(event_id, &event) {
                 Ok(e) => e,
                 Err(e) => return Err(Error::new(ErrorMessage::RustError(e), None))
             };
 
-            if event_type == requested_event {
+            if check {
                 res = true;
                 break
             }
@@ -427,6 +419,15 @@ fn check_event(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<
 
 
 
+/// Check if the given code corresponds to the event. Return Error if the given code does not exists
+fn check_code_event(code: &str, event: &Event) -> Result<bool, String> {
+    let res = match code {
+        "EVENT_QUIT" => get_event_type(&event) == EventType::Quit,
+        _ => return Err(format!("Event '{}' does not exist", code))
+    };
+
+    Ok(res)
+}
 
 
 
@@ -434,55 +435,58 @@ fn check_event(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<
 
 
 
-/// Return the type of the given event. Return error if the given event is Unknow
-fn get_event_type(event: &Event) -> Result<EventType, String> {
+
+
+
+/// Return the type of the given event. Panics if the given event is Unknow
+fn get_event_type(event: &Event) -> EventType {
     match event {
-        Event::Quit {..} => Ok(EventType::Quit),
-        Event::AppTerminating {..} => Ok(EventType::AppTerminating),
-        Event::AppLowMemory {..} => Ok(EventType::AppLowMemory),
-        Event::AppWillEnterBackground {..} => Ok(EventType::AppWillEnterBackground),
-        Event::AppDidEnterBackground {..} => Ok(EventType::AppDidEnterBackground),
-        Event::AppWillEnterForeground {..} => Ok(EventType::AppWillEnterForeground),
-        Event::AppDidEnterForeground {..} => Ok(EventType::AppDidEnterForeground),
-        Event::Display {..} => Ok(EventType::Display),
-        Event::Window {..} => Ok(EventType::Window),
-        Event::KeyDown {..} => Ok(EventType::KeyDown),
-        Event::KeyUp {..} => Ok(EventType::KeyUp),
-        Event::TextEditing {..} => Ok(EventType::TextEditing),
-        Event::TextInput {..} => Ok(EventType::TextInput),
-        Event::MouseMotion {..} => Ok(EventType::MouseMotion),
-        Event::MouseButtonDown {..} => Ok(EventType::MouseButtonDown),
-        Event::MouseButtonUp {..} => Ok(EventType::MouseButtonUp),
-        Event::MouseWheel {..} => Ok(EventType::MouseWheel),
-        Event::JoyAxisMotion {..} => Ok(EventType::JoyAxisMotion),
-        Event::JoyBallMotion {..} => Ok(EventType::JoyBallMotion),
-        Event::JoyHatMotion {..} => Ok(EventType::JoyHatMotion),
-        Event::JoyButtonDown {..} => Ok(EventType::JoyButtonDown),
-        Event::JoyButtonUp {..} => Ok(EventType::JoyButtonUp),
-        Event::JoyDeviceAdded {..} => Ok(EventType::JoyDeviceAdded),
-        Event::JoyDeviceRemoved {..} => Ok(EventType::JoyDeviceRemoved),
-        Event::ControllerAxisMotion {..} => Ok(EventType::ControllerAxisMotion),
-        Event::ControllerButtonDown {..} => Ok(EventType::ControllerButtonDown),
-        Event::ControllerButtonUp {..} => Ok(EventType::ControllerButtonUp),
-        Event::ControllerDeviceAdded {..} => Ok(EventType::ControllerDeviceAdded),
-        Event::ControllerDeviceRemoved {..} => Ok(EventType::ControllerDeviceRemoved),
-        Event::ControllerDeviceRemapped {..} => Ok(EventType::ControllerDeviceRemapped),
-        Event::FingerDown {..} => Ok(EventType::FingerDown),
-        Event::FingerUp {..} => Ok(EventType::FingerUp),
-        Event::FingerMotion {..} => Ok(EventType::FingerMotion),
-        Event::DollarGesture {..} => Ok(EventType::DollarGesture),
-        Event::DollarRecord {..} => Ok(EventType::DollarRecord),
-        Event::MultiGesture {..} => Ok(EventType::MultiGesture),
-        Event::ClipboardUpdate {..} => Ok(EventType::ClipboardUpdate),
-        Event::DropFile {..} => Ok(EventType::DropFile),
-        Event::DropText {..} => Ok(EventType::DropText),
-        Event::DropBegin {..} => Ok(EventType::DropBegin),
-        Event::DropComplete {..} => Ok(EventType::DropComplete),
-        Event::AudioDeviceAdded {..} => Ok(EventType::AudioDeviceAdded),
-        Event::AudioDeviceRemoved {..} => Ok(EventType::AudioDeviceRemoved),
-        Event::RenderTargetsReset {..} => Ok(EventType::RenderTargetsReset),
-        Event::RenderDeviceReset {..} => Ok(EventType::RenderDeviceReset),
-        Event::User {..} => Ok(EventType::User),
-        Event::Unknown {..} => Err("Unknown event".to_string()),
+        Event::Quit {..} => EventType::Quit,
+        Event::AppTerminating {..} => EventType::AppTerminating,
+        Event::AppLowMemory {..} => EventType::AppLowMemory,
+        Event::AppWillEnterBackground {..} => EventType::AppWillEnterBackground,
+        Event::AppDidEnterBackground {..} => EventType::AppDidEnterBackground,
+        Event::AppWillEnterForeground {..} => EventType::AppWillEnterForeground,
+        Event::AppDidEnterForeground {..} => EventType::AppDidEnterForeground,
+        Event::Display {..} => EventType::Display,
+        Event::Window {..} => EventType::Window,
+        Event::KeyDown {..} => EventType::KeyDown,
+        Event::KeyUp {..} => EventType::KeyUp,
+        Event::TextEditing {..} => EventType::TextEditing,
+        Event::TextInput {..} => EventType::TextInput,
+        Event::MouseMotion {..} => EventType::MouseMotion,
+        Event::MouseButtonDown {..} => EventType::MouseButtonDown,
+        Event::MouseButtonUp {..} => EventType::MouseButtonUp,
+        Event::MouseWheel {..} => EventType::MouseWheel,
+        Event::JoyAxisMotion {..} => EventType::JoyAxisMotion,
+        Event::JoyBallMotion {..} => EventType::JoyBallMotion,
+        Event::JoyHatMotion {..} => EventType::JoyHatMotion,
+        Event::JoyButtonDown {..} => EventType::JoyButtonDown,
+        Event::JoyButtonUp {..} => EventType::JoyButtonUp,
+        Event::JoyDeviceAdded {..} => EventType::JoyDeviceAdded,
+        Event::JoyDeviceRemoved {..} => EventType::JoyDeviceRemoved,
+        Event::ControllerAxisMotion {..} => EventType::ControllerAxisMotion,
+        Event::ControllerButtonDown {..} => EventType::ControllerButtonDown,
+        Event::ControllerButtonUp {..} => EventType::ControllerButtonUp,
+        Event::ControllerDeviceAdded {..} => EventType::ControllerDeviceAdded,
+        Event::ControllerDeviceRemoved {..} => EventType::ControllerDeviceRemoved,
+        Event::ControllerDeviceRemapped {..} => EventType::ControllerDeviceRemapped,
+        Event::FingerDown {..} => EventType::FingerDown,
+        Event::FingerUp {..} => EventType::FingerUp,
+        Event::FingerMotion {..} => EventType::FingerMotion,
+        Event::DollarGesture {..} => EventType::DollarGesture,
+        Event::DollarRecord {..} => EventType::DollarRecord,
+        Event::MultiGesture {..} => EventType::MultiGesture,
+        Event::ClipboardUpdate {..} => EventType::ClipboardUpdate,
+        Event::DropFile {..} => EventType::DropFile,
+        Event::DropText {..} => EventType::DropText,
+        Event::DropBegin {..} => EventType::DropBegin,
+        Event::DropComplete {..} => EventType::DropComplete,
+        Event::AudioDeviceAdded {..} => EventType::AudioDeviceAdded,
+        Event::AudioDeviceRemoved {..} => EventType::AudioDeviceRemoved,
+        Event::RenderTargetsReset {..} => EventType::RenderTargetsReset,
+        Event::RenderDeviceReset {..} => EventType::RenderDeviceReset,
+        Event::User {..} => EventType::User,
+        Event::Unknown {..} => panic!("Unknown event"),
     }
 }
