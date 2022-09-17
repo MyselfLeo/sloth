@@ -34,7 +34,7 @@ structure Grid {
 
 
 # Move the snake by one cell
-define move for Grid: -> num {
+define move for Grid: -> bool {
     snake_head_pos = @self.snake.cells[- @self.snake.cells.len() 1];
     # Add a new cell to the snake
     if == @self.snake.direction 0 {
@@ -69,20 +69,30 @@ define move for Grid: -> num {
             new_head = new CellCoordinates(- snake_head_pos.x 1 snake_head_pos.y);
         };
     };
-    @self.snake.cells.push(new_head);
 
-    # remove the last cell of the snake, if it is not growing
-    if !@self.snake.keep {
-        @self.snake.cells.pull(0);
-    };
-    if @self.snake.keep {
-        @self.snake.keep = false;
-    };
 
-    # if the new head is on a fruit, change the fruit position and set keep to true
-    if == new_head @self.fruit_pos {
-        @self.snake.keep = true;
-        @self.fruit_pos = new CellCoordinates(range(0 @self.w).floor() range(0 @self.h).floor());
+    # if the new head is on the snake's body, return "false", so the program stops
+    game_over = @self.snake.cells.contains(new_head);
+    if game_over {
+        @return = false;
+    };
+    if !game_over {
+        @self.snake.cells.push(new_head);
+        # remove the last cell of the snake, if it is not growing
+        if !@self.snake.keep {
+            @self.snake.cells.pull(0);
+        };
+        if @self.snake.keep {
+            @self.snake.keep = false;
+        };
+
+        # if the new head is on a fruit, change the fruit position and set keep to true
+        if == new_head @self.fruit_pos {
+            @self.snake.keep = true;
+            @self.fruit_pos = new CellCoordinates(range(0 @self.w).floor() range(0 @self.h).floor());
+        };
+
+        @return = true;
     };
 }
 
@@ -149,11 +159,17 @@ define main: -> num {
     close = false;
     timer = clock:now();
     while !close {
+        close = false;
 
         # Move the snake from time to time
         duration_since_update = timer.since();
-        if > duration_since_update.ms 450 {
-            grid.move();
+        if > duration_since_update.ms 300 {
+
+            # move() returns false in case the snake has eaten itself (game over)
+            if !grid.move() {
+                close = true;
+                print("Game over! Score: " grid.snake.cells.len() "\n");
+            };
             timer = clock:now();
         };
 
@@ -171,6 +187,6 @@ define main: -> num {
 
 
         # close condition
-        close = == event "EVENT_QUIT";
+        if == event "EVENT_QUIT" {close = true;};
     };
 }
