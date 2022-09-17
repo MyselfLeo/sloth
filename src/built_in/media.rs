@@ -15,7 +15,6 @@ use sdl2::rect::Rect;
 use sdl2::render::Canvas as SDL2Canvas;
 use sdl2::video::Window as SDL2Window;
 use sdl2::{Sdl, event::Event};
-use sdl2::event::EventType;
 
 
 static mut SDL_CONTEXT: Option<Sdl> = None;
