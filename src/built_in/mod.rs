@@ -16,6 +16,7 @@ pub mod maths;
 pub mod files;
 pub mod clock;
 pub mod media;
+pub mod random;
 
 
 
@@ -28,7 +29,7 @@ pub enum BuiltinTypes {
 
 
 
-pub const MODULES: [&str; 8] = [
+pub const MODULES: [&str; 9] = [
     "io",
     "numbers",
     "strings",
@@ -36,7 +37,8 @@ pub const MODULES: [&str; 8] = [
     "maths",
     "files",
     "clock",
-    "media"
+    "media",
+    "random"
 ];
 
 
@@ -80,6 +82,7 @@ impl BuiltInImport {
                     "files" => files::BUILTINS.to_vec(),
                     "clock" => clock::BUILTINS.to_vec(),
                     "media" => media::BUILTINS.to_vec(),
+                    "random" => random::BUILTINS.to_vec(),
                     _ => panic!("Trying to access builtins of module '{}', which do not exists", self.module)
                 };
 
@@ -134,6 +137,7 @@ pub fn collapse_imports(mut imports: Vec<BuiltInImport>) -> Result<(Vec<Box<dyn 
                     "files" => files::BUILTINS.to_vec(),
                     "clock" => clock::BUILTINS.to_vec(),
                     "media" => media::BUILTINS.to_vec(),
+                    "random" => random::BUILTINS.to_vec(),
                     _ => panic!()
                 };
 
@@ -159,6 +163,7 @@ pub fn collapse_imports(mut imports: Vec<BuiltInImport>) -> Result<(Vec<Box<dyn 
                     "files" => files::get_type(&bi),
                     "clock" => clock::get_type(&bi),
                     "media" => media::get_type(&bi),
+                    "random" => random::get_type(&bi),
                     _ => panic!()
                 }?;
 
@@ -174,6 +179,7 @@ pub fn collapse_imports(mut imports: Vec<BuiltInImport>) -> Result<(Vec<Box<dyn 
                             "files" => files::get_function(bi),
                             "clock" => clock::get_function(bi),
                             "media" => media::get_function(bi),
+                            "random" => random::get_function(bi),
                             _ => panic!()
                         };
                         funcs.push(f);
@@ -189,6 +195,7 @@ pub fn collapse_imports(mut imports: Vec<BuiltInImport>) -> Result<(Vec<Box<dyn 
                             "files" => files::get_struct(bi),
                             "clock" => clock::get_struct(bi),
                             "media" => media::get_struct(bi),
+                            "random" => random::get_struct(bi),
                             _ => panic!()
                         };
 
