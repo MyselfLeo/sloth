@@ -1,4 +1,6 @@
 builtin lists;
+builtin random;
+builtin numbers;
 
 
 
@@ -16,7 +18,22 @@ structure Snake {
 }
 
 
+structure Grid {
+    w: num;
+    h: num;
+    snake: Snake;
+}
+
+
+define new_random_grid: num num -> Grid {
+    snake_start_pos = new CellCoordinates(range(0 @0).floor() range(0 @1).floor());
+    s = new Snake([snake_start_pos] 0);
+
+    @return = new Grid(@0 @1 s);
+}
+
 
 
 define main: -> num {
+    grid = new_random_grid(10 10);
 }

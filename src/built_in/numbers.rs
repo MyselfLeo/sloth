@@ -10,8 +10,11 @@ use std::rc::Rc;
 
 
 
-pub const BUILTINS: [&str; 1] = [
-    "to_string"
+pub const BUILTINS: [&str; 4] = [
+    "to_string",
+    "floor",
+    "ceil",
+    "round"
 ];
 
 
@@ -21,6 +24,9 @@ pub const BUILTINS: [&str; 1] = [
 pub fn get_type(builtin: &String) -> Result<BuiltinTypes, String> {
     match builtin.as_str() {
         "to_string" => Ok(BuiltinTypes::Function),
+        "floor" => Ok(BuiltinTypes::Function),
+        "round" => Ok(BuiltinTypes::Function),
+        "ceil" => Ok(BuiltinTypes::Function),
         _ => Err(format!("Builtin '{builtin}' not found in module 'numbers'"))
     }
 }
@@ -41,6 +47,36 @@ pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
                 Some(Type::Number),
                 Type::String,
                 to_string
+            )
+        ),
+
+        "floor" => Box::new(
+            BuiltInFunction::new(
+                "floor",
+                Some("numbers"),
+                Some(Type::Number),
+                Type::Number,
+                floor
+            )
+        ),
+
+        "ceil" => Box::new(
+            BuiltInFunction::new(
+                "ceil",
+                Some("numbers"),
+                Some(Type::Number),
+                Type::Number,
+                ceil
+            )
+        ),
+
+        "round" => Box::new(
+            BuiltInFunction::new(
+                "round",
+                Some("numbers"),
+                Some(Type::Number),
+                Type::Number,
+                round
             )
         ),
 
@@ -87,6 +123,45 @@ fn to_string(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<()
         _ => panic!("Implementation of method 'to_string' for type 'num' was called on a value of another type")
     };
 
-    super::set_return(&scope, program, result)?;
-    Ok(())
+    super::set_return(&scope, program, result)
+}
+
+
+
+
+
+fn floor(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
+    let value = super::get_self(&scope, program)?;
+
+    let result = match value {
+        Value::Number(x) => Value::Number(x.floor()),
+        _ => panic!()
+    };
+
+    super::set_return(&scope, program, result)
+}
+
+
+fn ceil(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
+    let value = super::get_self(&scope, program)?;
+
+    let result = match value {
+        Value::Number(x) => Value::Number(x.ceil()),
+        _ => panic!()
+    };
+
+    super::set_return(&scope, program, result)
+}
+
+
+
+fn round(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
+    let value = super::get_self(&scope, program)?;
+
+    let result = match value {
+        Value::Number(x) => Value::Number(x.round()),
+        _ => panic!()
+    };
+
+    super::set_return(&scope, program, result)
 }
