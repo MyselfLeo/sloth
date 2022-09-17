@@ -20,7 +20,7 @@ impl Type {
             Type::Number => Value::Number(0.0),
             Type::String => Value::String("".to_string()),
             Type::List(t) => Value::List(*t.clone(), Vec::new()),
-            Type::Object(_s) => Value::Number(0.0), // TEMPORARY TODO
+            Type::Object(_s) => Value::Any, // TEMPORARY TODO
         }
     }
 

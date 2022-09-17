@@ -20,6 +20,7 @@ pub trait DeepClone {
 
 //#[derive(Clone)]
 pub enum Value {
+    Any,
     Number(f64),
     Boolean(bool),
     String(String),
@@ -39,6 +40,7 @@ impl PartialEq for Value {
             (Self::String(l0), Self::String(r0)) => l0 == r0,
             (Self::List(l0, l1), Self::List(r0, r1)) => l0 == r0 && l1 == r1,
             (Self::Object(l0), Self::Object(r0)) => l0 == r0,
+            (Self::Any, Self::Any) => true,
             (_, _) => false
         }
     }
@@ -53,6 +55,7 @@ impl std::fmt::Debug for Value {
             Self::String(arg0) => f.debug_tuple("String").field(arg0).finish(),
             Self::List(arg0, arg1) => f.debug_tuple("List").field(arg0).field(arg1).finish(),
             Self::Object(_) => f.debug_tuple("Object").finish(),
+            Self::Any => f.debug_tuple("Any").finish(),
         }
     }
 }
@@ -63,6 +66,7 @@ impl std::fmt::Debug for Value {
 impl DeepClone for Value {
     fn deep_clone(&self) -> Result<Rc<RefCell<Value>>, String> {
         let new_value = match self {
+            Self::Any => self.clone(),
             Self::Number(_) => self.clone(),
             Self::Boolean(_) => self.clone(),
             Self::String(_) => self.clone(),
@@ -83,6 +87,7 @@ impl DeepClone for Value {
 impl Clone for Value {
     fn clone(&self) -> Self {
         match self {
+            Self::Any => self.clone(),
             Self::Number(arg0) => Self::Number(arg0.clone()),
             Self::Boolean(arg0) => Self::Boolean(arg0.clone()),
             Self::String(arg0) => Self::String(arg0.clone()),
@@ -100,6 +105,7 @@ impl Clone for Value {
 impl Value {
     pub fn get_type(&self) -> Type {
         match self {
+            Value::Any => Type::Any,
             Value::Number(_) => Type::Number,
             Value::Boolean(_) => Type::Boolean,
             Value::String(_) => Type::String,
@@ -111,6 +117,7 @@ impl Value {
 
     pub fn to_string(&self) -> String {
         match self {
+            Value::Any => "Any".to_string(),
             Value::Number(x) => format!("{}", x).to_string(),
             Value::Boolean(b) => {
                 if *b {"true".to_string()}
