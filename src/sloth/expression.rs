@@ -219,6 +219,7 @@ impl Expression {
             Expression::MethodCall(owner, signature, arguments, p) => {
 
                 let mut signature_clone = signature.clone();
+                
 
                 // Get the expression on which is called the method
                 let expr = match program.as_ref().unwrap().get_expr(*owner) {
@@ -244,6 +245,12 @@ impl Expression {
                 };
 
 
+                let inputs_ref_or_cloned: Vec<bool> = match method.get_signature().input_types {
+                    Some(v) => v.iter().map(|(_, b)| *b).collect(),
+                    None => vec![true; arguments.len()]
+                };
+
+
                 // Create a new scope for the execution of the method
                 let func_scope = Rc::new(RefCell::new(Scope::new(Some(program.as_ref().unwrap().main_scope()))));
 
@@ -256,10 +263,22 @@ impl Expression {
                         Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                     };
 
-                    let v = expr.evaluate(scope.clone(), program)?;
+                    
+                    let mut value = expr.evaluate(scope.clone(), program)?;
+
+
+                    // if the values are cloned, allocate a new Value instead of using the reference given by expr.evaluate()
+                    if !inputs_ref_or_cloned[i] {
+                        let cloned_value = value.borrow().deep_clone();
+                        value = match cloned_value {
+                            Ok(v) => v,
+                            Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))
+                        };
+                    }
+
 
                     match func_scope.try_borrow_mut() {
-                        Ok(mut reference) => match (*reference).push_variable(format!("@{}", i), v) {
+                        Ok(mut reference) => match (*reference).push_variable(format!("@{}", i), value) {
                             Ok(()) => (),
                             Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))
                         },

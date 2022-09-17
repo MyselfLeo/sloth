@@ -336,7 +336,7 @@ fn set_rect(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(),
     let res = match canvas.inner.try_borrow_mut() {
         Ok(mut reference) => {
             reference.set_draw_color((r, g, b));
-            match reference.draw_rect(Rect::new(x, y, width, height)) {
+            match reference.fill_rect(Rect::new(x, y, width, height)) {
                 Ok(()) => Ok(()),
                 Err(e) => Err(Error::new(ErrorMessage::RustError(e.to_string()), None))
             }

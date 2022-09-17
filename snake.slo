@@ -2,6 +2,7 @@ builtin lists;
 builtin random;
 builtin numbers;
 builtin clock;
+builtin media;
 
 
 
@@ -108,6 +109,35 @@ define move for Grid: -> num {
 
 
 
+# Draw on the canvas the current state of the grid
+define draw for Grid: ~Canvas -> num {
+    # clear screen
+    @0.set_rect(0 0 400 400 0 0 0);
+
+    # draw the snake
+    y = 0;
+    while < y @self.h {
+        x = 0;
+        while < x @self.w {
+            co = new CellCoordinates(x y);
+            if @self.snake.cells.contains(co) {
+                @0.set_rect(* x 20 * y 20 20 20 255 255 255);
+            };
+            x = + x 1;
+        }; 
+        y = + y 1;
+    };
+
+    @0.update();
+}
+
+
+
+
+
+
+
+
 # Return a new grid of the given size, with a randomly placed snake of length 1
 define new_random_grid: num num -> Grid {
     snake_start_pos = new CellCoordinates(range(0 @0).floor() range(0 @1).floor());
@@ -122,12 +152,25 @@ define new_random_grid: num num -> Grid {
 
 
 define main: -> num {
-    grid = new_random_grid(10 10);
+    grid = new_random_grid(20 20);
     
-    while true {
-        grid.debug();
-        grid.move();
+    canvas = new Canvas("Snake" 400 400);
 
-        clock:sleep(1);
+    close = false;
+    timer = clock:now();
+    while !close {
+
+        duration_since_update = timer.since();
+        if > duration_since_update.ms 750 {
+            grid.move();
+            print("updated\n");
+            timer = clock:now();
+        };
+
+
+        grid.draw(canvas);
+
+
+        close = media:check_event("EVENT_QUIT");
     };
 }
