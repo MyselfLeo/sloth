@@ -382,21 +382,18 @@ fn check_event(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<
 
 
         // find requested event
-        let mut res = false;
-        for event in event_pump.poll_iter() {
-            // skip unknown events
-            if event.is_unknown() {continue}
-
-            let check = match check_code_event(event_id, &event) {
-                Ok(e) => e,
-                Err(e) => return Err(Error::new(ErrorMessage::RustError(e), None))
-            };
-
-            if check {
-                res = true;
-                break
+        let res = match event_pump.poll_event() {
+            None => false,
+            Some(e) => {
+                if e.is_unknown() {false}
+                else {
+                    match check_code_event(event_id, &e) {
+                        Ok(e) => e,
+                        Err(e) => return Err(Error::new(ErrorMessage::RustError(e), None))
+                    }
+                }
             }
-        }
+        };
 
         res
     };
@@ -423,6 +420,7 @@ fn check_event(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<
 fn check_code_event(code: &str, event: &Event) -> Result<bool, String> {
     let res = match code {
         "EVENT_QUIT" => get_event_type(&event) == EventType::Quit,
+        "EVENT_CLICK" => get_event_type(&event) == EventType::MouseButtonDown,
         _ => return Err(format!("Event '{}' does not exist", code))
     };
 
