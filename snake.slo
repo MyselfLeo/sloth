@@ -103,7 +103,7 @@ define move for Grid: -> bool {
 # Draw on the canvas the current state of the grid
 define draw for Grid: ~Canvas -> num {
     # clear screen
-    @0.set_rect(0 0 400 400 0 0 0);
+    @0.set_rect(0 0 400 400 16 66 38);
 
     # draw the snake
     y = 0;
