@@ -63,11 +63,6 @@ define debug for Grid: -> num {
 
 # Move the snake by one cell
 define move for Grid: -> num {
-    # remove the last cell of the snake, if it is not growing
-    if !@self.snake.keep {
-        @self.snake.cells.pull(0);
-    };
-
     snake_head_pos = @self.snake.cells[- @self.snake.cells.len() 1];
     # Add a new cell to the snake
     if == @self.snake.direction 0 {
@@ -101,6 +96,11 @@ define move for Grid: -> num {
         if !== snake_head_pos.x 0 {
             @self.snake.cells.push(new CellCoordinates(- snake_head_pos.x 1 snake_head_pos.y));
         };
+    };
+
+    # remove the last cell of the snake, if it is not growing
+    if !@self.snake.keep {
+        @self.snake.cells.pull(0);
     };
 }
 
