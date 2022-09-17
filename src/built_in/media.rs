@@ -9,6 +9,8 @@ use super::{BuiltInFunction, BuiltinTypes};
 use std::cell::RefCell;
 use std::rc::Rc;
 
+use sdl2::keyboard::Keycode;
+use sdl2::mouse::MouseButton;
 use sdl2::rect::Rect;
 use sdl2::render::Canvas as SDL2Canvas;
 use sdl2::video::Window as SDL2Window;
@@ -360,10 +362,15 @@ fn set_rect(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(),
 fn check_event(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
     let inputs = super::query_inputs(&scope, vec![Type::String], "check_event")?;
 
-    let event_id = match &inputs[0] {
+    let event_code = match &inputs[0] {
         Value::String(x) => x.as_str(),
         _ => panic!()
     };
+
+    if !EVENT_CODES.contains(&event_code) {
+        let err_msg = format!("Event code '{}' does not exist", event_code);
+        return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None))
+    }
 
 
     let called = unsafe {
@@ -384,15 +391,7 @@ fn check_event(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<
         // find requested event
         let res = match event_pump.poll_event() {
             None => false,
-            Some(e) => {
-                if e.is_unknown() {false}
-                else {
-                    match check_code_event(event_id, &e) {
-                        Ok(e) => e,
-                        Err(e) => return Err(Error::new(ErrorMessage::RustError(e), None))
-                    }
-                }
-            }
+            Some(e) => check_code_event(event_code, &e)
         };
 
         res
@@ -412,79 +411,22 @@ fn check_event(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<
 
 
 
+const EVENT_CODES: [&str; 3] = ["EVENT_QUIT", "EVENT_LMB_CLICK", "EVENT_RMB_CLICK"];
 
 
 
 
 /// Check if the given code corresponds to the event. Return Error if the given code does not exists
-fn check_code_event(code: &str, event: &Event) -> Result<bool, String> {
-    let res = match code {
-        "EVENT_QUIT" => get_event_type(&event) == EventType::Quit,
-        "EVENT_CLICK" => get_event_type(&event) == EventType::MouseButtonDown,
-        _ => return Err(format!("Event '{}' does not exist", code))
-    };
-
-    Ok(res)
-}
-
-
-
-
-
-
-
-
-
-
-/// Return the type of the given event. Panics if the given event is Unknow
-fn get_event_type(event: &Event) -> EventType {
+fn check_code_event(code: &str, event: &Event) -> bool {
     match event {
-        Event::Quit {..} => EventType::Quit,
-        Event::AppTerminating {..} => EventType::AppTerminating,
-        Event::AppLowMemory {..} => EventType::AppLowMemory,
-        Event::AppWillEnterBackground {..} => EventType::AppWillEnterBackground,
-        Event::AppDidEnterBackground {..} => EventType::AppDidEnterBackground,
-        Event::AppWillEnterForeground {..} => EventType::AppWillEnterForeground,
-        Event::AppDidEnterForeground {..} => EventType::AppDidEnterForeground,
-        Event::Display {..} => EventType::Display,
-        Event::Window {..} => EventType::Window,
-        Event::KeyDown {..} => EventType::KeyDown,
-        Event::KeyUp {..} => EventType::KeyUp,
-        Event::TextEditing {..} => EventType::TextEditing,
-        Event::TextInput {..} => EventType::TextInput,
-        Event::MouseMotion {..} => EventType::MouseMotion,
-        Event::MouseButtonDown {..} => EventType::MouseButtonDown,
-        Event::MouseButtonUp {..} => EventType::MouseButtonUp,
-        Event::MouseWheel {..} => EventType::MouseWheel,
-        Event::JoyAxisMotion {..} => EventType::JoyAxisMotion,
-        Event::JoyBallMotion {..} => EventType::JoyBallMotion,
-        Event::JoyHatMotion {..} => EventType::JoyHatMotion,
-        Event::JoyButtonDown {..} => EventType::JoyButtonDown,
-        Event::JoyButtonUp {..} => EventType::JoyButtonUp,
-        Event::JoyDeviceAdded {..} => EventType::JoyDeviceAdded,
-        Event::JoyDeviceRemoved {..} => EventType::JoyDeviceRemoved,
-        Event::ControllerAxisMotion {..} => EventType::ControllerAxisMotion,
-        Event::ControllerButtonDown {..} => EventType::ControllerButtonDown,
-        Event::ControllerButtonUp {..} => EventType::ControllerButtonUp,
-        Event::ControllerDeviceAdded {..} => EventType::ControllerDeviceAdded,
-        Event::ControllerDeviceRemoved {..} => EventType::ControllerDeviceRemoved,
-        Event::ControllerDeviceRemapped {..} => EventType::ControllerDeviceRemapped,
-        Event::FingerDown {..} => EventType::FingerDown,
-        Event::FingerUp {..} => EventType::FingerUp,
-        Event::FingerMotion {..} => EventType::FingerMotion,
-        Event::DollarGesture {..} => EventType::DollarGesture,
-        Event::DollarRecord {..} => EventType::DollarRecord,
-        Event::MultiGesture {..} => EventType::MultiGesture,
-        Event::ClipboardUpdate {..} => EventType::ClipboardUpdate,
-        Event::DropFile {..} => EventType::DropFile,
-        Event::DropText {..} => EventType::DropText,
-        Event::DropBegin {..} => EventType::DropBegin,
-        Event::DropComplete {..} => EventType::DropComplete,
-        Event::AudioDeviceAdded {..} => EventType::AudioDeviceAdded,
-        Event::AudioDeviceRemoved {..} => EventType::AudioDeviceRemoved,
-        Event::RenderTargetsReset {..} => EventType::RenderTargetsReset,
-        Event::RenderDeviceReset {..} => EventType::RenderDeviceReset,
-        Event::User {..} => EventType::User,
-        Event::Unknown {..} => panic!("Unknown event"),
+        Event::Quit {..} => code == "EVENT_QUIT",
+        Event::MouseButtonDown { mouse_btn: MouseButton::Left, .. } => code == "EVENT_LMB_CLICK",
+        Event::MouseButtonDown { mouse_btn: MouseButton::Right, .. } => code == "EVENT_RMB_CLICK",
+        Event::KeyDown { keycode: Some(Keycode::Up), .. } => code == "EVENT_UP",
+        Event::KeyDown { keycode: Some(Keycode::Right), .. } => code == "EVENT_RIGHT",
+        Event::KeyDown { keycode: Some(Keycode::Down), .. } => code == "EVENT_DOWN",
+        Event::KeyDown { keycode: Some(Keycode::Left), .. } => code == "EVENT_LEFT",
+        Event::KeyDown { keycode: Some(Keycode::Space), .. } => code == "EVENT_SPACE",
+        _ => false
     }
 }
