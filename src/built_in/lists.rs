@@ -6,7 +6,7 @@ use crate::sloth::program::SlothProgram;
 use crate::sloth::scope::Scope;
 use crate::sloth::value::Value;
 use super::{BuiltInFunction, BuiltinTypes};
-use std::cell::{RefCell, Ref};
+use std::cell::{RefCell};
 use std::rc::Rc;
 
 

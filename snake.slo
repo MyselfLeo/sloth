@@ -38,7 +38,29 @@ define new_random_grid: num num -> Grid {
 
 # Print the grid to the console
 define debug for Grid: -> num {
-    
+    x = 0;
+    y = 0;
+
+    while < y @self.h {
+
+        while < x @self.w {
+
+            co = new CellCoordinates(x y);
+
+            res = @self.snake.cells.contains(co);
+            if res {
+                print("S ");
+            };
+            if !res {
+                print("_ ");
+            };
+
+            x = + x 1;
+        }; 
+
+        print("\n");
+        y = + y 1;
+    };
 }
 
 
@@ -46,4 +68,5 @@ define debug for Grid: -> num {
 
 define main: -> num {
     grid = new_random_grid(10 10);
+    grid.debug();
 }

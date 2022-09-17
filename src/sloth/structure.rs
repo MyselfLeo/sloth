@@ -167,7 +167,6 @@ impl PartialEq for Box<dyn SlothObject> {
         let other_fields = other.get_fields().1;
 
         for i in 0..self_fields.len() {
-            println!("at comparaison");
             if self_fields[i].borrow().to_owned() != other_fields[i].borrow().to_owned() {return false}
         }
         true
