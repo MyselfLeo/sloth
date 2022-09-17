@@ -1,6 +1,7 @@
 builtin lists;
 builtin random;
 builtin numbers;
+builtin clock;
 
 
 
@@ -15,6 +16,8 @@ structure Snake {
     cells: list[CellCoordinates];
     # 0 = top, 1 = right, 2 = bottom, 3 = left
     direction: num;
+    # If the snake should grow (= keep the last cell) at the next move
+    keep: bool;
 }
 
 
@@ -26,22 +29,12 @@ structure Grid {
 
 
 
-# Return a new grid of the given size, with a randomly placed snake of length 1
-define new_random_grid: num num -> Grid {
-    snake_start_pos = new CellCoordinates(range(0 @0).floor() range(0 @1).floor());
-    s = new Snake([snake_start_pos] 0);
-
-    @return = new Grid(@0 @1 s);
-}
-
-
-
 # Print the grid to the console
 define debug for Grid: -> num {
-    x = 0;
     y = 0;
 
     while < y @self.h {
+        x = 0;
 
         while < x @self.w {
 
@@ -49,7 +42,10 @@ define debug for Grid: -> num {
 
             res = @self.snake.cells.contains(co);
             if res {
-                print("S ");
+                if == @self.snake.direction 0 {print("^ ");};
+                if == @self.snake.direction 1 {print("> ");};
+                if == @self.snake.direction 2 {print("v ");};
+                if == @self.snake.direction 3 {print("< ");};
             };
             if !res {
                 print("_ ");
@@ -65,8 +61,73 @@ define debug for Grid: -> num {
 
 
 
+# Move the snake by one cell
+define move for Grid: -> num {
+    # remove the last cell of the snake, if it is not growing
+    if !@self.snake.keep {
+        @self.snake.cells.pull(0);
+    };
+
+    snake_head_pos = @self.snake.cells[- @self.snake.cells.len() 1];
+    # Add a new cell to the snake
+    if == @self.snake.direction 0 {
+        if == snake_head_pos.y 0 {
+            @self.snake.cells.push(new CellCoordinates(snake_head_pos.x - @self.h 1));
+        };
+        if !== snake_head_pos.y 0 {
+            @self.snake.cells.push(new CellCoordinates(snake_head_pos.x - snake_head_pos.y 1));
+        };
+    };
+    if == @self.snake.direction 1 {
+        if == snake_head_pos.x - @self.height 1 {
+            @self.snake.cells.push(new CellCoordinates(0 snake_head_pos.y));
+        };
+        if !== snake_head_pos.x - @self.height 1 {
+            @self.snake.cells.push(new CellCoordinates(+ snake_head_pos.x 1 snake_head_pos.y));
+        };
+    };
+    if == @self.snake.direction 2 {
+        if == snake_head_pos.y - @self.height 1 {
+            @self.snake.cells.push(new CellCoordinates(snake_head_pos.x 0));
+        };
+        if !== snake_head_pos.y - @self.height 1 {
+            @self.snake.cells.push(new CellCoordinates(snake_head_pos.x + snake_head_pos.y 1));
+        };
+    };
+    if == @self.snake.direction 3 {
+        if == snake_head_pos.x 0 {
+            @self.snake.cells.push(new CellCoordinates(- @self.w 1 snake_head_pos.y));
+        };
+        if !== snake_head_pos.x 0 {
+            @self.snake.cells.push(new CellCoordinates(- snake_head_pos.x 1 snake_head_pos.y));
+        };
+    };
+}
+
+
+
+
+
+# Return a new grid of the given size, with a randomly placed snake of length 1
+define new_random_grid: num num -> Grid {
+    snake_start_pos = new CellCoordinates(range(0 @0).floor() range(0 @1).floor());
+    s = new Snake([snake_start_pos] 0 false);
+
+    @return = new Grid(@0 @1 s);
+}
+
+
+
+
+
 
 define main: -> num {
     grid = new_random_grid(10 10);
-    grid.debug();
+    
+    while true {
+        grid.debug();
+        grid.move();
+
+        clock:sleep(1);
+    };
 }

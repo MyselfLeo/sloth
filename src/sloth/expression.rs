@@ -203,7 +203,7 @@ impl Expression {
                 let res = match func_scope.borrow().get_variable("@return".to_string(), program.as_mut().unwrap()) {
                     Ok(v) => {
                         let brrw = v.borrow();
-                        if !brrw.get_type().strict_eq(&function.get_output_type()) {
+                        if brrw.get_type() != function.get_output_type() {
                             let err_msg = format!("Function {} should return a value of type {}, but it returned '{}' which is of type {}", function.get_name(), function.get_output_type(), brrw.to_string(), brrw.get_type());
                             Err(Error::new(ErrorMessage::ReturnValueError(err_msg), Some(p.clone())))
                         }
@@ -302,7 +302,7 @@ impl Expression {
                 let res = match func_scope.borrow().get_variable("@return".to_string(), program.as_mut().unwrap()) {
                     Ok(v) => {
                         let brrw = v.borrow();
-                        if !brrw.get_type().strict_eq(&method.get_output_type()) {
+                        if brrw.get_type() != method.get_output_type() {
                             let err_msg = format!("Function {} should return a value of type {}, but it returned {} which is of type {}", method.get_name(), method.get_output_type(), brrw.to_string(), brrw.get_type());
                             Err(Error::new(ErrorMessage::ReturnValueError(err_msg), Some(p.clone())))
                         }
