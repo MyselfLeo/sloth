@@ -26,39 +26,10 @@ structure Grid {
     w: num;
     h: num;
     snake: Snake;
+
+    fruit_pos: CellCoordinates;
 }
 
-
-
-# Print the grid to the console
-define debug for Grid: -> num {
-    y = 0;
-
-    while < y @self.h {
-        x = 0;
-
-        while < x @self.w {
-
-            co = new CellCoordinates(x y);
-
-            res = @self.snake.cells.contains(co);
-            if res {
-                if == @self.snake.direction 0 {print("^ ");};
-                if == @self.snake.direction 1 {print("> ");};
-                if == @self.snake.direction 2 {print("v ");};
-                if == @self.snake.direction 3 {print("< ");};
-            };
-            if !res {
-                print("_ ");
-            };
-
-            x = + x 1;
-        }; 
-
-        print("\n");
-        y = + y 1;
-    };
-}
 
 
 
@@ -68,40 +39,50 @@ define move for Grid: -> num {
     # Add a new cell to the snake
     if == @self.snake.direction 0 {
         if == snake_head_pos.y 0 {
-            @self.snake.cells.push(new CellCoordinates(snake_head_pos.x - @self.h 1));
+            new_head = new CellCoordinates(snake_head_pos.x - @self.h 1);
         };
         if !== snake_head_pos.y 0 {
-            @self.snake.cells.push(new CellCoordinates(snake_head_pos.x - snake_head_pos.y 1));
+            new_head = new CellCoordinates(snake_head_pos.x - snake_head_pos.y 1);
         };
     };
     if == @self.snake.direction 1 {
-        if == snake_head_pos.x - @self.height 1 {
-            @self.snake.cells.push(new CellCoordinates(0 snake_head_pos.y));
+        if == snake_head_pos.x - @self.w 1 {
+            new_head = new CellCoordinates(0 snake_head_pos.y);
         };
-        if !== snake_head_pos.x - @self.height 1 {
-            @self.snake.cells.push(new CellCoordinates(+ snake_head_pos.x 1 snake_head_pos.y));
+        if !== snake_head_pos.x - @self.w 1 {
+            new_head = new CellCoordinates(+ snake_head_pos.x 1 snake_head_pos.y);
         };
     };
     if == @self.snake.direction 2 {
-        if == snake_head_pos.y - @self.height 1 {
-            @self.snake.cells.push(new CellCoordinates(snake_head_pos.x 0));
+        if == snake_head_pos.y - @self.h 1 {
+            new_head = new CellCoordinates(snake_head_pos.x 0);
         };
-        if !== snake_head_pos.y - @self.height 1 {
-            @self.snake.cells.push(new CellCoordinates(snake_head_pos.x + snake_head_pos.y 1));
+        if !== snake_head_pos.y - @self.h 1 {
+            new_head = new CellCoordinates(snake_head_pos.x + snake_head_pos.y 1);
         };
     };
     if == @self.snake.direction 3 {
         if == snake_head_pos.x 0 {
-            @self.snake.cells.push(new CellCoordinates(- @self.w 1 snake_head_pos.y));
+            new_head = new CellCoordinates(- @self.w 1 snake_head_pos.y);
         };
         if !== snake_head_pos.x 0 {
-            @self.snake.cells.push(new CellCoordinates(- snake_head_pos.x 1 snake_head_pos.y));
+            new_head = new CellCoordinates(- snake_head_pos.x 1 snake_head_pos.y);
         };
     };
+    @self.snake.cells.push(new_head);
 
     # remove the last cell of the snake, if it is not growing
     if !@self.snake.keep {
         @self.snake.cells.pull(0);
+    };
+    if @self.snake.keep {
+        @self.snake.keep = false;
+    };
+
+    # if the new head is on a fruit, change the fruit position and set keep to true
+    if == new_head @self.fruit_pos {
+        @self.snake.keep = true;
+        @self.fruit_pos = new CellCoordinates(range(0 @self.w).floor() range(0 @self.h).floor());
     };
 }
 
@@ -120,6 +101,13 @@ define draw for Grid: ~Canvas -> num {
         x = 0;
         while < x @self.w {
             co = new CellCoordinates(x y);
+
+            # Draw the fruit in red
+            if == @self.fruit_pos co {
+                @0.set_rect(* x 20 * y 20 20 20 168 50 78);
+            };
+
+            # Draw each snake cells in white
             if @self.snake.cells.contains(co) {
                 @0.set_rect(* x 20 * y 20 20 20 255 255 255);
             };
@@ -143,7 +131,9 @@ define new_random_grid: num num -> Grid {
     snake_start_pos = new CellCoordinates(range(0 @0).floor() range(0 @1).floor());
     s = new Snake([snake_start_pos] 0 false);
 
-    @return = new Grid(@0 @1 s);
+    fruit_pos = new CellCoordinates(range(0 @0).floor() range(0 @1).floor());
+
+    @return = new Grid(@0 @1 s fruit_pos);
 }
 
 
@@ -160,17 +150,27 @@ define main: -> num {
     timer = clock:now();
     while !close {
 
+        # Move the snake from time to time
         duration_since_update = timer.since();
-        if > duration_since_update.ms 750 {
+        if > duration_since_update.ms 450 {
             grid.move();
-            print("updated\n");
             timer = clock:now();
         };
 
 
+        # Update snake direction
+        event = media:last_event();
+        if == event "EVENT_UP" {grid.snake.direction = 0;};
+        if == event "EVENT_RIGHT" {grid.snake.direction = 1;};
+        if == event "EVENT_DOWN" {grid.snake.direction = 2;};
+        if == event "EVENT_LEFT" {grid.snake.direction = 3;};
+
+
+        # Draw screen
         grid.draw(canvas);
 
 
-        close = media:check_event("EVENT_QUIT");
+        # close condition
+        close = == event "EVENT_QUIT";
     };
 }

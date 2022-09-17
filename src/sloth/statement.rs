@@ -115,8 +115,8 @@ impl Statement {
                     Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                 };
 
-                let cond_value = expr.evaluate(scope.clone(), program)?;
-                match cond_value.borrow().to_owned() {
+                let cond_value = expr.evaluate(scope.clone(), program)?.borrow().to_owned();
+                match cond_value {
                     Value::Boolean(true) => {
                         for statement in statements {statement.apply(scope.clone(), program)?}
                     }

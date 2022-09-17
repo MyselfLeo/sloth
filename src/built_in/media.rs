@@ -24,10 +24,10 @@ static mut SDL_CONTEXT: Option<Sdl> = None;
 pub const BUILTINS: [&str; 5] = [
     "Canvas",
 
-    "check_event",
     "update",
     "set_pixel",
-    "set_rect"
+    "set_rect",
+    "last_event"
 ];
 
 
@@ -36,10 +36,10 @@ pub fn get_type(builtin: &String) -> Result<BuiltinTypes, String> {
     match builtin.as_str() {
         "Canvas" => Ok(BuiltinTypes::Structure),
 
-        "check_event" => Ok(BuiltinTypes::Function),
         "update" => Ok(BuiltinTypes::Function),
         "set_pixel" => Ok(BuiltinTypes::Function),
         "set_rect" => Ok(BuiltinTypes::Function),
+        "last_event" => Ok(BuiltinTypes::Function),
 
         _ => Err(format!("Builtin '{builtin}' not found in module 'media'"))
     }
@@ -50,13 +50,13 @@ pub fn get_type(builtin: &String) -> Result<BuiltinTypes, String> {
 /// Return a reference to a new SlothFunction. Panics if the function does not exists
 pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
     match f_name.as_str() {
-        "check_event" => Box::new(
+        "last_event" => Box::new(
             BuiltInFunction::new(
-                "check_event",
+                "last_event",
                 Some("media"),
                 None,
-                Type::Boolean,
-                check_event
+                Type::String,
+                last_event
             )
         ),
 
@@ -358,21 +358,15 @@ fn set_rect(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(),
 
 
 
-fn check_event(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
-    let inputs = super::query_inputs(&scope, vec![Type::String], "check_event")?;
-
-    let event_code = match &inputs[0] {
-        Value::String(x) => x.as_str(),
-        _ => panic!()
-    };
-
-    if !EVENT_CODES.contains(&event_code) {
-        let err_msg = format!("Event code '{}' does not exist", event_code);
-        return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None))
-    }
 
 
-    let called = unsafe {
+
+
+/// Return the code of the last event to happen
+fn last_event(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
+    super::query_inputs(&scope, vec![], "last_event")?;
+
+    let code = unsafe {
         if SDL_CONTEXT.is_none() {
             SDL_CONTEXT = match sdl2::init() {
                 Ok(v) => Some(v),
@@ -388,16 +382,14 @@ fn check_event(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<
 
 
         // find requested event
-        let res = match event_pump.poll_event() {
-            None => false,
-            Some(e) => check_code_event(event_code, &e)
-        };
-
-        res
+        match event_pump.poll_event() {
+            None => "".to_string(),
+            Some(e) => get_code(&e)
+        }
     };
 
 
-    super::set_return(&scope, program, Value::Boolean(called))
+    super::set_return(&scope, program, Value::String(code))
 }
 
 
@@ -407,25 +399,17 @@ fn check_event(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<
 
 
 
-
-
-
-const EVENT_CODES: [&str; 3] = ["EVENT_QUIT", "EVENT_LMB_CLICK", "EVENT_RMB_CLICK"];
-
-
-
-
-/// Check if the given code corresponds to the event. Return Error if the given code does not exists
-fn check_code_event(code: &str, event: &Event) -> bool {
+/// Return the event code corresponding to the given event
+fn get_code(event: &Event) -> String {
     match event {
-        Event::Quit {..} => code == "EVENT_QUIT",
-        Event::MouseButtonDown { mouse_btn: MouseButton::Left, .. } => code == "EVENT_LMB_CLICK",
-        Event::MouseButtonDown { mouse_btn: MouseButton::Right, .. } => code == "EVENT_RMB_CLICK",
-        Event::KeyDown { keycode: Some(Keycode::Up), .. } => code == "EVENT_UP",
-        Event::KeyDown { keycode: Some(Keycode::Right), .. } => code == "EVENT_RIGHT",
-        Event::KeyDown { keycode: Some(Keycode::Down), .. } => code == "EVENT_DOWN",
-        Event::KeyDown { keycode: Some(Keycode::Left), .. } => code == "EVENT_LEFT",
-        Event::KeyDown { keycode: Some(Keycode::Space), .. } => code == "EVENT_SPACE",
-        _ => false
-    }
+        Event::Quit {..} => "EVENT_QUIT",
+        Event::MouseButtonDown { mouse_btn: MouseButton::Left, .. } => "EVENT_LMB_CLICK",
+        Event::MouseButtonDown { mouse_btn: MouseButton::Right, .. } => "EVENT_RMB_CLICK",
+        Event::KeyDown { keycode: Some(Keycode::Up), .. } => "EVENT_UP",
+        Event::KeyDown { keycode: Some(Keycode::Right), .. } => "EVENT_RIGHT",
+        Event::KeyDown { keycode: Some(Keycode::Down), .. } => "EVENT_DOWN",
+        Event::KeyDown { keycode: Some(Keycode::Left), .. } => "EVENT_LEFT",
+        Event::KeyDown { keycode: Some(Keycode::Space), .. } => "EVENT_SPACE",
+        _ => ""
+    }.to_string()
 }
