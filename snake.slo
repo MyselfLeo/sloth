@@ -25,12 +25,22 @@ structure Grid {
 }
 
 
+
+# Return a new grid of the given size, with a randomly placed snake of length 1
 define new_random_grid: num num -> Grid {
     snake_start_pos = new CellCoordinates(range(0 @0).floor() range(0 @1).floor());
     s = new Snake([snake_start_pos] 0);
 
     @return = new Grid(@0 @1 s);
 }
+
+
+
+# Print the grid to the console
+define debug for Grid: -> num {
+    
+}
+
 
 
 

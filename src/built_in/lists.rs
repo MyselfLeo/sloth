@@ -6,17 +6,18 @@ use crate::sloth::program::SlothProgram;
 use crate::sloth::scope::Scope;
 use crate::sloth::value::Value;
 use super::{BuiltInFunction, BuiltinTypes};
-use std::cell::RefCell;
+use std::cell::{RefCell, Ref};
 use std::rc::Rc;
 
 
 
-pub const BUILTINS: [&str; 5] = [
+pub const BUILTINS: [&str; 6] = [
     "set",
     "get",
     "push",
     "pull",
-    "len"
+    "len",
+    "contains"
 ];
 
 
@@ -28,6 +29,7 @@ pub fn get_type(builtin: &String) -> Result<BuiltinTypes, String> {
         "push" => Ok(BuiltinTypes::Function),
         "pull" => Ok(BuiltinTypes::Function),
         "len" => Ok(BuiltinTypes::Function),
+        "contains" => Ok(BuiltinTypes::Function),
 
         _ => Err(format!("Builtin '{builtin}' not found in module 'lists'"))
     }
@@ -89,6 +91,15 @@ pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
         ),
 
 
+        "contains" => Box::new(
+            BuiltInFunction::new(
+                "contains",
+                Some("lists"),
+                Some(Type::List(Box::new(Type::Any))),
+                Type::Boolean,
+                contains
+            )
+        ),
 
 
         n => panic!("Requested unknown built-in '{}'", n)
@@ -299,6 +310,22 @@ fn len(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Erro
         Value::List(_, v) => v,
         _ => panic!("Called 'set' on a value which is not a list")
     };
-    super::set_return(&scope, program, Value::Number(list_vec.len() as f64))?;
-    Ok(())
+    super::set_return(&scope, program, Value::Number(list_vec.len() as f64))
+}
+
+
+
+
+
+
+fn contains(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
+    let list_self = super::get_self(&scope, program)?;
+    let inputs = super::query_inputs(&scope, vec![Type::Any], "contains")?;
+
+    let list_vec: Vec<Value> = match list_self {
+        Value::List(_, v) => v.iter().map(|x| x.borrow().to_owned()).collect(),
+        _ => panic!("Called 'set' on a value which is not a list")
+    };
+
+    super::set_return(&scope, program, Value::Boolean(list_vec.contains(&inputs[0])))
 }
