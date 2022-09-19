@@ -259,7 +259,7 @@ impl SlothProgram {
         }
 
         // Call the main function
-        let f_call = Expression::FunctionCall(main_func_id, args_id, dummy_pos.clone());
+        let f_call = Expression::FunctionCall(None, main_func_id, args_id, dummy_pos.clone());
 
         match f_call.evaluate(self.main_scope.clone(), self) {
             Ok(reference) => Ok(reference.borrow().to_owned()),
