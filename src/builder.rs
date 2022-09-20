@@ -186,7 +186,7 @@ fn parse_functioncall(iterator: &mut TokenIterator, program: &mut SlothProgram, 
     let func_id = FunctionSignature::new(module, function_name, None, None, None);
 
     iterator.next();
-    Ok(Expression::FunctionCall(func_id, inputs_expr_id, functioncall_pos))
+    Ok(Expression::FunctionCall(None, func_id, inputs_expr_id, functioncall_pos))
 }
 
 
@@ -322,9 +322,9 @@ fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, w
         Some((Token::Separator(Separator::OpenParenthesis), _)) | Some((Token::Separator(Separator::Colon), _)) => {
             let function = parse_functioncall(iterator, program, warning)?;
             // Transforms the FunctionCall expression given by the parse_functioncall function into a MethodCall
-            if let Expression::FunctionCall(signature, input_exprs, pos) = function {
+            if let Expression::FunctionCall(_, signature, input_exprs, pos) = function {
                 let expr_pos = first_expr.1.until(pos);
-                let method_call = Expression::MethodCall(first_expr.0, signature, input_exprs, expr_pos.clone());
+                let method_call = Expression::FunctionCall(Some(first_expr.0), signature, input_exprs, expr_pos.clone());
                 (program.push_expr(method_call), expr_pos)
             }
             else {panic!("Function 'parse_functioncall' did not return an Expression::Functioncall value")}
@@ -507,7 +507,7 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
             match iterator.peek(1) {
                 Some((Token::Separator(Separator::OpenParenthesis), _)) | Some((Token::Separator(Separator::Colon), _)) => {
                     let func_call = parse_functioncall(iterator, program, warning)?;
-                    if let Expression::FunctionCall(_, _, p) = func_call.clone() {(func_call, p)}
+                    if let Expression::FunctionCall(_, _, _, p) = func_call.clone() {(func_call, p)}
                     else {panic!("parse_functioncall did not return an Expression::FunctionCall enum")}
                 },
                 _ => {
