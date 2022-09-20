@@ -24,25 +24,6 @@ pub enum ErrorMessage {
     DefinitionError(String)
 }
 
-impl ErrorMessage {
-    pub fn as_string(&self) -> String {
-        match self {
-            ErrorMessage::SyntaxError(e) => e.clone(),
-            ErrorMessage::NoEntryPoint(e) => e.clone(),
-            ErrorMessage::FileNotFound(e) => e.clone(),
-            ErrorMessage::InvalidArguments(e) => e.clone(),
-            ErrorMessage::UnexpectedExpression(e) => e.clone(),
-            ErrorMessage::RuntimeError(e) => e.clone(),
-            ErrorMessage::UnexpectedEOF(e) => e.clone(),
-            ErrorMessage::TypeError(e) => e.clone(),
-            ErrorMessage::RustError(e) => e.clone(),
-            ErrorMessage::OperationErrror(e) => e.clone(),
-            ErrorMessage::ReturnValueError(e) => e.clone(),
-            ErrorMessage::ImportError(e) => e.clone(),
-            ErrorMessage::DefinitionError(e) => e.clone(),
-        }
-    }
-}
 
 impl std::fmt::Display for ErrorMessage {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
