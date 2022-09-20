@@ -29,7 +29,7 @@ impl ExpressionID {
 pub enum Expression {
     Literal(Value, ElementPosition),                                                             // value of the literal
     ListInit(Vec<ExpressionID>, ElementPosition),                                                // list initialised in code. Example: [1 2 3 4 5]
-    FieldAccess(ExpressionID, String, ElementPosition),                                          // ExpressionID to the owner of the field and its name
+    VariableAccess(Option<ExpressionID>, String, ElementPosition),                               // ExpressionID to the owner of the field and its name
     Operation(Operator, Option<ExpressionID>, Option<ExpressionID>, ElementPosition),            // Operator to apply to one or 2 values from the Scope Expression stack (via index)
     FunctionCall(Option<ExpressionID>, FunctionSignature, Vec<ExpressionID>, ElementPosition),   // optional owner (for method calls), name of the function and its list of expressions to be evaluated
     ObjectConstruction(StructSignature, Vec<ExpressionID>, ElementPosition),                     // The construction of an Object, with the 'new' keyword
@@ -87,19 +87,34 @@ impl Expression {
 
 
             // return the value stored in this variable
-            Expression::FieldAccess(owner, name, p) => {
-                // Get the reference to the owner
-                let owner_expr = match program.as_mut().unwrap().get_expr(*owner) {
-                    Ok(e) => e,
-                    Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
-                };
-                let owner_ref = owner_expr.evaluate(scope.clone(), program)?;
+            Expression::VariableAccess(owner, name, p) => {
 
-                let field = owner_ref.borrow().get_field(name);
+                match owner {
+                    // Field of a value
+                    Some(o) => {
+                        // Get the reference to the owner
+                        let owner_expr = match program.as_mut().unwrap().get_expr(*o) {
+                            Ok(e) => e,
+                            Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
+                        };
+                        let owner_ref = owner_expr.evaluate(scope.clone(), program)?;
 
-                match field {
-                    Ok(v) => Ok(v),
-                    Err(e) => Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))
+                        let field = owner_ref.borrow().get_field(name);
+
+                        match field {
+                            Ok(v) => Ok(v),
+                            Err(e) => Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))
+                        }
+                    },
+
+                    // Variable in the scope
+                    None => {
+                        // Get the value directly from the scope
+                        match scope.borrow().get_variable(name.clone(), false, program.as_mut().unwrap()) {
+                            Ok(r) => Ok(r),
+                            Err(e) => Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))
+                        }
+                    }
                 }
             },
 
@@ -258,7 +273,7 @@ impl Expression {
 
 
                 // return the value in the '@return' variable, but check its type first
-                let res = match func_scope.borrow().get_variable("@return".to_string(), program.as_mut().unwrap()) {
+                let res = match func_scope.borrow().get_variable("@return".to_string(), false, program.as_mut().unwrap()) {
                     Ok(v) => {
                         let brrw = v.borrow();
                         if brrw.get_type() != method.get_output_type() {
@@ -316,7 +331,7 @@ impl Expression {
         match self {
             Expression::Literal(_, p) => p,
             Expression::ListInit(_, p) => p,
-            Expression::FieldAccess(_, _, p) => p,
+            Expression::VariableAccess(_, _, p) => p,
             Expression::Operation(_, _, _, p) => p,
             Expression::FunctionCall(_, _, _, p) => p,
             Expression::ObjectConstruction(_, _, p) => p,

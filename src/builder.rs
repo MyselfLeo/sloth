@@ -80,8 +80,21 @@ impl TokenIterator {
 
 
 
-
-
+/// Parse a variable call
+fn parse_variablecall(iterator: &mut TokenIterator, _: &mut SlothProgram, _: bool) -> Result<Expression, Error> {
+    // Get the identifier
+    match iterator.current() {
+        Some((Token::Identifier(n), p)) => {
+            iterator.next();
+            Ok(Expression::VariableAccess(None, n, p))
+        }
+        Some((t, p)) => {
+            let err_msg = format!("Expected variable name, got unexpected token '{}'", t.to_string_formatted());
+            Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())))
+        },
+        None => Err(eof_error(line!()))
+    }
+}
 
 
 
@@ -316,7 +329,7 @@ fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, w
 
 
 
-    // Check whether the call is a method call or a parameter call
+    // Check whether the call is a method call or a field access
     let expr = match iterator.peek(1) {
         // method call
         Some((Token::Separator(Separator::OpenParenthesis), _)) | Some((Token::Separator(Separator::Colon), _)) => {
@@ -330,9 +343,20 @@ fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, w
             else {panic!("Function 'parse_functioncall' did not return an Expression::Functioncall value")}
         },
         
-        // Parameter call
+        // Field
+        Some((Token::Identifier(n), p)) => {
+            iterator.next();
+            iterator.next();
+
+            let expr_pos = first_expr.1.until(p);
+
+            let field_access = Expression::VariableAccess(Some(first_expr.0), n, expr_pos.clone());
+            (program.push_expr(field_access), expr_pos)
+        },
+
+        // Other
         Some((t, p)) => {
-            let err_msg = format!("Expected method call, got unexpected token '{}'", t.original_string());
+            let err_msg = format!("Expected method call or field access, got unexpected token '{}'", t.original_string());
             return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)));
         },
 
@@ -513,8 +537,9 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
                     else {panic!("parse_functioncall did not return an Expression::FunctionCall enum")}
                 },
                 _ => {
-                    let wrapper = parse_identifierwrapper(iterator, program, warning)?;
-                    (Expression::VariableCall(wrapper.0, wrapper.1.clone()), wrapper.1)
+                    let var_call = parse_variablecall(iterator, program, warning)?;
+                    if let Expression::VariableAccess(_, _, p) = var_call.clone() {(var_call, p)}
+                    else {panic!("pare_variablecall did not return an Expression::VariableAccess")}
                 }
             }
         },
@@ -586,10 +611,9 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
 
 
 /// Parse an assignment statement
-fn parse_assignment(wrapper: (IdentifierWrapper, ElementPosition), iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<Statement, Error> {
+fn parse_assignment(left_expr: (ExpressionID, ElementPosition), iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<Statement, Error> {
     
-    // Get identifier wrapper
-    let (id_wrapper, start_pos) = wrapper;
+    let (left_expr, left_pos) = left_expr;
     
     // The next token must be '='
     match iterator.current() {
@@ -605,9 +629,9 @@ fn parse_assignment(wrapper: (IdentifierWrapper, ElementPosition), iterator: &mu
     // Rest of the assignment is an expression
     iterator.next();
     let (expression_id, expr_pos) = parse_expression(iterator, program, warning)?;
-    let assignment_position = start_pos.until(expr_pos);
+    let assignment_position = left_pos.until(expr_pos);
 
-    Ok(Statement::Assignment(id_wrapper, expression_id, assignment_position))
+    Ok(Statement::Assignment(left_expr, expression_id, assignment_position))
 }
 
 
@@ -720,26 +744,17 @@ fn parse_statement(iterator: &mut TokenIterator, program: &mut SlothProgram, war
                     }
 
                     else {
-                        // At this point we can parse the wrapper
-                        let wrapper = parse_identifierwrapper(iterator, program, warning)?;
+                        // Get the expression of the left part
+                        let expr = parse_expression(iterator, program, warning)?;
                         
                         match iterator.current() {
                             Some((token, _)) => {
                                 // Assignment
                                 if token.original_string() == "=".to_string() {
-                                    parse_assignment(wrapper, iterator, program, warning)?
+                                    parse_assignment(expr, iterator, program, warning)?
                                 }
-
-                                // Method Call
-                                else if token.original_string() == ".".to_string() {
-                                    let first_expr = (program.push_expr(Expression::VariableCall(wrapper.0, wrapper.1.clone())), wrapper.1.clone());
-                                    let new_expr = parse_second_expr(iterator, program, warning, first_expr, false)?;
-                                    Statement::ExpressionCall(new_expr.0, new_expr.1)
-                                }
-
-                                // VariableCall call
+                                
                                 else {
-                                    let expr = (program.push_expr(Expression::VariableCall(wrapper.0, wrapper.1.clone())), wrapper.1.clone());
                                     Statement::ExpressionCall(expr.0, expr.1)
                                 }
                             },
