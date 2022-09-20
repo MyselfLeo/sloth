@@ -318,8 +318,8 @@ fn parse_list(iterator: &mut TokenIterator, program: &mut SlothProgram, warning:
 /// It is given the ExpressionID and ElementPosition of the first expression
 fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool, first_expr: (ExpressionID, ElementPosition), is_parenthesied: bool) -> Result<(ExpressionID, ElementPosition), Error> {
     // name of the variable or function to use
-    match iterator.next() {
-        Some((Token::Identifier(_), _)) => (),
+    let (ident, ident_pos) = match iterator.next() {
+        Some((Token::Identifier(n), p)) => (n, p),
         Some((t, p)) => {
             let err_msg = format!("Expected identifier, got unexpected token '{}'", t.original_string());
             return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)));
@@ -344,20 +344,12 @@ fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, w
         },
         
         // Field
-        Some((Token::Identifier(n), p)) => {
+        Some((_, _)) => {
             iterator.next();
-            iterator.next();
+            let expr_pos = first_expr.1.until(ident_pos);
 
-            let expr_pos = first_expr.1.until(p);
-
-            let field_access = Expression::VariableAccess(Some(first_expr.0), n, expr_pos.clone());
+            let field_access = Expression::VariableAccess(Some(first_expr.0), ident, expr_pos.clone());
             (program.push_expr(field_access), expr_pos)
-        },
-
-        // Other
-        Some((t, p)) => {
-            let err_msg = format!("Expected method call or field access, got unexpected token '{}'", t.original_string());
-            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)));
         },
 
         None => return Err(eof_error(line!()))
@@ -366,15 +358,13 @@ fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, w
 
 
     // determines whether the expression if finished here or not.
-    println!("After second expr evaluation: next value is {:?}", iterator.current());
     match iterator.current() {
         Some((Token::Separator(Separator::CloseParenthesis), _)) => {
             if is_parenthesied {iterator.next(); Ok(expr)}
             else {Ok(expr)}
         },
         Some((Token::Separator(Separator::Period), _)) => {
-            println!("here");
-            parse_second_expr(iterator, program, warning, first_expr, is_parenthesied)
+            parse_second_expr(iterator, program, warning, expr, is_parenthesied)
         },
         Some((t, p)) => {
             if !is_parenthesied {Ok(expr)}

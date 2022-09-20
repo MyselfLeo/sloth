@@ -109,8 +109,23 @@ impl Expression {
 
                     // Variable in the scope
                     None => {
+                        // Allocate new variable if not already set
+                        if !scope.borrow().is_set(name) {
+                            match scope.try_borrow_mut() {
+                                Ok(mut brrw) => {
+                                    match brrw.push_variable(name.clone(), Rc::new(RefCell::new(Value::Any))) {
+                                        Ok(()) => (),
+                                        Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e.to_string()), Some(p.clone())))
+                                    }
+                                },
+                                Err(e) => {
+                                    return Err(Error::new(ErrorMessage::RustError(e.to_string()), Some(p.clone())))
+                                }
+                            }
+                        }
+
                         // Get the value directly from the scope
-                        match scope.borrow().get_variable(name.clone(), false, program.as_mut().unwrap()) {
+                        match scope.borrow().get_variable(name.clone(), program.as_mut().unwrap()) {
                             Ok(r) => Ok(r),
                             Err(e) => Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))
                         }
@@ -273,7 +288,7 @@ impl Expression {
 
 
                 // return the value in the '@return' variable, but check its type first
-                let res = match func_scope.borrow().get_variable("@return".to_string(), false, program.as_mut().unwrap()) {
+                let res = match func_scope.borrow().get_variable("@return".to_string(), program.as_mut().unwrap()) {
                     Ok(v) => {
                         let brrw = v.borrow();
                         if brrw.get_type() != method.get_output_type() {
