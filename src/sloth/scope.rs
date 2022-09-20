@@ -24,6 +24,7 @@ impl Scope {
 
     /// Return the value contained in the given variable. Prefer variable in this scope,
     /// but can also query parent scope for variable
+    /// If for assignment, create the variable instead of returning an error
     pub fn get_variable(&self, name: String, program: &mut SlothProgram) -> Result<Rc<RefCell<Value>>, String> {
         match self.variables.get(&name) {
             Some(v) => Ok(v.clone()),
@@ -37,6 +38,12 @@ impl Scope {
                 }
             }
         }
+    }
+
+
+    /// Return whether the given variable is set or not
+    pub fn is_set(&self, name: &String) -> bool {
+        self.variables.contains_key(name)
     }
 
 
