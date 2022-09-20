@@ -2,7 +2,6 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use super::function::{FunctionSignature};
-use super::statement::IdentifierWrapper;
 use super::structure::{StructSignature};
 use super::types::Type;
 use super::value::{Value, DeepClone};
@@ -30,7 +29,7 @@ impl ExpressionID {
 pub enum Expression {
     Literal(Value, ElementPosition),                                                             // value of the literal
     ListInit(Vec<ExpressionID>, ElementPosition),                                                // list initialised in code. Example: [1 2 3 4 5]
-    VariableCall(IdentifierWrapper, ElementPosition),                                            // identifierwrapper linking to the variable
+    FieldAccess(ExpressionID, String, ElementPosition),                                          // ExpressionID to the owner of the field and its name
     Operation(Operator, Option<ExpressionID>, Option<ExpressionID>, ElementPosition),            // Operator to apply to one or 2 values from the Scope Expression stack (via index)
     FunctionCall(Option<ExpressionID>, FunctionSignature, Vec<ExpressionID>, ElementPosition),   // optional owner (for method calls), name of the function and its list of expressions to be evaluated
     ObjectConstruction(StructSignature, Vec<ExpressionID>, ElementPosition),                     // The construction of an Object, with the 'new' keyword
@@ -88,12 +87,22 @@ impl Expression {
 
 
             // return the value stored in this variable
-            Expression::VariableCall(wrapper, p) => {
-                match wrapper.get_value(scope, program.as_mut().unwrap()) {
+            Expression::FieldAccess(owner, name, p) => {
+                // Get the reference to the owner
+                let owner_expr = match program.as_mut().unwrap().get_expr(*owner) {
+                    Ok(e) => e,
+                    Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
+                };
+                let owner_ref = owner_expr.evaluate(scope.clone(), program)?;
+
+                let field = owner_ref.borrow().get_field(name);
+
+                match field {
                     Ok(v) => Ok(v),
                     Err(e) => Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))
                 }
             },
+
 
 
 
@@ -307,7 +316,7 @@ impl Expression {
         match self {
             Expression::Literal(_, p) => p,
             Expression::ListInit(_, p) => p,
-            Expression::VariableCall(_, p) => p,
+            Expression::FieldAccess(_, _, p) => p,
             Expression::Operation(_, _, _, p) => p,
             Expression::FunctionCall(_, _, _, p) => p,
             Expression::ObjectConstruction(_, _, p) => p,

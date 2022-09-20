@@ -5,7 +5,7 @@ use crate::sloth::expression::{ExpressionID, Expression};
 use crate::sloth::function::{CustomFunction, FunctionSignature};
 use crate::sloth::operator::{Operator};
 use crate::sloth::program::SlothProgram;
-use crate::sloth::statement::{Statement, IdentifierWrapper, IdentifierElement};
+use crate::sloth::statement::{Statement};
 use crate::sloth::structure::{CustomDefinition, StructSignature};
 use crate::sloth::types::Type;
 use crate::sloth::value::Value;
@@ -342,12 +342,14 @@ fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, w
 
 
     // determines whether the expression if finished here or not.
+    println!("After second expr evaluation: next value is {:?}", iterator.current());
     match iterator.current() {
         Some((Token::Separator(Separator::CloseParenthesis), _)) => {
             if is_parenthesied {iterator.next(); Ok(expr)}
             else {Ok(expr)}
         },
         Some((Token::Separator(Separator::Period), _)) => {
+            println!("here");
             parse_second_expr(iterator, program, warning, first_expr, is_parenthesied)
         },
         Some((t, p)) => {
@@ -502,7 +504,7 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
 
 
 
-        // The token is an identifier. CHeck the next token to see if its a function call, or variable call
+        // The token is an identifier. Check the next token to see if its a function call, or field access
         Some((Token::Identifier(_), _)) =>  {
             match iterator.peek(1) {
                 Some((Token::Separator(Separator::OpenParenthesis), _)) | Some((Token::Separator(Separator::Colon), _)) => {
@@ -615,7 +617,7 @@ fn parse_assignment(wrapper: (IdentifierWrapper, ElementPosition), iterator: &mu
 
 
 
-
+/*
 /// Parse an identifier chaine, like "var1.field1.field2[value]"
 fn parse_identifierwrapper(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<(IdentifierWrapper, ElementPosition), Error> {
     let first_pos;
@@ -692,7 +694,7 @@ fn parse_identifierwrapper(iterator: &mut TokenIterator, program: &mut SlothProg
 
     Ok((IdentifierWrapper::new(sequence), first_pos.until(last_pos)))
 }
-
+ */
 
 
 
