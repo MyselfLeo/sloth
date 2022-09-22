@@ -309,6 +309,62 @@ fn parse_list(iterator: &mut TokenIterator, program: &mut SlothProgram, warning:
 
 
 
+/// Parse expression[access]
+fn parse_bracket_access(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool, first_expr: (ExpressionID, ElementPosition), is_parenthesied: bool) -> Result<(ExpressionID, ElementPosition), Error> {
+    // must start on an open square bracket
+    match iterator.current() {
+        Some((Token::Separator(Separator::OpenSquareBracket), _)) => (),
+        _ => panic!("parse_bracket_access called but not on a [")
+    };
+
+    // next expression is the field identifier
+    iterator.next();
+    let access = parse_expression(iterator, program, warning)?;
+
+    // next must be a closing bracket
+    let final_pos = match iterator.current() {
+        Some((Token::Separator(Separator::CloseSquareBracket), p)) => p,
+        Some((t, p)) => {
+            let err_msg = format!("Expected ']', got unexpected token '{}'", t.to_string_formatted());
+            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())))
+        },
+        None => return Err(eof_error(line!()))
+    };
+    iterator.next();
+
+    let expr_pos = first_expr.1.until(final_pos);
+    let expr_id = program.push_expr(Expression::BracketAcces(first_expr.0, access.0, expr_pos.clone()));
+
+    let expr = (expr_id, expr_pos);
+
+    // determines whether the expression if finished here or not.
+    match iterator.current() {
+        Some((Token::Separator(Separator::CloseParenthesis), _)) => {
+            if is_parenthesied {iterator.next(); Ok(expr)}
+            else {Ok(expr)}
+        },
+        Some((Token::Separator(Separator::OpenSquareBracket), _)) => {
+            parse_bracket_access(iterator, program, warning, expr, is_parenthesied)
+        },
+        Some((Token::Separator(Separator::Period), _)) => {
+            parse_second_expr(iterator, program, warning, expr, is_parenthesied)
+        },
+        Some((t, p)) => {
+            if !is_parenthesied {Ok(expr)}
+            else {
+                let err_msg = format!("Expected ')', got unexpected token '{}'", t.original_string());
+                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)));
+            }
+        },
+        None => Err(eof_error(line!())),
+    }
+}
+
+
+
+
+
+
 
 
 
@@ -362,6 +418,9 @@ fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, w
         Some((Token::Separator(Separator::CloseParenthesis), _)) => {
             if is_parenthesied {iterator.next(); Ok(expr)}
             else {Ok(expr)}
+        },
+        Some((Token::Separator(Separator::OpenSquareBracket), _)) => {
+            parse_bracket_access(iterator, program, warning, expr, is_parenthesied)
         },
         Some((Token::Separator(Separator::Period), _)) => {
             parse_second_expr(iterator, program, warning, expr, is_parenthesied)
@@ -567,6 +626,9 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
 
     let first_expr = (program.push_expr(expr.clone()), expr_pos);
 
+
+
+
     // determines whether the expression if finished here or not.
     match iterator.current() {
         Some((Token::Separator(Separator::CloseParenthesis), _)) => {
@@ -579,6 +641,9 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
         },
         Some((Token::Separator(Separator::Period), _)) => {
             parse_second_expr(iterator, program, warning, first_expr, is_parenthesied)
+        },
+        Some((Token::Separator(Separator::OpenSquareBracket), _)) => {
+            parse_bracket_access(iterator, program, warning, first_expr, is_parenthesied)
         },
         Some((t, p)) => {
             if !is_parenthesied {Ok(first_expr)}
@@ -628,87 +693,6 @@ fn parse_assignment(left_expr: (ExpressionID, ElementPosition), iterator: &mut T
 
 
 
-
-
-
-/*
-/// Parse an identifier chaine, like "var1.field1.field2[value]"
-fn parse_identifierwrapper(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<(IdentifierWrapper, ElementPosition), Error> {
-    let first_pos;
-    let mut last_pos;
-    let mut sequence: Vec<IdentifierElement> = Vec::new();
-
-
-    // first token must be an identifier
-    match iterator.current() {
-        Some((Token::Identifier(n), p)) => {
-            sequence.push(IdentifierElement::Identifier(n));
-            first_pos = p.clone();
-            last_pos = p;
-        },
-        Some((t, p)) => {
-            let err_msg = format!("Expected identifier, got unexpected token '{}'", t.original_string());
-            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)))
-        },
-        None => return Err(eof_error(line!()))
-    }
-
-    // loop until the end of the wrapper. Each step is either a field access (.fieldname) or an indexation ([x])
-    loop {
-
-        // If the third next token is an open parenthesis, we can stop here as the rest is not part of the IdentifierWrapper, but is
-        // instead a method call.
-        match iterator.peek(3) {
-            Some((Token::Separator(Separator::OpenParenthesis), _)) => {
-                iterator.next();
-                break
-            },
-            _ => ()
-        }
-
-        match iterator.next() {
-            Some((Token::Separator(Separator::Period), _)) => {
-                // next token must be an identifier
-                match iterator.next() {
-                    Some((Token::Identifier(n), p)) => {
-                        sequence.push(IdentifierElement::Identifier(n));
-                        last_pos = p;
-                    },
-                    Some((t, p)) => {
-                        let err_msg = format!("Expected identifier, got unexpected token '{}'", t.original_string());
-                        return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)))
-                    },
-                    None => return Err(eof_error(line!()))
-                }
-            },
-
-
-            Some((Token::Separator(Separator::OpenSquareBracket), _)) => {
-                // next is the expression that will be used as an index
-                iterator.next();
-                let expr_id = parse_expression(iterator, program, warning)?;
-                // next token MUST be a closed parenthesis
-                match iterator.current() {
-                    Some((Token::Separator(Separator::CloseSquareBracket), p)) => {
-                        sequence.push(IdentifierElement::Indexation(expr_id.0));
-                        last_pos = p;
-                    },
-                    Some((t, p)) => {
-                        let err_msg = format!("Expected ']', got unexpected token '{}'", t.original_string());
-                        return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)))
-                    },
-                    None => return Err(eof_error(line!()))
-                }
-            },
-
-            Some((_, _)) => {break;},
-            None => return Err(eof_error(line!()))
-        };
-    };
-
-    Ok((IdentifierWrapper::new(sequence), first_pos.until(last_pos)))
-}
- */
 
 
 

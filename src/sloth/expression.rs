@@ -29,7 +29,8 @@ impl ExpressionID {
 pub enum Expression {
     Literal(Value, ElementPosition),                                                             // value of the literal
     ListInit(Vec<ExpressionID>, ElementPosition),                                                // list initialised in code. Example: [1 2 3 4 5]
-    VariableAccess(Option<ExpressionID>, String, ElementPosition),                               // ExpressionID to the owner of the field and its name
+    VariableAccess(Option<ExpressionID>, String, ElementPosition),                               // ExpressionID to the owner of the field and its name,
+    BracketAcces(ExpressionID, ExpressionID, ElementPosition),                                   // Owner, indexing expression
     Operation(Operator, Option<ExpressionID>, Option<ExpressionID>, ElementPosition),            // Operator to apply to one or 2 values from the Scope Expression stack (via index)
     FunctionCall(Option<ExpressionID>, FunctionSignature, Vec<ExpressionID>, ElementPosition),   // optional owner (for method calls), name of the function and its list of expressions to be evaluated
     ObjectConstruction(StructSignature, Vec<ExpressionID>, ElementPosition),                     // The construction of an Object, with the 'new' keyword
@@ -40,7 +41,7 @@ pub enum Expression {
 
 impl Expression {
     /// Evaluate the expression in the given context (scope and program) and return its value
-    pub unsafe fn evaluate(&self, scope: Rc<RefCell<Scope>>, program: *mut SlothProgram) -> Result<Rc<RefCell<Value>>, Error> {
+    pub unsafe fn evaluate(&self, scope: Rc<RefCell<Scope>>, program: *mut SlothProgram, for_assignment: bool) -> Result<Rc<RefCell<Value>>, Error> {
 
         match self {
             // return this literal value
@@ -57,7 +58,7 @@ impl Expression {
                         Ok(e) => e,
                         Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                     };
-                    values.push(expr.evaluate(scope.clone(), program)?);
+                    values.push(expr.evaluate(scope.clone(), program, false)?);
 
                     list_type = values[0].borrow().get_type();
 
@@ -69,7 +70,7 @@ impl Expression {
                             Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                         };
 
-                        let value = expr.evaluate(scope.clone(), program)?;
+                        let value = expr.evaluate(scope.clone(), program, false)?;
 
                         if value.borrow().get_type() == list_type {values.push(value);}
                         else {
@@ -97,7 +98,7 @@ impl Expression {
                             Ok(e) => e,
                             Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                         };
-                        let owner_ref = owner_expr.evaluate(scope.clone(), program)?;
+                        let owner_ref = owner_expr.evaluate(scope.clone(), program, false)?;
 
                         let field = owner_ref.borrow().get_field(name);
 
@@ -109,18 +110,26 @@ impl Expression {
 
                     // Variable in the scope
                     None => {
-                        // Allocate new variable if not already set
+                        
+                        // if not set, create the variable or return an error depending if it's an assignment or not
                         if !scope.borrow().is_set(name) {
-                            match scope.try_borrow_mut() {
-                                Ok(mut brrw) => {
-                                    match brrw.push_variable(name.clone(), Rc::new(RefCell::new(Value::Any))) {
-                                        Ok(()) => (),
-                                        Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e.to_string()), Some(p.clone())))
+
+                            if for_assignment {
+                                match scope.try_borrow_mut() {
+                                    Ok(mut brrw) => {
+                                        match brrw.push_variable(name.clone(), Rc::new(RefCell::new(Value::Any))) {
+                                            Ok(()) => (),
+                                            Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e.to_string()), Some(p.clone())))
+                                        }
+                                    },
+                                    Err(e) => {
+                                        return Err(Error::new(ErrorMessage::RustError(e.to_string()), Some(p.clone())))
                                     }
-                                },
-                                Err(e) => {
-                                    return Err(Error::new(ErrorMessage::RustError(e.to_string()), Some(p.clone())))
                                 }
+                            }
+                            else {
+                                let err_msg = format!("Called uninitialized variable '{}'", name);
+                                return Err(Error::new(ErrorMessage::RuntimeError(err_msg), Some(p.clone()))) 
                             }
                         }
 
@@ -147,7 +156,7 @@ impl Expression {
                             Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                         };
                         
-                        Some(expr.evaluate(scope.clone(), program)?)
+                        Some(expr.evaluate(scope.clone(), program, false)?)
                     }
                 };
                 let rhs = match rhs {
@@ -158,7 +167,7 @@ impl Expression {
                             Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                         };
                         
-                        Some(expr.evaluate(scope, program)?)
+                        Some(expr.evaluate(scope, program, false)?)
                     }
                 };
                 
@@ -180,7 +189,7 @@ impl Expression {
                 let owner_value = match owner {
                     Some(s) => {
                         match program.as_ref().unwrap().get_expr(*s) {
-                            Ok(e) => Some(e.evaluate(scope.clone(), program)?),
+                            Ok(e) => Some(e.evaluate(scope.clone(), program, false)?),
                             Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                         }
                     },
@@ -215,7 +224,7 @@ impl Expression {
 
 
                 // Create a new scope for the execution of the method
-                let func_scope = Rc::new(RefCell::new(Scope::new(Some(program.as_ref().unwrap().main_scope()))));
+                let func_scope = Rc::new(RefCell::new(Scope::new()));
 
 
                 // Evaluate each given expression in the scope, and create an input variable (@0, @1, etc.) with the set value
@@ -227,7 +236,7 @@ impl Expression {
                     };
 
                     
-                    let mut value = expr.evaluate(scope.clone(), program)?;
+                    let mut value = expr.evaluate(scope.clone(), program, false)?;
 
 
                     // if the values are cloned, allocate a new Value instead of using the reference given by expr.evaluate()
@@ -323,7 +332,7 @@ impl Expression {
                         Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                     };
 
-                    given_values.push(expr.evaluate(scope.clone(), program)?);
+                    given_values.push(expr.evaluate(scope.clone(), program, false)?);
                 }
 
                 // Build the object
@@ -333,6 +342,22 @@ impl Expression {
                 };
                 // Return the value
                 Ok(Rc::new(RefCell::new(Value::Object(object))))
+            },
+
+            
+            Expression::BracketAcces(owner, access_expr_id, p) => {
+                // get the field by evaluating access_expr_id into a string
+                let access_expr = match program.as_mut().unwrap().get_expr(*access_expr_id) {
+                    Ok(e) => e,
+                    Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
+                };
+                let access_ref = access_expr.evaluate(scope.clone(), program, false)?;
+                let access_str = access_ref.borrow().to_string();
+
+
+                // create a new expression::variableaccess and evaluate it
+                let expr = Expression::VariableAccess(Some(*owner), access_str, p.clone());
+                expr.evaluate(scope, program, for_assignment)
             },
         }
     }
@@ -350,6 +375,7 @@ impl Expression {
             Expression::Operation(_, _, _, p) => p,
             Expression::FunctionCall(_, _, _, p) => p,
             Expression::ObjectConstruction(_, _, p) => p,
+            Expression::BracketAcces(_, _, p) => p,
         }.clone() 
     }
 }

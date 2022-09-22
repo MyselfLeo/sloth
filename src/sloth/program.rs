@@ -34,8 +34,6 @@ pub struct SlothProgram {
 
     imported_modules: Vec<String>,
     builtins: Vec<built_in::BuiltInImport>,
-
-    main_scope: Rc<RefCell<Scope>>
 }
 
 impl SlothProgram {
@@ -47,10 +45,10 @@ impl SlothProgram {
             expressions: HashMap::new(),
             expressions_nb: 0,
 
+
+
             imported_modules: Vec::new(),
             builtins: Vec::new(),
-
-            main_scope: Rc::new(RefCell::new(Scope::new(None)))
         };
 
         if import_default_builtins {
@@ -62,10 +60,6 @@ impl SlothProgram {
 
         program
     }
-
-
-
-    pub fn main_scope(&self) -> Rc<RefCell<Scope>> {self.main_scope.clone()}
 
 
     
@@ -261,7 +255,8 @@ impl SlothProgram {
         // Call the main function
         let f_call = Expression::FunctionCall(None, main_func_id, args_id, dummy_pos.clone());
 
-        match f_call.evaluate(self.main_scope.clone(), self) {
+        let scope = Rc::new(RefCell::new(Scope::new()));
+        match f_call.evaluate(scope, self, false) {
             Ok(reference) => Ok(reference.borrow().to_owned()),
             Err(e) => Err(e)
         }
