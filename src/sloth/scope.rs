@@ -27,15 +27,9 @@ impl Scope {
         match self.variables.get(&name) {
             Some(v) => Ok(v.clone()),
             None => {
-                todo!()
-                /* 
-                match self.parent.clone() {
-                    Some(p) => p.borrow().get_variable(name, program),
-                    None => {
-                        let error_msg = format!("Called uninitialised variable '{}'", name);
-                        Err(error_msg.to_string())
-                    }
-                }*/
+                // TODO: Add constants support ?
+                let error_msg = format!("Called uninitialised variable '{}'", name);
+                Err(error_msg.to_string())
             }
         }
     }
