@@ -33,7 +33,7 @@ impl Statement {
                     Ok(e) => e,
                     Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                 };
-                let source_ref = source_expr.evaluate(scope.clone(), program)?;
+                let source_ref = source_expr.evaluate(scope.clone(), program, false)?;
 
 
                 // Get the reference to the target
@@ -41,7 +41,7 @@ impl Statement {
                     Ok(e) => e,
                     Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                 };
-                let target_ref = target_expr.evaluate(scope.clone(), program)?;
+                let target_ref = target_expr.evaluate(scope.clone(), program, true)?;
 
                 // Compare the types, and if they match, assign the new value
                 let source_type = source_ref.borrow().get_type();
@@ -67,7 +67,7 @@ impl Statement {
                     Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                 };
 
-                expr.evaluate(scope, program)?;
+                expr.evaluate(scope, program, false)?;
 
                 Ok(())
             },
@@ -78,7 +78,7 @@ impl Statement {
                     Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                 };
 
-                let cond_value = expr.evaluate(scope.clone(), program)?.borrow().to_owned();
+                let cond_value = expr.evaluate(scope.clone(), program, false)?.borrow().to_owned();
                 match cond_value {
                     Value::Boolean(true) => {
                         for statement in statements {statement.apply(scope.clone(), program)?}
@@ -96,11 +96,11 @@ impl Statement {
                     Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
                 };
 
-                let mut loop_cond = expr.evaluate(scope.clone(), program)?.borrow().to_owned() == Value::Boolean(true);
+                let mut loop_cond = expr.evaluate(scope.clone(), program, false)?.borrow().to_owned() == Value::Boolean(true);
                 
                 while loop_cond {
                     for statement in statements {statement.apply(scope.clone(), program)?}
-                    loop_cond = expr.evaluate(scope.clone(), program)?.borrow().to_owned() == Value::Boolean(true);
+                    loop_cond = expr.evaluate(scope.clone(), program, false)?.borrow().to_owned() == Value::Boolean(true);
                 }
 
                 Ok(())

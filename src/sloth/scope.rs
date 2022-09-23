@@ -9,15 +9,13 @@ use super::value::Value;
 /// A scope is an environment in which variables lives.
 pub struct Scope {
     pub variables: HashMap<String, Rc<RefCell<Value>>>,
-    pub parent: Option<Rc<RefCell<Scope>>>
 }
 
 
 impl Scope {
-    pub fn new(parent: Option<Rc<RefCell<Scope>>>) -> Scope {
+    pub fn new() -> Scope {
         Scope {
             variables: HashMap::new(),
-            parent
         }
     }
 
@@ -25,17 +23,13 @@ impl Scope {
     /// Return the value contained in the given variable. Prefer variable in this scope,
     /// but can also query parent scope for variable
     /// If for assignment, create the variable instead of returning an error
-    pub fn get_variable(&self, name: String, program: &mut SlothProgram) -> Result<Rc<RefCell<Value>>, String> {
+    pub fn get_variable(&self, name: String, _: &mut SlothProgram) -> Result<Rc<RefCell<Value>>, String> {
         match self.variables.get(&name) {
             Some(v) => Ok(v.clone()),
             None => {
-                match self.parent.clone() {
-                    Some(p) => p.borrow().get_variable(name, program),
-                    None => {
-                        let error_msg = format!("Called uninitialised variable '{}'", name);
-                        Err(error_msg.to_string())
-                    }
-                }
+                // TODO: Add constants support ?
+                let error_msg = format!("Called uninitialised variable '{}'", name);
+                Err(error_msg.to_string())
             }
         }
     }
