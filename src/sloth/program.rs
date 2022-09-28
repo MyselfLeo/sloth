@@ -32,6 +32,11 @@ pub struct SlothProgram {
     expressions: HashMap<ExpressionID, Expression>,
     expressions_nb: u64,
 
+    // A static is an expression defined like a global variable (ex: static NUMBER = 34;). The expression
+    // is evaluated in a blank scope each time it is called.
+    // note: this is my workaround for constants. It's not really constant but it's not really mutable....
+    statics: HashMap<String, ExpressionID>,
+
     imported_modules: Vec<String>,
     builtins: Vec<built_in::BuiltInImport>,
 }
@@ -45,7 +50,7 @@ impl SlothProgram {
             expressions: HashMap::new(),
             expressions_nb: 0,
 
-
+            statics: HashMap::new(),
 
             imported_modules: Vec::new(),
             builtins: Vec::new(),
@@ -190,6 +195,40 @@ impl SlothProgram {
             None => Err("Tried to access an expression with a wrong expression ID".to_string())
         }
     }
+
+
+
+    /// Add an expression to the statics, return error if the name is already used
+    pub fn push_static(&mut self, name: &String, expr: ExpressionID) -> Result<(), String> {
+        match self.statics.insert(name.clone(), expr) {
+            Some(_) => Err(format!("Static expression '{}' is already defined", name)),
+            None => Ok(()),
+        }
+    }
+
+    /// Return a reference to the value resulting of the evaluation of the given static expr,
+    /// None if it does not exists, or an error string if something occured
+    pub fn get_static(&mut self, name: &String) -> Result<Option<Rc<RefCell<Value>>>, Error> { // this return type is ugly
+        let expr = match self.statics.get(name) {
+            Some(v) => self.get_expr(*v).expect("A static expression was deleted from the program's expression stack"),
+            None => return Ok(None)
+        };
+
+        // empty scope for the expression evaluation
+        let scope = Rc::new(RefCell::new(Scope::new()));
+        let res = unsafe {
+            expr.evaluate(scope,self, false)?
+        };
+        Ok(Some(res))
+    }
+
+
+
+
+
+
+
+
 
     /// Add a new import to the program
     pub fn add_import(&mut self, import: built_in::BuiltInImport) {
