@@ -1541,7 +1541,7 @@ pub fn parse_file(filename: PathBuf, program: &mut SlothProgram, warning: bool, 
                     "builtin" => parse_builtin(&mut iterator, program, warning)?,
                     "structure" => parse_structure_def(&mut iterator, program, &module_name, warning)?,
                     "import" => parse_import(&mut iterator, program, warning, filename.clone())?,
-                    "static" => todo!(),
+                    "static" => parse_static_expr(&mut iterator, program, warning)?,
 
                     t => {
                         let error_msg = format!("Expected 'builtin', 'import', 'static', 'structure' or 'define', got unexpected token '{}'", t);
