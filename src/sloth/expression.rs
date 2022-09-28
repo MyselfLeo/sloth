@@ -112,7 +112,7 @@ impl Expression {
                     None => {
                         
                         // if not set, create the variable or return an error depending if it's an assignment or not
-                        if !scope.borrow().is_set(name) {
+                        if !scope.borrow().is_set(name) && !program.as_ref().unwrap().is_set(name) {
 
                             if for_assignment {
                                 match scope.try_borrow_mut() {
@@ -133,10 +133,19 @@ impl Expression {
                             }
                         }
 
+                        // Prevent using statics for assignment
+                        if !scope.borrow().is_set(name) && program.as_ref().unwrap().is_set(name) && for_assignment {
+                            let err_msg = format!("{} is a static expression, it cannot be assigned a value", name);
+                            return Err(Error::new(ErrorMessage::RuntimeError(err_msg), Some(p.clone())))
+                        }
+
                         // Get the value directly from the scope
                         match scope.borrow().get_variable(name.clone(), program.as_mut().unwrap()) {
                             Ok(r) => Ok(r),
-                            Err(e) => Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))
+                            Err(mut e) => {
+                                e.clog_pos(p.clone());
+                                Err(e)
+                            }
                         }
                     }
                 }
@@ -306,7 +315,10 @@ impl Expression {
                         }
                         else {Ok(v.clone())}
                     },
-                    Err(e) => {Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
+                    Err(mut e) => {
+                        e.clog_pos(p.clone());
+                        Err(e)
+                    }
                 };
 
                 res

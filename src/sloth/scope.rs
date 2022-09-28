@@ -1,6 +1,8 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
+use crate::errors::{Error, ErrorMessage};
+
 use super::program::SlothProgram;
 use super::value::Value;
 
@@ -20,16 +22,19 @@ impl Scope {
     }
 
 
-    /// Return the value contained in the given variable. Prefer variable in this scope,
-    /// but can also query parent scope for variable
-    /// If for assignment, create the variable instead of returning an error
-    pub fn get_variable(&self, name: String, _: &mut SlothProgram) -> Result<Rc<RefCell<Value>>, String> {
+    /// Return the value contained in the given variable or static.
+    /// Prefer local variable over global static
+    pub fn get_variable(&self, name: String, program: &mut SlothProgram) -> Result<Rc<RefCell<Value>>, Error> {
         match self.variables.get(&name) {
             Some(v) => Ok(v.clone()),
             None => {
-                // TODO: Add constants support ?
-                let error_msg = format!("Called uninitialised variable '{}'", name);
-                Err(error_msg.to_string())
+                match program.get_static(&name)? {
+                    Some(v) => Ok(v),
+                    None => {
+                        let err_msg = format!("Called uninitialised variable '{}'", name);
+                        Err(Error::new(ErrorMessage::RuntimeError(err_msg), None))
+                    },
+                }
             }
         }
     }

@@ -208,7 +208,7 @@ impl SlothProgram {
 
     /// Return a reference to the value resulting of the evaluation of the given static expr,
     /// None if it does not exists, or an error string if something occured
-    pub fn get_static(&mut self, name: &String) -> Result<Option<Rc<RefCell<Value>>>, Error> { // this return type is ugly
+    pub fn get_static(&mut self, name: &String) -> Result<Option<Rc<RefCell<Value>>>, Error> {
         let expr = match self.statics.get(name) {
             Some(v) => self.get_expr(*v).expect("A static expression was deleted from the program's expression stack"),
             None => return Ok(None)
@@ -222,6 +222,12 @@ impl SlothProgram {
         Ok(Some(res))
     }
 
+
+
+    /// Return whether the given static is set or not
+    pub fn is_set(&self, name: &String) -> bool {
+        self.statics.contains_key(name)
+    }
 
 
 

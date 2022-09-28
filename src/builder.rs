@@ -1463,8 +1463,14 @@ fn parse_import(iterator: &mut TokenIterator, program: &mut SlothProgram, warnin
 
 /// Parse a static expression definition
 fn parse_static_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<(), Error> {
+    // position of the 'static' keyword
+    let first_pos = match iterator.current() {
+        Some((_, p)) => p,
+        None => return Err(eof_error(line!()))
+    };
+
     // the static's name
-    let (name, first_pos) = match iterator.next() {
+    let (name, _) = match iterator.next() {
         Some((Token::Identifier(n), p)) => {
             // raise a warning if the identifier is not in full caps
             if warning && n.to_uppercase() != n {
@@ -1504,6 +1510,18 @@ fn parse_static_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, w
     let full_pos = first_pos.until(expr_pos);
 
 
+    // A semicolon here is strongly recommended, but not necessary
+    match iterator.current() {
+        Some((Token::Separator(Separator::SemiColon), _)) => {iterator.next();},
+        Some((_, _)) => {
+            if warning {
+                let warning = Warning::new("Using semicolons at the end of statements is highly recommended".to_string(), Some(full_pos.clone()));
+                warning.warn();
+            }
+        },
+        None => return Err(eof_error(line!()))
+    }
+
     // add the expression to the program's statics
     match program.push_static(&name, expr) {
         Ok(_) => Ok(()),
@@ -1535,8 +1553,9 @@ pub fn parse_file(filename: PathBuf, program: &mut SlothProgram, warning: bool, 
 
         match token {
             None => break,
-            Some(v) => {
-                match v.0.original_string().as_str() {
+
+            Some((Token::Keyword(n), p)) => {
+                match n.as_str() {
                     "define" => parse_function(&mut iterator, program, &module_name, warning)?,
                     "builtin" => parse_builtin(&mut iterator, program, warning)?,
                     "structure" => parse_structure_def(&mut iterator, program, &module_name, warning)?,
@@ -1544,10 +1563,15 @@ pub fn parse_file(filename: PathBuf, program: &mut SlothProgram, warning: bool, 
                     "static" => parse_static_expr(&mut iterator, program, warning)?,
 
                     t => {
-                        let error_msg = format!("Expected 'builtin', 'import', 'static', 'structure' or 'define', got unexpected token '{}'", t);
-                        return Err(Error::new(ErrorMessage::SyntaxError(error_msg), Some(v.1.clone())));
+                        let error_msg = format!("Expected 'builtin', 'import', 'static', 'structure' or 'define', got unexpected keyword '{}'", t);
+                        return Err(Error::new(ErrorMessage::SyntaxError(error_msg), Some(p)));
                     }
                 }
+            },
+
+            Some((v, p)) => {
+                let error_msg = format!("Expected keyword, got unexpected token '{}'", v.original_string());
+                return Err(Error::new(ErrorMessage::SyntaxError(error_msg), Some(p)));
             }
         }
     };

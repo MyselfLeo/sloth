@@ -316,7 +316,7 @@ fn split(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Er
     let (string, sep) = {
         let scope_borrow = scope.borrow();
 
-        let owner_v = scope_borrow.get_variable("@self".to_string(), program).unwrap();
+        let owner_v = super::get_self(&scope, program)?;
         let inputs = scope_borrow.get_inputs();
 
         if inputs.len() != 1 {
@@ -325,7 +325,7 @@ fn split(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Er
         }
 
 
-        let string = match owner_v.borrow().to_owned() {
+        let string = match owner_v {
             Value::String(x) => x,
             _ => panic!("Implementation of method 'insert' for type 'string' was called on a value of another type")
         };
@@ -365,7 +365,7 @@ fn get(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Erro
     let (string, idx) = {
         let scope_borrow = scope.borrow();
 
-        let owner_v = scope_borrow.get_variable("@self".to_string(), program).unwrap();
+        let owner_v = super::get_self(&scope, program)?;
         let inputs = scope_borrow.get_inputs();
 
         if inputs.len() != 1 {
@@ -373,7 +373,7 @@ fn get(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Erro
             return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
         }
 
-        let string = match owner_v.borrow().to_owned() {
+        let string = match owner_v {
             Value::String(x) => x,
             _ => panic!("Implementation of method 'insert' for type 'string' was called on a value of another type")
         };

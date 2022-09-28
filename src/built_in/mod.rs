@@ -290,7 +290,7 @@ pub fn set_return(scope: &Rc<RefCell<Scope>>, program: &mut SlothProgram, value:
                 Err(e) => return Err(Error::new(ErrorMessage::RustError(e.to_string()), None))
             }
         },
-        Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e), None))
+        Err(e) => Err(e)
     }
 }
 
@@ -311,7 +311,7 @@ pub fn set_self(scope: &Rc<RefCell<Scope>>, program: &mut SlothProgram, value: V
                 Err(e) => return Err(Error::new(ErrorMessage::RustError(e.to_string()), None))
             }
         },
-        Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e), None))
+        Err(e) => Err(e)
     }
 }
 
@@ -384,7 +384,7 @@ pub fn expect_natural(value: &Value, limit: Option<(usize, &str)>, arg_pos: usiz
 pub fn get_self(scope: &Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<Value, Error> {
     let value = match scope.borrow().get_variable("@self".to_string(), program) {
         Ok(v) => v.borrow().to_owned(),
-        Err(e) => return Err(Error::new(ErrorMessage::RustError(e), None)),
+        Err(e) => return Err(e),
     };
 
     Ok(value)
