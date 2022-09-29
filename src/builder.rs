@@ -13,14 +13,10 @@ use crate::tokenizer::{TokenizedProgram, Token, ElementPosition, Separator, self
 use crate::errors::{Error, ErrorMessage, Warning};
 
 
-const UNEXPECTED_EOF_ERR_MSG: &str = "Unexpected End Of File";
-
-
-
 
 
 fn eof_error(i: u32) -> Error {
-    Error::new(ErrorMessage::UnexpectedEOF(format!("{} ({})", UNEXPECTED_EOF_ERR_MSG, i)), None)
+    Error::new(ErrorMessage::UnexpectedEOF(format!("{} ({})",  "Unexpected End Of File", i)), None)
 }
 
 
