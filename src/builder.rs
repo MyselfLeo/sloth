@@ -1461,6 +1461,77 @@ fn parse_import(iterator: &mut TokenIterator, program: &mut SlothProgram, warnin
 
 
 
+/// Parse a static expression definition
+fn parse_static_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<(), Error> {
+    // position of the 'static' keyword
+    let first_pos = match iterator.current() {
+        Some((_, p)) => p,
+        None => return Err(eof_error(line!()))
+    };
+
+    // the static's name
+    let (name, _) = match iterator.next() {
+        Some((Token::Identifier(n), p)) => {
+            // raise a warning if the identifier is not in full caps
+            if warning && n.to_uppercase() != n {
+                let warn_msg = format!("It is recommended to set in full uppercase the name of static expressions ('{}')", n.to_uppercase());
+                Warning::new(warn_msg, Some(p.clone())).warn()
+            }
+
+            (n, p)
+        },
+        Some((t, p)) => {
+            let err_msg = format!("Expected static name, got unexpected token '{}'", t.to_string_formatted());
+            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())));
+        },
+        None => return Err(eof_error(line!()))
+    };
+
+
+    // next should be a =
+    match iterator.next() {
+        Some((Token::Keyword(n), p)) => {
+            if n.as_str() != "=" {
+                let err_msg = format!("Expected '=', got unexpected keyword '{n}'");
+                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())));
+            }
+        },
+        Some((t, p)) => {
+            let err_msg = format!("Expected '=', got unexpected token '{}'", t.to_string_formatted());
+            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())));
+        },
+        None => return Err(eof_error(line!()))
+    }
+
+
+    // next is the expression
+    iterator.next();
+    let (expr, expr_pos) = parse_expression(iterator, program, warning)?;
+    let full_pos = first_pos.until(expr_pos);
+
+
+    // A semicolon here is strongly recommended, but not necessary
+    match iterator.current() {
+        Some((Token::Separator(Separator::SemiColon), _)) => {iterator.next();},
+        Some((_, _)) => {
+            if warning {
+                let warning = Warning::new("Using semicolons at the end of statements is highly recommended".to_string(), Some(full_pos.clone()));
+                warning.warn();
+            }
+        },
+        None => return Err(eof_error(line!()))
+    }
+
+    // add the expression to the program's statics
+    match program.push_static(&name, expr) {
+        Ok(_) => Ok(()),
+        Err(e) => Err(Error::new(ErrorMessage::RuntimeError(e), Some(full_pos))),
+    }
+}
+
+
+
+
 
 
 
@@ -1482,24 +1553,25 @@ pub fn parse_file(filename: PathBuf, program: &mut SlothProgram, warning: bool, 
 
         match token {
             None => break,
-            Some(v) => {
-                if v.0.original_string() == "define".to_string() {
-                    parse_function(&mut iterator, program, &module_name, warning)?;
-                }
-                else if v.0.original_string() == "builtin".to_string() {
-                    parse_builtin(&mut iterator, program, warning)?;
-                }
-                else if v.0.original_string() == "structure".to_string()  {
-                    parse_structure_def(&mut iterator, program, &module_name, warning)?;
-                }
-                else if v.0.original_string() == "import".to_string() {
-                    parse_import(&mut iterator, program, warning, filename.clone())?;
-                }
-                else {
-                    let error_msg = format!("Expected function or structure definition, got unexpected token '{}'", v.0.original_string());
-                    return Err(Error::new(ErrorMessage::SyntaxError(error_msg), Some(v.1.clone())));
-                }
 
+            Some((Token::Keyword(n), p)) => {
+                match n.as_str() {
+                    "define" => parse_function(&mut iterator, program, &module_name, warning)?,
+                    "builtin" => parse_builtin(&mut iterator, program, warning)?,
+                    "structure" => parse_structure_def(&mut iterator, program, &module_name, warning)?,
+                    "import" => parse_import(&mut iterator, program, warning, filename.clone())?,
+                    "static" => parse_static_expr(&mut iterator, program, warning)?,
+
+                    t => {
+                        let error_msg = format!("Expected 'builtin', 'import', 'static', 'structure' or 'define', got unexpected keyword '{}'", t);
+                        return Err(Error::new(ErrorMessage::SyntaxError(error_msg), Some(p)));
+                    }
+                }
+            },
+
+            Some((v, p)) => {
+                let error_msg = format!("Expected keyword, got unexpected token '{}'", v.original_string());
+                return Err(Error::new(ErrorMessage::SyntaxError(error_msg), Some(p)));
             }
         }
     };

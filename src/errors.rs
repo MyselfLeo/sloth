@@ -98,6 +98,14 @@ impl Error {
         }
         std::process::exit(1)
     }
+
+
+    /// Set the position of the error if none is already set
+    pub fn clog_pos(&mut self, pos: ElementPosition) {
+        if self.position.is_none() {
+            self.position = Some(pos)
+        }
+    }
 }
 
 
