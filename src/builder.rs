@@ -89,7 +89,7 @@ fn parse_variablecall(iterator: &mut TokenIterator, _: &mut SlothProgram, _: boo
             Ok(Expression::VariableAccess(None, n, p))
         }
         Some((t, p)) => {
-            let err_msg = format!("Expected variable name, got unexpected token '{}'", t.to_string_formatted());
+            let err_msg = format!("Expected variable name, got unexpected token '{}'", t.original_string());
             Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())))
         },
         None => Err(eof_error(line!()))
@@ -325,7 +325,7 @@ fn parse_bracket_access(iterator: &mut TokenIterator, program: &mut SlothProgram
     let final_pos = match iterator.current() {
         Some((Token::Separator(Separator::CloseSquareBracket), p)) => p,
         Some((t, p)) => {
-            let err_msg = format!("Expected ']', got unexpected token '{}'", t.to_string_formatted());
+            let err_msg = format!("Expected ']', got unexpected token '{}'", t.original_string());
             return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())))
         },
         None => return Err(eof_error(line!()))
@@ -1481,7 +1481,7 @@ fn parse_static_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, w
             (n, p)
         },
         Some((t, p)) => {
-            let err_msg = format!("Expected static name, got unexpected token '{}'", t.to_string_formatted());
+            let err_msg = format!("Expected static name, got unexpected token '{}'", t.original_string());
             return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())));
         },
         None => return Err(eof_error(line!()))
@@ -1497,7 +1497,7 @@ fn parse_static_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, w
             }
         },
         Some((t, p)) => {
-            let err_msg = format!("Expected '=', got unexpected token '{}'", t.to_string_formatted());
+            let err_msg = format!("Expected '=', got unexpected token '{}'", t.original_string());
             return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())));
         },
         None => return Err(eof_error(line!()))
