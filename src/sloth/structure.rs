@@ -174,20 +174,6 @@ impl PartialEq for Box<dyn SlothObject> {
 }
 
 
-/*
-pub trait Downcast: ObjectToAny {
-    fn downcast<T>(&mut self) -> Result<&T, String> where T: 'static;
-}
-
-impl Downcast for Box<dyn SlothObject> {
-    fn downcast<T>(&mut self) -> Result<&T, String> where T: 'static {
-        match self.as_any().downcast_ref::<T>() {
-            Some(v) => Ok(v),
-            None => Err(format!("Unable to downcast given SlothObject into {:?}", std::any::type_name::<T>()))
-        }
-    }
-}
-*/
 
 
 
@@ -197,9 +183,7 @@ impl Downcast for Box<dyn SlothObject> {
 
 
 
-
-#[derive(Debug, Clone)]
-/// Object created from a structure defined in Sloth.
+#[derive(Debug, Clone)]/// Object created from a structure defined in Sloth.
 pub struct StructureObject {
     definition: CustomDefinition,
     fields: HashMap<String, Rc<RefCell<Value>>>,
