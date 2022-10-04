@@ -4,6 +4,18 @@ use super::keyword::Keyword;
 use super::separator::Separator;
 
 
+
+/*#[derive(Clone, Debug, PartialEq)]
+pub enum TokenType {
+    Keyword,
+    Separator,
+    Identifier,
+    Operator,
+    Literal
+}*/
+
+
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Token {
     Keyword(Keyword),
@@ -15,6 +27,17 @@ pub enum Token {
 
 
 impl Token {
+    /*pub fn get_type(&self) -> TokenType {
+        match self {
+            Token::Keyword(_) => TokenType::Keyword,
+            Token::Separator(_) => TokenType::Separator,
+            Token::Identifier(_) => TokenType::Identifier,
+            Token::Operator(_) => TokenType::Operator,
+            Token::Literal(_) => TokenType::Literal,
+        }
+    }*/
+
+
     /// Return the token corresponding to the given text. Will test for keyword, operator and separator.
     pub fn from_str(string: &str) -> Result<Token, String> {
         let identifier_re = Regex::new(r"^(@[0-9]+|@[a-zA-Z]+|[a-zA-Z_][a-zA-Z0-9_]*)$").unwrap();
