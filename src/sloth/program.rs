@@ -11,7 +11,7 @@ use super::expression::{Expression, ExpressionID};
 use super::structure::{StructSignature, ObjectBlueprint};
 use super::types::Type;
 use super::value::Value;
-use crate::built_in;
+use crate::builtins;
 
 
 
@@ -38,7 +38,7 @@ pub struct SlothProgram {
     statics: HashMap<String, ExpressionID>,
 
     imported_modules: Vec<String>,
-    builtins: Vec<built_in::BuiltInImport>,
+    builtins: Vec<builtins::BuiltInImport>,
 }
 
 impl SlothProgram {
@@ -58,7 +58,7 @@ impl SlothProgram {
 
         if import_default_builtins {
             for import in DEFAULT_BUILTIN_IMPORTS {
-                program.add_import(built_in::BuiltInImport::new(import.to_string(), None));
+                program.add_import(builtins::BuiltInImport::new(import.to_string(), None));
             }
         }
 
@@ -237,7 +237,7 @@ impl SlothProgram {
 
 
     /// Add a new import to the program
-    pub fn add_import(&mut self, import: built_in::BuiltInImport) {
+    pub fn add_import(&mut self, import: builtins::BuiltInImport) {
         if !self.builtins.contains(&import) {
             if !self.imported_modules.contains(&import.module) {
                 self.imported_modules.push(import.module.clone())
@@ -250,7 +250,7 @@ impl SlothProgram {
 
     /// Import the requested builtins
     pub fn import_builtins(&mut self) -> Result<(), String> {
-        let (f, s) = built_in::collapse_imports(self.builtins.clone())?;
+        let (f, s) = builtins::collapse_imports(self.builtins.clone())?;
         for function in f {self.push_function(function);}
         for blueprint in s {
             let sign = blueprint.get_signature();

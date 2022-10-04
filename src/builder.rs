@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::built_in::BuiltInImport;
+use crate::builtins::BuiltInImport;
 use crate::sloth::expression::{ExpressionID, Expression};
 use crate::sloth::function::{CustomFunction, FunctionSignature};
 use crate::sloth::operator::{Operator};

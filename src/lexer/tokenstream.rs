@@ -1,8 +1,7 @@
 use super::token::Token;
 use crate::element::ElementPosition;
 
-
-/// list of tokens and their respective position generated from a program file (.slo)
+/// Iterator-like structure listing each token of a file along with their position
 #[derive(Clone)]
 pub struct TokenStream {
     pub filename: String,

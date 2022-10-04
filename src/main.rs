@@ -1,7 +1,8 @@
 mod lexer;
-mod errors;
+mod parser;
 mod sloth;
-mod built_in;
+mod builtins;
+mod errors;
 mod builder;
 mod element;
 
