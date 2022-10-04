@@ -1056,7 +1056,7 @@ fn parse_function(iterator: &mut TokenStream, program: &mut SlothProgram, module
 
 
 
-
+// DONE
 /// Parse a "builtin" statement and add the requested import to the program's list of imports.
 fn parse_builtin(iterator: &mut TokenStream, program: &mut SlothProgram, warning: bool) -> Result<(), Error> {
     let first_pos;
