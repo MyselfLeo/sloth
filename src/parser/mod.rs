@@ -4,6 +4,8 @@ use crate::errors::{Error, ErrMsg, Warning};
 
 mod types;
 mod structure;
+mod varcall;
+mod builtin;
 
 
 /*
@@ -50,10 +52,10 @@ pub fn wrong_token(given: Option<(Token, Position)>, expected: &str) -> Error {
 
 /// Raise an error if the current token of the stream is not the required token.
 /// Else, return the token and set the stream to the next token
-pub fn expect_token(stream: &mut TokenStream, token: Token) -> Result<(), Error> {
+pub fn expect_token(stream: &mut TokenStream, token: Token) -> Result<(Token, Position), Error> {
     match stream.current() {
         Some((t, p)) => {
-            if t == token {stream.next(); Ok(())}                                                // token is correct
+            if t == token {stream.next(); Ok((t, p))}                                                // token is correct
             else {Err(wrong_token(Some((t, p)), &token.original_string()))}     // token is not correct, generate error msg
         },
         None => Err(eof_error())
@@ -78,12 +80,12 @@ pub fn current_equal(stream: &mut TokenStream, token: Token) -> Result<bool, Err
 /// Check if the current token is a semicolon:
 /// - if yes, go to the next
 /// - if no, doesn't move the stream cursor and warn if requested
-pub fn check_semicolon(stream: &mut TokenStream, warn: bool, statement_pos: Position) -> Result<(), Error> {
+pub fn check_semicolon(stream: &mut TokenStream, warn: bool, statement_pos: &Position) -> Result<(), Error> {
     match stream.current() {
         Some((Token::Separator(Separator::SemiColon), _)) => {stream.next(); Ok(())},
         Some(..) => {
             if warn {
-                let warning = Warning::new("Use of a semicolon here is highly recommended".to_string(), Some(statement_pos));
+                let warning = Warning::new("Use of a semicolon here is highly recommended".to_string(), Some(statement_pos.clone()));
                 warning.warn();
             };
             Ok(())

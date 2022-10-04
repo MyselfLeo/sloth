@@ -28,7 +28,7 @@ fn eof_error(i: u32) -> Error {
 
 
 
-
+/// DONE
 /// Parse a variable call
 fn parse_variablecall(iterator: &mut TokenStream, _: &mut SlothProgram, _: bool) -> Result<Expression, Error> {
     // Get the identifier
@@ -826,7 +826,7 @@ fn parse_while(iterator: &mut TokenStream, program: &mut SlothProgram, warning: 
 
 
 
-
+/// DONE
 fn parse_type(iterator: &mut TokenStream, program: &mut SlothProgram, module_name: &Option<String>, warning: bool) -> Result<(Type, Position), Error> {
     let first_pos;
     let mut last_pos;
@@ -1180,7 +1180,7 @@ fn parse_builtin(iterator: &mut TokenStream, program: &mut SlothProgram, warning
 
 
 
-
+/// DONE
 /// Parse a structure definition, push it to the program
 fn parse_structure_def(iterator: &mut TokenStream, program: &mut SlothProgram, module_name: &Option<String>, warning: bool) -> Result<(), Error> {
     // must start with the "structure" keyword
