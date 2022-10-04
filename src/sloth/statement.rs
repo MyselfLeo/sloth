@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::errors::{Error, ErrMsg};
-use crate::element::ElementPosition;
+use crate::element::Position;
 use super::expression::ExpressionID;
 use super::scope::Scope;
 use super::program::SlothProgram;
@@ -11,10 +11,10 @@ use super::value::Value;
 /// Statements are instructions that modify a scope (variable assignment for example)
 #[derive(Clone, Debug)]
 pub enum Statement {
-    Assignment(ExpressionID, ExpressionID, ElementPosition),            // Assignment of an expression evaluation to a variable
-    ExpressionCall(ExpressionID, ElementPosition),                      // Evaluation of an expression, not storing it
-    If(ExpressionID, Vec<Statement>, ElementPosition),                  // If block. Condition expr index and list of statements
-    While(ExpressionID, Vec<Statement>, ElementPosition),               // while look. same specs as if
+    Assignment(ExpressionID, ExpressionID, Position),            // Assignment of an expression evaluation to a variable
+    ExpressionCall(ExpressionID, Position),                      // Evaluation of an expression, not storing it
+    If(ExpressionID, Vec<Statement>, Position),                  // If block. Condition expr index and list of statements
+    While(ExpressionID, Vec<Statement>, Position),               // while look. same specs as if
 }
 
 
@@ -109,7 +109,7 @@ impl Statement {
     }
 
 
-    pub fn get_pos(&self) -> ElementPosition {
+    pub fn get_pos(&self) -> Position {
         match self {
             Statement::Assignment(_, _, p) => p.clone(),
             Statement::ExpressionCall(_, p) => p.clone(),

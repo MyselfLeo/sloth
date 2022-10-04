@@ -1,4 +1,4 @@
-use crate::element::ElementPosition;
+use crate::element::Position;
 use crate::errors::{Error, ErrMsg};
 use super::token::Token;
 
@@ -7,7 +7,7 @@ use super::token::Token;
 
 
 /// Convert the given file into a list of Tokens
-pub fn from_file(filename: &str) -> Result<Vec<(Token, ElementPosition)>, Error> {
+pub fn from_file(filename: &str) -> Result<Vec<(Token, Position)>, Error> {
     let filepath = std::path::Path::new(filename);
 
     if !filepath.exists() {
@@ -15,7 +15,7 @@ pub fn from_file(filename: &str) -> Result<Vec<(Token, ElementPosition)>, Error>
         return Err(Error::new(ErrMsg::FileError(err_msg), None));
     }
 
-    let mut tokens: Vec<(Token, ElementPosition)> = Vec::new();
+    let mut tokens: Vec<(Token, Position)> = Vec::new();
 
 
     let file_string = match std::fs::read_to_string(filepath) {
@@ -58,7 +58,7 @@ pub fn from_file(filename: &str) -> Result<Vec<(Token, ElementPosition)>, Error>
             if !string_buffer.is_empty() && c == '"' {
                 string_buffer.push('"');
 
-                let position = ElementPosition {
+                let position = Position {
                     filename: filename.to_string(),
                     line: string_start.0,
                     first_column: string_start.1,
@@ -79,7 +79,7 @@ pub fn from_file(filename: &str) -> Result<Vec<(Token, ElementPosition)>, Error>
             if string_buffer.is_empty() && c == super::COMMENT_CHAR {
                 // Skip the rest of the line and push the current token to the vec
                 if !token_buffer.is_empty() {
-                    let position = ElementPosition {
+                    let position = Position {
                         filename: filename.to_string(),
                         line: token_start.0,
                         first_column: token_start.1,
@@ -127,7 +127,7 @@ pub fn from_file(filename: &str) -> Result<Vec<(Token, ElementPosition)>, Error>
                     if !super::keyword::KEYWORDS.contains(&token_buffer.as_str()) {
                         for op in super::OPERATORS {
                             if token_buffer.starts_with(op) {
-                                let op_pos = ElementPosition {
+                                let op_pos = Position {
                                     filename: filename.to_string(),
                                     line: token_start.0,
                                     first_column: token_start.1,
@@ -151,7 +151,7 @@ pub fn from_file(filename: &str) -> Result<Vec<(Token, ElementPosition)>, Error>
 
                     // Push previous token buffer to the list (if not empty), along with its position.
                     if !token_buffer.is_empty() {
-                        let position = ElementPosition {
+                        let position = Position {
                             filename: filename.to_string(),
                             line: token_start.0,
                             first_column: token_start.1,
@@ -170,7 +170,7 @@ pub fn from_file(filename: &str) -> Result<Vec<(Token, ElementPosition)>, Error>
 
                     // Push the separator as a token, only if SEPARATORS contains the character
                     if super::separator::SEPARATORS.contains(&c.to_string().as_str()) {
-                        let position = ElementPosition {
+                        let position = Position {
                             filename: filename.to_string(),
                             line: line_index,
                             first_column: c_index,
@@ -207,7 +207,7 @@ pub fn from_file(filename: &str) -> Result<Vec<(Token, ElementPosition)>, Error>
 
         // Add the remaining of the buffer as a token
         if !token_buffer.is_empty() {
-            let position = ElementPosition {
+            let position = Position {
                 filename: filename.to_string(),
                 line: token_start.0,
                 first_column: token_start.1,

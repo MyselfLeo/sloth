@@ -4,7 +4,7 @@ use std::iter::zip;
 use std::rc::Rc;
 
 use crate::errors::{Error, ErrMsg, formatted_vec_string};
-use crate::element::ElementPosition;
+use crate::element::Position;
 use super::function::{SlothFunction, FunctionSignature};
 use super::scope::Scope;
 use super::expression::{Expression, ExpressionID};
@@ -275,7 +275,7 @@ impl SlothProgram {
         // Convert given arguments to Values, push them to the Expression Stack and store its Expression ids
         let mut args_id: Vec<ExpressionID> = Vec::new();
 
-        let dummy_pos = ElementPosition {filename: "".to_string(), line: 0, first_column: 0, last_column: Some(0)};
+        let dummy_pos = Position {filename: "".to_string(), line: 0, first_column: 0, last_column: Some(0)};
 
         if s_args.len() != main_inputs.len() {
             // Create a string representing the required arguments types, like "num, bool, string"

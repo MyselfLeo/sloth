@@ -1,4 +1,4 @@
-use crate::element::ElementPosition;
+use crate::element::Position;
 use crate::lexer::{Token, TokenStream};
 use crate::errors::{Error, ErrMsg};
 
@@ -25,7 +25,7 @@ fn eof_error() -> Error {
 
 
 /// Generate the error to be raised when an expected token is not correct
-pub fn wrong_token(given: Option<(Token, ElementPosition)>, expected: &str) -> Error {
+pub fn wrong_token(given: Option<(Token, Position)>, expected: &str) -> Error {
     match given {
         Some((t, p)) => {
             let mut err_msg = format!("Expected {expected}, got unexpected ");

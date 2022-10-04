@@ -9,7 +9,7 @@ use super::operator::{Operator, apply_op};
 use super::scope::Scope;
 use super::program::SlothProgram;
 use crate::errors::{Error, ErrMsg};
-use crate::element::ElementPosition;
+use crate::element::Position;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 /// Used by scopes to reference to parent scope in the Scope stack
@@ -26,13 +26,13 @@ impl ExpressionID {
 #[derive(Clone, Debug)]
 /// Expressions are objects that can be evaluated into a value
 pub enum Expression {
-    Literal(Value, ElementPosition),                                                             // value of the literal
-    ListInit(Vec<ExpressionID>, ElementPosition),                                                // list initialised in code. Example: [1 2 3 4 5]
-    VariableAccess(Option<ExpressionID>, String, ElementPosition),                               // ExpressionID to the owner of the field and its name,
-    BracketAcces(ExpressionID, ExpressionID, ElementPosition),                                   // Owner, indexing expression
-    Operation(Operator, Option<ExpressionID>, Option<ExpressionID>, ElementPosition),            // Operator to apply to one or 2 values from the Scope Expression stack (via index)
-    FunctionCall(Option<ExpressionID>, FunctionSignature, Vec<ExpressionID>, ElementPosition),   // optional owner (for method calls), name of the function and its list of expressions to be evaluated
-    ObjectConstruction(StructSignature, Vec<ExpressionID>, ElementPosition),                     // The construction of an Object, with the 'new' keyword
+    Literal(Value, Position),                                                             // value of the literal
+    ListInit(Vec<ExpressionID>, Position),                                                // list initialised in code. Example: [1 2 3 4 5]
+    VariableAccess(Option<ExpressionID>, String, Position),                               // ExpressionID to the owner of the field and its name,
+    BracketAcces(ExpressionID, ExpressionID, Position),                                   // Owner, indexing expression
+    Operation(Operator, Option<ExpressionID>, Option<ExpressionID>, Position),            // Operator to apply to one or 2 values from the Scope Expression stack (via index)
+    FunctionCall(Option<ExpressionID>, FunctionSignature, Vec<ExpressionID>, Position),   // optional owner (for method calls), name of the function and its list of expressions to be evaluated
+    ObjectConstruction(StructSignature, Vec<ExpressionID>, Position),                     // The construction of an Object, with the 'new' keyword
 }
 
 
@@ -378,7 +378,7 @@ impl Expression {
 
 
     /// Return the position of the expression
-    pub fn get_pos(&self) -> ElementPosition {
+    pub fn get_pos(&self) -> Position {
         match self {
             Expression::Literal(_, p) => p,
             Expression::ListInit(_, p) => p,

@@ -9,7 +9,7 @@ use crate::sloth::statement::{Statement};
 use crate::sloth::structure::{CustomDefinition, StructSignature};
 use crate::sloth::types::Type;
 use crate::sloth::value::Value;
-use crate::element::ElementPosition;
+use crate::element::Position;
 use crate::lexer::{Token, TokenStream, Keyword, Separator, get_token_stream};
 use crate::errors::{Error, ErrMsg, Warning};
 
@@ -220,7 +220,7 @@ fn parse_operation(iterator: &mut TokenStream, program: &mut SlothProgram, warni
 
 
 /// Parse a list
-fn parse_list(iterator: &mut TokenStream, program: &mut SlothProgram, warning: bool) -> Result<(Expression, ElementPosition), Error> {
+fn parse_list(iterator: &mut TokenStream, program: &mut SlothProgram, warning: bool) -> Result<(Expression, Position), Error> {
 
     let starting_pos;
     let last_pos;
@@ -259,7 +259,7 @@ fn parse_list(iterator: &mut TokenStream, program: &mut SlothProgram, warning: b
 
 
 /// Parse expression[access]
-fn parse_bracket_access(iterator: &mut TokenStream, program: &mut SlothProgram, warning: bool, first_expr: (ExpressionID, ElementPosition), is_parenthesied: bool) -> Result<(ExpressionID, ElementPosition), Error> {
+fn parse_bracket_access(iterator: &mut TokenStream, program: &mut SlothProgram, warning: bool, first_expr: (ExpressionID, Position), is_parenthesied: bool) -> Result<(ExpressionID, Position), Error> {
     // must start on an open square bracket
     match iterator.current() {
         Some((Token::Separator(Separator::OpenSquareBracket), _)) => (),
@@ -320,8 +320,8 @@ fn parse_bracket_access(iterator: &mut TokenStream, program: &mut SlothProgram, 
 
 
 /// In the case of a MethodCall (expr.method()), this function parses the second part (after the period)
-/// It is given the ExpressionID and ElementPosition of the first expression
-fn parse_second_expr(iterator: &mut TokenStream, program: &mut SlothProgram, warning: bool, first_expr: (ExpressionID, ElementPosition), is_parenthesied: bool) -> Result<(ExpressionID, ElementPosition), Error> {
+/// It is given the ExpressionID and Position of the first expression
+fn parse_second_expr(iterator: &mut TokenStream, program: &mut SlothProgram, warning: bool, first_expr: (ExpressionID, Position), is_parenthesied: bool) -> Result<(ExpressionID, Position), Error> {
     // name of the variable or function to use
     let (ident, ident_pos) = match iterator.next() {
         Some((Token::Identifier(n), p)) => (n, p),
@@ -403,7 +403,7 @@ fn parse_second_expr(iterator: &mut TokenStream, program: &mut SlothProgram, war
 
 
 /// Parse the construction of an object
-fn parse_object_construction(iterator: &mut TokenStream, program: &mut SlothProgram, warning: bool) -> Result<(Expression, ElementPosition), Error> {
+fn parse_object_construction(iterator: &mut TokenStream, program: &mut SlothProgram, warning: bool) -> Result<(Expression, Position), Error> {
     iterator.next();
 
     let mut pos = None;
@@ -499,7 +499,7 @@ fn parse_object_construction(iterator: &mut TokenStream, program: &mut SlothProg
 
 
 /// Parse an expression, push it to the program's expression stack and return its id
-fn parse_expression(iterator: &mut TokenStream, program: &mut SlothProgram, warning: bool) -> Result<(ExpressionID, ElementPosition), Error> {
+fn parse_expression(iterator: &mut TokenStream, program: &mut SlothProgram, warning: bool) -> Result<(ExpressionID, Position), Error> {
     // If the first token is an open parenthesis, we expect the expression to end on a closed parenthesis.
     let is_parenthesied = match iterator.current() {
         Some((Token::Separator(Separator::OpenParenthesis), _)) => {
@@ -609,7 +609,7 @@ fn parse_expression(iterator: &mut TokenStream, program: &mut SlothProgram, warn
 
 
 /// Parse an assignment statement
-fn parse_assignment(left_expr: (ExpressionID, ElementPosition), iterator: &mut TokenStream, program: &mut SlothProgram, warning: bool) -> Result<Statement, Error> {
+fn parse_assignment(left_expr: (ExpressionID, Position), iterator: &mut TokenStream, program: &mut SlothProgram, warning: bool) -> Result<Statement, Error> {
     
     let (left_expr, left_pos) = left_expr;
     
@@ -827,7 +827,7 @@ fn parse_while(iterator: &mut TokenStream, program: &mut SlothProgram, warning: 
 
 
 
-fn parse_type(iterator: &mut TokenStream, program: &mut SlothProgram, module_name: &Option<String>, warning: bool) -> Result<(Type, ElementPosition), Error> {
+fn parse_type(iterator: &mut TokenStream, program: &mut SlothProgram, module_name: &Option<String>, warning: bool) -> Result<(Type, Position), Error> {
     let first_pos;
     let mut last_pos;
 

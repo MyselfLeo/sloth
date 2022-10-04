@@ -1,5 +1,5 @@
 use std::fmt::Display;
-use crate::element::ElementPosition;
+use crate::element::Position;
 
 
 const CRATE_NAME: &str = env!("CARGO_PKG_NAME");
@@ -49,12 +49,12 @@ impl std::fmt::Display for ErrMsg {
 #[derive(Debug)]
 pub struct Error {
     pub message: ErrMsg,
-    pub position: Option<ElementPosition>
+    pub position: Option<Position>
 }
 
 
 impl Error {
-    pub fn new(message: ErrMsg, position: Option<ElementPosition>) -> Error {
+    pub fn new(message: ErrMsg, position: Option<Position>) -> Error {
         
         // if dummy pos, consider no pos was given
         let pos = match position {
@@ -100,7 +100,7 @@ impl Error {
 
 
     /// Set the position of the error if none is already set
-    pub fn clog_pos(&mut self, pos: ElementPosition) {
+    pub fn clog_pos(&mut self, pos: Position) {
         if self.position.is_none() {
             self.position = Some(pos)
         }
@@ -112,11 +112,11 @@ impl Error {
 
 pub struct Warning {
     pub text: String,
-    pub position: Option<ElementPosition>
+    pub position: Option<Position>
 }
 
 impl Warning {
-    pub fn new(text: String, position: Option<ElementPosition>) -> Warning {
+    pub fn new(text: String, position: Option<Position>) -> Warning {
         Warning {
             text: text,
             position: position
