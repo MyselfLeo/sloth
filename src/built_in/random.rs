@@ -1,4 +1,4 @@
-use crate::errors::ErrorMessage;
+use crate::errors::ErrMsg;
 use crate::sloth::structure::ObjectBlueprint;
 use crate::{errors::Error, sloth::types::Type};
 use crate::sloth::function::SlothFunction;
@@ -91,7 +91,7 @@ fn range(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Er
 
     if max - min < 0.0 {
         let err_msg = format!("The first value (min) should be lower than the second value (max). Given {} and {}", min, max);
-        return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None))
+        return Err(Error::new(ErrMsg::InvalidArguments(err_msg), None))
     }
     if min == max {
         return super::set_return(&scope, program, Value::Number(*min))

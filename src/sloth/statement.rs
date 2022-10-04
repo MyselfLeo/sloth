@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::errors::{Error, ErrorMessage};
+use crate::errors::{Error, ErrMsg};
 use crate::element::ElementPosition;
 use super::expression::ExpressionID;
 use super::scope::Scope;
@@ -31,7 +31,7 @@ impl Statement {
                 // Get the reference to the source
                 let source_expr = match program.get_expr(*source_id) {
                     Ok(e) => e,
-                    Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
+                    Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
                 };
                 let source_ref = source_expr.evaluate(scope.clone(), program, false)?;
 
@@ -39,7 +39,7 @@ impl Statement {
                 // Get the reference to the target
                 let target_expr = match program.get_expr(*target_id) {
                     Ok(e) => e,
-                    Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
+                    Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
                 };
                 let target_ref = target_expr.evaluate(scope.clone(), program, true)?;
 
@@ -49,13 +49,13 @@ impl Statement {
 
                 if source_type != target_type {
                     let err_msg = format!("Expected a Value of type '{}', got type '{}' instead", target_type, source_type);
-                    return Err(Error::new(ErrorMessage::TypeError(err_msg), Some(p.clone())))
+                    return Err(Error::new(ErrMsg::TypeError(err_msg), Some(p.clone())))
                 }
 
                 // Replace the value
                 match target_ref.try_borrow_mut() {
                     Ok(mut borrow) => *borrow = source_ref.borrow().to_owned(),
-                    Err(e) => return Err(Error::new(ErrorMessage::RustError(e.to_string()), Some(p.clone())))
+                    Err(e) => return Err(Error::new(ErrMsg::RustError(e.to_string()), Some(p.clone())))
                 }
 
                 Ok(())
@@ -64,7 +64,7 @@ impl Statement {
             Statement::ExpressionCall(expr_id, p) => {
                 let expr = match program.get_expr(*expr_id) {
                     Ok(e) => e,
-                    Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
+                    Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
                 };
 
                 expr.evaluate(scope, program, false)?;
@@ -75,7 +75,7 @@ impl Statement {
             Statement::If(cond_expr_id, statements, p) => {
                 let expr = match program.get_expr(*cond_expr_id) {
                     Ok(e) => e,
-                    Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
+                    Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
                 };
 
                 let cond_value = expr.evaluate(scope.clone(), program, false)?.borrow().to_owned();
@@ -84,7 +84,7 @@ impl Statement {
                         for statement in statements {statement.apply(scope.clone(), program)?}
                     }
                     Value::Boolean(false) => {},
-                    _ => {return Err(Error::new(ErrorMessage::UnexpectedExpression("Expected boolean expression as 'if' condition".to_string()), Some(p.clone())))}
+                    _ => {return Err(Error::new(ErrMsg::UnexpectedExpression("Expected boolean expression as 'if' condition".to_string()), Some(p.clone())))}
                 }
 
                 Ok(())
@@ -93,7 +93,7 @@ impl Statement {
             Statement::While(cond_expr_id, statements, p) => {
                 let expr = match program.get_expr(*cond_expr_id) {
                     Ok(e) => e,
-                    Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
+                    Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
                 };
 
                 let mut loop_cond = expr.evaluate(scope.clone(), program, false)?.borrow().to_owned() == Value::Boolean(true);

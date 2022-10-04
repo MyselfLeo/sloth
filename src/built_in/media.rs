@@ -1,4 +1,4 @@
-use crate::errors::ErrorMessage;
+use crate::errors::ErrMsg;
 use crate::sloth::structure::{ObjectBlueprint, SlothObject, StructSignature};
 use crate::{errors::Error, sloth::types::Type};
 use crate::sloth::function::SlothFunction;
@@ -239,7 +239,7 @@ fn update(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), E
 
     let canvas = match obj.as_any().downcast_ref::<Canvas>() {
         Some(v) => v,
-        None => return Err(Error::new(ErrorMessage::RustError("here".to_string()), None))
+        None => return Err(Error::new(ErrMsg::RustError("here".to_string()), None))
     };
 
     let res = match canvas.inner.try_borrow_mut() {
@@ -247,7 +247,7 @@ fn update(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), E
             reference.present();
             Ok(())
         },
-        Err(e) => Err(Error::new(ErrorMessage::RustError(e.to_string()), None)),
+        Err(e) => Err(Error::new(ErrMsg::RustError(e.to_string()), None)),
     };
     
     res
@@ -266,7 +266,7 @@ fn set_pixel(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<()
     };
     let canvas = match obj.as_any().downcast_ref::<Canvas>() {
         Some(v) => v,
-        None => return Err(Error::new(ErrorMessage::RustError("here".to_string()), None))
+        None => return Err(Error::new(ErrMsg::RustError("here".to_string()), None))
     };
 
 
@@ -286,10 +286,10 @@ fn set_pixel(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<()
             reference.set_draw_color((r, g, b));
             match reference.draw_point((x, y)) {
                 Ok(()) => Ok(()),
-                Err(e) => Err(Error::new(ErrorMessage::RustError(e.to_string()), None))
+                Err(e) => Err(Error::new(ErrMsg::RustError(e.to_string()), None))
             }
         },
-        Err(e) => Err(Error::new(ErrorMessage::RustError(e.to_string()), None)),
+        Err(e) => Err(Error::new(ErrMsg::RustError(e.to_string()), None)),
     };
     
     res
@@ -315,7 +315,7 @@ fn set_rect(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(),
     };
     let canvas = match obj.as_any().downcast_ref::<Canvas>() {
         Some(v) => v,
-        None => return Err(Error::new(ErrorMessage::RustError("here".to_string()), None))
+        None => return Err(Error::new(ErrMsg::RustError("here".to_string()), None))
     };
 
 
@@ -338,10 +338,10 @@ fn set_rect(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(),
             reference.set_draw_color((r, g, b));
             match reference.fill_rect(Rect::new(x, y, width, height)) {
                 Ok(()) => Ok(()),
-                Err(e) => Err(Error::new(ErrorMessage::RustError(e.to_string()), None))
+                Err(e) => Err(Error::new(ErrMsg::RustError(e.to_string()), None))
             }
         },
-        Err(e) => Err(Error::new(ErrorMessage::RustError(e.to_string()), None)),
+        Err(e) => Err(Error::new(ErrMsg::RustError(e.to_string()), None)),
     };
     
     res
@@ -370,14 +370,14 @@ fn last_event(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(
         if SDL_CONTEXT.is_none() {
             SDL_CONTEXT = match sdl2::init() {
                 Ok(v) => Some(v),
-                Err(e) => return Err(Error::new(ErrorMessage::RustError(e.to_string()), None))
+                Err(e) => return Err(Error::new(ErrMsg::RustError(e.to_string()), None))
             }
         };
 
         let ep = SDL_CONTEXT.as_ref().unwrap().event_pump();
         let mut event_pump = match ep {
             Ok(v) => v,
-            Err(e) => return Err(Error::new(ErrorMessage::RustError(e.to_string()), None))
+            Err(e) => return Err(Error::new(ErrMsg::RustError(e.to_string()), None))
         };
 
 

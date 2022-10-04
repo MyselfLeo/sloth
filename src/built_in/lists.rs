@@ -1,4 +1,4 @@
-use crate::errors::ErrorMessage;
+use crate::errors::ErrMsg;
 use crate::sloth::structure::ObjectBlueprint;
 use crate::{errors::Error, sloth::types::Type};
 use crate::sloth::function::SlothFunction;
@@ -152,7 +152,7 @@ fn set(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Erro
             if inputs[1].get_type() == list_type {&inputs[1]}
             else {
                 let err_msg = format!("Tried to set an element of type '{}' in a list of type '{}'", inputs[1].get_type(), list_type);
-                return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
+                return Err(Error::new(ErrMsg::InvalidArguments(err_msg), None));
             }
     };
 
@@ -165,7 +165,7 @@ fn set(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Erro
             *borrow = new_value.clone();
             Ok(())
         },
-        Err(e) => Err(Error::new(ErrorMessage::RustError(e.to_string()), None))
+        Err(e) => Err(Error::new(ErrMsg::RustError(e.to_string()), None))
     };
 
     res
@@ -238,7 +238,7 @@ fn push(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Err
     let pushed_value = inputs[0].clone();
     if pushed_value.get_type() != list_type {
         let err_msg = format!("Tried to push a value of type '{}' to a list of type '{}'", pushed_value.get_type(), list_type);
-        return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
+        return Err(Error::new(ErrMsg::InvalidArguments(err_msg), None));
     }
 
     list_vec.push(pushed_value);

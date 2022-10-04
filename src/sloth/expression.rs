@@ -8,7 +8,7 @@ use super::value::{Value, DeepClone};
 use super::operator::{Operator, apply_op};
 use super::scope::Scope;
 use super::program::SlothProgram;
-use crate::errors::{Error, ErrorMessage};
+use crate::errors::{Error, ErrMsg};
 use crate::element::ElementPosition;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
@@ -55,7 +55,7 @@ impl Expression {
                     // get the type of the list from the first expression
                     let expr = match program.as_ref().unwrap().get_expr(exprs[0]) {
                         Ok(e) => e,
-                        Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
+                        Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
                     };
                     values.push(expr.evaluate(scope.clone(), program, false)?);
 
@@ -66,7 +66,7 @@ impl Expression {
                     for id in exprs.iter().skip(1) {
                         let expr = match program.as_ref().unwrap().get_expr(*id) {
                             Ok(e) => e,
-                            Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
+                            Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
                         };
 
                         let value = expr.evaluate(scope.clone(), program, false)?;
@@ -74,7 +74,7 @@ impl Expression {
                         if value.borrow().get_type() == list_type {values.push(value);}
                         else {
                             let err_msg = format!("Created a list of type '{}' but this value is of type '{}'", list_type, value.borrow().get_type());
-                            return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), Some(expr.get_pos())));
+                            return Err(Error::new(ErrMsg::InvalidArguments(err_msg), Some(expr.get_pos())));
                         }
                     }
                 }
@@ -95,7 +95,7 @@ impl Expression {
                         // Get the reference to the owner
                         let owner_expr = match program.as_mut().unwrap().get_expr(*o) {
                             Ok(e) => e,
-                            Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
+                            Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
                         };
                         let owner_ref = owner_expr.evaluate(scope.clone(), program, false)?;
 
@@ -103,7 +103,7 @@ impl Expression {
 
                         match field {
                             Ok(v) => Ok(v),
-                            Err(e) => Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))
+                            Err(e) => Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))
                         }
                     },
 
@@ -118,24 +118,24 @@ impl Expression {
                                     Ok(mut brrw) => {
                                         match brrw.push_variable(name.clone(), Rc::new(RefCell::new(Value::Any))) {
                                             Ok(()) => (),
-                                            Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e.to_string()), Some(p.clone())))
+                                            Err(e) => return Err(Error::new(ErrMsg::RuntimeError(e.to_string()), Some(p.clone())))
                                         }
                                     },
                                     Err(e) => {
-                                        return Err(Error::new(ErrorMessage::RustError(e.to_string()), Some(p.clone())))
+                                        return Err(Error::new(ErrMsg::RustError(e.to_string()), Some(p.clone())))
                                     }
                                 }
                             }
                             else {
                                 let err_msg = format!("Called uninitialized variable '{}'", name);
-                                return Err(Error::new(ErrorMessage::RuntimeError(err_msg), Some(p.clone()))) 
+                                return Err(Error::new(ErrMsg::RuntimeError(err_msg), Some(p.clone()))) 
                             }
                         }
 
                         // Prevent using statics for assignment
                         if !scope.borrow().is_set(name) && program.as_ref().unwrap().is_set(name) && for_assignment {
                             let err_msg = format!("{} is a static expression, it cannot be assigned a value", name);
-                            return Err(Error::new(ErrorMessage::RuntimeError(err_msg), Some(p.clone())))
+                            return Err(Error::new(ErrMsg::RuntimeError(err_msg), Some(p.clone())))
                         }
 
                         // Get the value directly from the scope
@@ -161,7 +161,7 @@ impl Expression {
                     Some(i) => {
                         let expr = match program.as_ref().unwrap().get_expr(*i) {
                             Ok(e) => e,
-                            Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
+                            Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
                         };
                         
                         Some(expr.evaluate(scope.clone(), program, false)?)
@@ -172,7 +172,7 @@ impl Expression {
                     Some(i) => {
                         let expr = match program.as_ref().unwrap().get_expr(*i) {
                             Ok(e) => e,
-                            Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
+                            Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
                         };
                         
                         Some(expr.evaluate(scope, program, false)?)
@@ -182,7 +182,7 @@ impl Expression {
                 //apply op
                 match apply_op(op, lhs, rhs) {
                     Ok(v) => Ok(Rc::new(RefCell::new(v))),
-                    Err(s) => Err(Error::new(ErrorMessage::InvalidArguments(s), Some(p.clone())))
+                    Err(s) => Err(Error::new(ErrMsg::InvalidArguments(s), Some(p.clone())))
                 }
             }
 
@@ -198,7 +198,7 @@ impl Expression {
                     Some(s) => {
                         match program.as_ref().unwrap().get_expr(*s) {
                             Ok(e) => Some(e.evaluate(scope.clone(), program, false)?),
-                            Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
+                            Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
                         }
                     },
 
@@ -221,7 +221,7 @@ impl Expression {
 
                 let method = match program.as_ref().unwrap().get_function(&signature_clone) {
                     Ok(f) => f,
-                    Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
+                    Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
                 };
 
 
@@ -240,7 +240,7 @@ impl Expression {
 
                     let expr = match program.as_ref().unwrap().get_expr(*param_expr_id) {
                         Ok(e) => e,
-                        Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
+                        Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
                     };
 
                     
@@ -252,7 +252,7 @@ impl Expression {
                         let cloned_value = value.borrow().deep_clone();
                         value = match cloned_value {
                             Ok(v) => v,
-                            Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))
+                            Err(e) => return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))
                         };
                     }
 
@@ -260,9 +260,9 @@ impl Expression {
                     match func_scope.try_borrow_mut() {
                         Ok(mut reference) => match (*reference).push_variable(format!("@{}", i), value) {
                             Ok(()) => (),
-                            Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))
+                            Err(e) => return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))
                         },
-                        Err(e) => return Err(Error::new(ErrorMessage::RustError(e.to_string()), Some(p.clone())))
+                        Err(e) => return Err(Error::new(ErrMsg::RustError(e.to_string()), Some(p.clone())))
                     };
                 }
 
@@ -273,21 +273,21 @@ impl Expression {
                         Ok(mut reference) => {
                             match (*reference).push_variable("@return".to_string(), Rc::new(RefCell::new(default_value))) {
                                 Ok(()) => (),
-                                Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))
+                                Err(e) => return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))
                             };
 
                             match owner_value {
                                 Some(v) => {
                                     match (*reference).push_variable("@self".to_string(), v.clone()) {
                                         Ok(()) => (),
-                                        Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))
+                                        Err(e) => return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))
                                     };
                                 },
 
                                 None => ()
                             };
                         },
-                        Err(e) => return Err(Error::new(ErrorMessage::RustError(e.to_string()), Some(p.clone())))
+                        Err(e) => return Err(Error::new(ErrMsg::RustError(e.to_string()), Some(p.clone())))
                     };
                 }
 
@@ -310,7 +310,7 @@ impl Expression {
                         let brrw = v.borrow();
                         if brrw.get_type() != method.get_output_type() {
                             let err_msg = format!("Function {} should return a value of type {}, but it returned {} which is of type {}", method.get_name(), method.get_output_type(), brrw.to_string(), brrw.get_type());
-                            Err(Error::new(ErrorMessage::ReturnValueError(err_msg), Some(p.clone())))
+                            Err(Error::new(ErrMsg::ReturnValueError(err_msg), Some(p.clone())))
                         }
                         else {Ok(v.clone())}
                     },
@@ -331,7 +331,7 @@ impl Expression {
                 // Get the structure definition from the program
                 let blueprint = match program.as_mut().unwrap().get_struct(signature) {
                     Ok(v) => v,
-                    Err(e) => return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))
+                    Err(e) => return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))
                 };
 
                 // Evaluate each given values
@@ -340,7 +340,7 @@ impl Expression {
                 for expr_id in given_fields {
                     let expr = match program.as_ref().unwrap().get_expr(*expr_id) {
                         Ok(e) => e,
-                        Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
+                        Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
                     };
 
                     given_values.push(expr.evaluate(scope.clone(), program, false)?);
@@ -349,7 +349,7 @@ impl Expression {
                 // Build the object
                 let object = match blueprint.build(given_values) {
                     Ok(v) => v,
-                    Err(e) => return Err(Error::new(ErrorMessage::InvalidArguments(e), Some(p.clone())))
+                    Err(e) => return Err(Error::new(ErrMsg::InvalidArguments(e), Some(p.clone())))
                 };
                 // Return the value
                 Ok(Rc::new(RefCell::new(Value::Object(object))))
@@ -360,7 +360,7 @@ impl Expression {
                 // get the field by evaluating access_expr_id into a string
                 let access_expr = match program.as_mut().unwrap().get_expr(*access_expr_id) {
                     Ok(e) => e,
-                    Err(e) => {return Err(Error::new(ErrorMessage::RuntimeError(e), Some(p.clone())))}
+                    Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
                 };
                 let access_ref = access_expr.evaluate(scope.clone(), program, false)?;
                 let access_str = access_ref.borrow().to_string();

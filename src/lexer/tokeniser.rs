@@ -1,5 +1,5 @@
 use crate::element::ElementPosition;
-use crate::errors::{Error, ErrorMessage};
+use crate::errors::{Error, ErrMsg};
 use super::token::Token;
 
 
@@ -12,7 +12,7 @@ pub fn from_file(filename: &str) -> Result<Vec<(Token, ElementPosition)>, Error>
 
     if !filepath.exists() {
         let err_msg = format!("File {:?} does not exists", filepath.as_os_str());
-        return Err(Error::new(ErrorMessage::FileError(err_msg), None));
+        return Err(Error::new(ErrMsg::FileError(err_msg), None));
     }
 
     let mut tokens: Vec<(Token, ElementPosition)> = Vec::new();
@@ -20,7 +20,7 @@ pub fn from_file(filename: &str) -> Result<Vec<(Token, ElementPosition)>, Error>
 
     let file_string = match std::fs::read_to_string(filepath) {
         Ok(v) => v,
-        Err(e) => return Err(Error::new(ErrorMessage::FileError(e.to_string()), None))
+        Err(e) => return Err(Error::new(ErrMsg::FileError(e.to_string()), None))
     };
 
     let lines = file_string.split('\n');
@@ -67,7 +67,7 @@ pub fn from_file(filename: &str) -> Result<Vec<(Token, ElementPosition)>, Error>
 
                 match Token::from_str(&string_buffer) {
                     Ok(s) => tokens.push((s, position)),
-                    Err(e) => return Err(Error::new(ErrorMessage::SyntaxError(e), Some(position))),
+                    Err(e) => return Err(Error::new(ErrMsg::SyntaxError(e), Some(position))),
                 }
 
                 string_buffer.clear();
@@ -89,7 +89,7 @@ pub fn from_file(filename: &str) -> Result<Vec<(Token, ElementPosition)>, Error>
                     match Token::from_str(&token_buffer) {
                         Ok(s) => tokens.push((s, position)),
                         Err(e) => {
-                            return Err(Error::new(ErrorMessage::SyntaxError(e), Some(position)));
+                            return Err(Error::new(ErrMsg::SyntaxError(e), Some(position)));
                         },
                     }
 
@@ -141,7 +141,7 @@ pub fn from_file(filename: &str) -> Result<Vec<(Token, ElementPosition)>, Error>
                                 match Token::from_str(op) {
                                     Ok(s) => tokens.push((s, op_pos)),
                                     Err(e) => {
-                                        return Err(Error::new(ErrorMessage::SyntaxError(e), Some(op_pos)));
+                                        return Err(Error::new(ErrMsg::SyntaxError(e), Some(op_pos)));
                                     },
                                 };
                             }
@@ -161,7 +161,7 @@ pub fn from_file(filename: &str) -> Result<Vec<(Token, ElementPosition)>, Error>
                         match Token::from_str(&token_buffer) {
                             Ok(s) => tokens.push((s, position)),
                             Err(e) => {
-                                return Err(Error::new(ErrorMessage::SyntaxError(e), Some(position)));
+                                return Err(Error::new(ErrMsg::SyntaxError(e), Some(position)));
                             },
                         };
 
@@ -180,7 +180,7 @@ pub fn from_file(filename: &str) -> Result<Vec<(Token, ElementPosition)>, Error>
                         match Token::from_str(&c.to_string()) {
                             Ok(s) => tokens.push((s, position)),
                             Err(e) => {
-                                return Err(Error::new(ErrorMessage::SyntaxError(e), Some(position)));
+                                return Err(Error::new(ErrMsg::SyntaxError(e), Some(position)));
                             },
                         };
 
@@ -217,7 +217,7 @@ pub fn from_file(filename: &str) -> Result<Vec<(Token, ElementPosition)>, Error>
             match Token::from_str(&token_buffer) {
                 Ok(s) => tokens.push((s, position)),
                 Err(e) => {
-                    return Err(Error::new(ErrorMessage::SyntaxError(e), Some(position)));
+                    return Err(Error::new(ErrMsg::SyntaxError(e), Some(position)));
                 },
             }
 

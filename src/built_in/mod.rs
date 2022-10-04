@@ -6,7 +6,7 @@ use crate::sloth::program::SlothProgram;
 use crate::sloth::scope::Scope;
 use crate::sloth::types::Type;
 use crate::sloth::structure::ObjectBlueprint;
-use crate::errors::{Error, ErrorMessage};
+use crate::errors::{Error, ErrMsg};
 use crate::sloth::value::Value;
 pub mod io;
 pub mod numbers;
@@ -287,7 +287,7 @@ pub fn set_return(scope: &Rc<RefCell<Scope>>, program: &mut SlothProgram, value:
                     *borrow = value;
                     Ok(())
                 },
-                Err(e) => return Err(Error::new(ErrorMessage::RustError(e.to_string()), None))
+                Err(e) => return Err(Error::new(ErrMsg::RustError(e.to_string()), None))
             }
         },
         Err(e) => Err(e)
@@ -308,7 +308,7 @@ pub fn set_self(scope: &Rc<RefCell<Scope>>, program: &mut SlothProgram, value: V
                     *borrow = value;
                     Ok(())
                 },
-                Err(e) => return Err(Error::new(ErrorMessage::RustError(e.to_string()), None))
+                Err(e) => return Err(Error::new(ErrMsg::RustError(e.to_string()), None))
             }
         },
         Err(e) => Err(e)
@@ -328,7 +328,7 @@ pub fn query_inputs(scope: &Rc<RefCell<Scope>>, expected: Vec<Type>, func_name: 
             1 => format!("Function '{}' requires 1 argument, but was given {}", func_name, inputs.len()),
             x => format!("Function '{}' requires {} argument(s), but was given {}", func_name, expected.len(), x)
         };
-        return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
+        return Err(Error::new(ErrMsg::InvalidArguments(err_msg), None));
     }
 
     let mut res = Vec::new();
@@ -338,7 +338,7 @@ pub fn query_inputs(scope: &Rc<RefCell<Scope>>, expected: Vec<Type>, func_name: 
         let brrw = given.borrow();
         if brrw.get_type() != expected {
             let err_msg = format!("Argument {} of function '{}' must be of type '{}', but was given a value of type '{}'", i, func_name, expected, brrw.get_type());
-            return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
+            return Err(Error::new(ErrMsg::InvalidArguments(err_msg), None));
         }
         else {
             res.push(brrw.to_owned())
@@ -374,7 +374,7 @@ pub fn expect_natural(value: &Value, limit: Option<(usize, &str)>, arg_pos: usiz
 
     match res {
         Ok(u) => Ok(u),
-        Err(e) => Err(Error::new(ErrorMessage::InvalidArguments(e), None))
+        Err(e) => Err(Error::new(ErrMsg::InvalidArguments(e), None))
     }
 }
 

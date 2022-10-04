@@ -1,4 +1,4 @@
-use crate::errors::ErrorMessage;
+use crate::errors::ErrMsg;
 use crate::sloth::structure::ObjectBlueprint;
 use crate::{errors::Error, sloth::types::Type};
 use crate::sloth::function::SlothFunction;
@@ -170,7 +170,7 @@ pub fn expect_positive_index(value: Option<Value>, limit: Option<usize>) -> Resu
 
     match res {
         Ok(u) => Ok(u),
-        Err(e) => Err(Error::new(ErrorMessage::InvalidArguments(e), None))
+        Err(e) => Err(Error::new(ErrMsg::InvalidArguments(e), None))
     }
 }
 
@@ -197,7 +197,7 @@ fn to_num(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), E
                 Ok(v) => Value::Number(v),
                 Err(_) => {
                     let err_msg = format!("Cannot parse string \"{}\" into a Number", x);
-                    return Err(Error::new(ErrorMessage::RuntimeError(err_msg), None));
+                    return Err(Error::new(ErrMsg::RuntimeError(err_msg), None));
                 }
             }
         },
@@ -321,7 +321,7 @@ fn split(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Er
 
         if inputs.len() != 1 {
             let err_msg = format!("Called function 'split' with {} argument(s), but the function requires 1 arguments", inputs.len());
-            return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
+            return Err(Error::new(ErrMsg::InvalidArguments(err_msg), None));
         }
 
 
@@ -334,7 +334,7 @@ fn split(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Er
             Value::String(x) => x,
             v => {
                 let err_msg = format!("Argument 1 of function 'split' is of type string, given a value of type {}", v.get_type());
-                return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
+                return Err(Error::new(ErrMsg::InvalidArguments(err_msg), None));
             }
         };
 
@@ -370,7 +370,7 @@ fn get(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Erro
 
         if inputs.len() != 1 {
             let err_msg = format!("Called function 'split' with {} argument(s), but the function requires 1 arguments", inputs.len());
-            return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
+            return Err(Error::new(ErrMsg::InvalidArguments(err_msg), None));
         }
 
         let string = match owner_v {

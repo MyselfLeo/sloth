@@ -3,7 +3,7 @@ use std::collections::{HashMap, BTreeMap};
 use std::iter::zip;
 use std::rc::Rc;
 
-use crate::errors::{Error, ErrorMessage, formatted_vec_string};
+use crate::errors::{Error, ErrMsg, formatted_vec_string};
 use crate::element::ElementPosition;
 use super::function::{SlothFunction, FunctionSignature};
 use super::scope::Scope;
@@ -267,7 +267,7 @@ impl SlothProgram {
         // Check if the main function exists and is well defined
         let main_func = match self.get_function(&main_func_id) {
             Ok(v) => v,
-            Err(_) => {return Err(Error::new(ErrorMessage::NoEntryPoint("Your program needs a 'main' function, returning a Number (the return code of your program), as an entry point.".to_string()), None))}
+            Err(_) => {return Err(Error::new(ErrMsg::NoEntryPoint("Your program needs a 'main' function, returning a Number (the return code of your program), as an entry point.".to_string()), None))}
         };
 
         let main_inputs = main_func.get_signature().input_types.unwrap();
@@ -281,7 +281,7 @@ impl SlothProgram {
             // Create a string representing the required arguments types, like "num, bool, string"
             let input_types_list = formatted_vec_string(&main_inputs.iter().map(|(t, _)| t).collect(), ',');
             let err_msg = format!("Given {} command-line argument(s), but the main function requires {} argument(s): {}", s_args.len(), main_inputs.len(), input_types_list);
-            return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None))
+            return Err(Error::new(ErrMsg::InvalidArguments(err_msg), None))
         }
 
         for (arg, (t, _)) in zip(s_args, main_inputs) {
@@ -289,7 +289,7 @@ impl SlothProgram {
                 Ok(v) => v,
                 Err(e) => {
                     let err_msg = format!("Error while parsing command-line arguments: {}", e);
-                    return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None))
+                    return Err(Error::new(ErrMsg::InvalidArguments(err_msg), None))
                 }
             };
 

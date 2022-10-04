@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use crate::errors::{Error, ErrorMessage};
+use crate::errors::{Error, ErrMsg};
 use super::program::SlothProgram;
 use super::statement::Statement;
 use super::{types::Type};
@@ -76,7 +76,7 @@ impl SlothFunction for CustomFunction {
         // Check that the number of inputs given matches the number required
         if args.len() != self_inputs.len() {
             let err_msg = format!("Called function {} with {} argument(s), but the function requires {} argument(s)", self.get_name(), args.len(), self_inputs.len());
-            return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
+            return Err(Error::new(ErrMsg::InvalidArguments(err_msg), None));
         }
 
         // Check that the given input types match the ones from the definition
@@ -85,7 +85,7 @@ impl SlothFunction for CustomFunction {
             let given_type = given.borrow().get_type();
             if given_type != *required {
                 let err_msg = format!("Function {} was called with argument of type {} at position {}, where argument of type {} was required", self.get_name(), given_type, i, required);
-                return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None));
+                return Err(Error::new(ErrMsg::InvalidArguments(err_msg), None));
             }
             i += 1;
         }

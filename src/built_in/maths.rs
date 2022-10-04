@@ -1,4 +1,4 @@
-use crate::errors::ErrorMessage;
+use crate::errors::ErrMsg;
 use crate::{errors::Error, sloth::types::Type};
 use crate::sloth::function::SlothFunction;
 use crate::sloth::program::SlothProgram;
@@ -139,7 +139,7 @@ fn sqrt(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Err
         Value::Number(x) => {
             if x < 0.0 {
                 let err_msg = format!("Called sqrt on a negative number ({})", x);
-                return Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None))
+                return Err(Error::new(ErrMsg::InvalidArguments(err_msg), None))
             }
             Value::Number(x.sqrt())
         },

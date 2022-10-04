@@ -1,4 +1,4 @@
-use crate::errors::ErrorMessage;
+use crate::errors::ErrMsg;
 use crate::sloth::structure::{ObjectBlueprint, StructSignature, SlothObject};
 use crate::{errors::Error, sloth::types::Type};
 use crate::sloth::function::SlothFunction;
@@ -300,13 +300,13 @@ fn since(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Er
             let mut any = reference.to_owned();
             let object = match any.as_any().downcast_ref::<Date>() {
                 Some(v) => v,
-                None => return Err(Error::new(ErrorMessage::RustError("Called function 'since' on an object which is not a Instant".to_string()), None))
+                None => return Err(Error::new(ErrMsg::RustError("Called function 'since' on an object which is not a Instant".to_string()), None))
             };
 
             object.inner.elapsed()
         },
         _ => {
-            return Err(Error::new(ErrorMessage::RustError("Called function 'since' on an object which is not a Instant".to_string()), None))
+            return Err(Error::new(ErrMsg::RustError("Called function 'since' on an object which is not a Instant".to_string()), None))
         }
     };
 
@@ -326,7 +326,7 @@ fn sleep(scope: Rc<RefCell<Scope>>, _: &mut SlothProgram) -> Result<(), Error> {
         Value::Number(x) => {
             if x < 0.0 {
                 let err_msg = format!("Cannot wait for a negative duration ({})", x);
-                Err(Error::new(ErrorMessage::InvalidArguments(err_msg), None))
+                Err(Error::new(ErrMsg::InvalidArguments(err_msg), None))
             }
             else {
                 // The sleep occurs here

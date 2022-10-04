@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::rc::Rc;
-use crate::errors::{Error, ErrorMessage};
+use crate::errors::{Error, ErrMsg};
 
 use super::program::SlothProgram;
 use super::value::Value;
@@ -32,7 +32,7 @@ impl Scope {
                     Some(v) => Ok(v),
                     None => {
                         let err_msg = format!("Called uninitialised variable '{}'", name);
-                        Err(Error::new(ErrorMessage::RuntimeError(err_msg), None))
+                        Err(Error::new(ErrMsg::RuntimeError(err_msg), None))
                     },
                 }
             }

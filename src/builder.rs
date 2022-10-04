@@ -11,13 +11,13 @@ use crate::sloth::types::Type;
 use crate::sloth::value::Value;
 use crate::element::ElementPosition;
 use crate::lexer::{Token, TokenStream, Keyword, Separator, get_token_stream};
-use crate::errors::{Error, ErrorMessage, Warning};
+use crate::errors::{Error, ErrMsg, Warning};
 
 
 
 
 fn eof_error(i: u32) -> Error {
-    Error::new(ErrorMessage::UnexpectedEOF(format!("{} ({})",  "Unexpected End Of File", i)), None)
+    Error::new(ErrMsg::UnexpectedEOF(format!("{} ({})",  "Unexpected End Of File", i)), None)
 }
 
 
@@ -39,7 +39,7 @@ fn parse_variablecall(iterator: &mut TokenStream, _: &mut SlothProgram, _: bool)
         }
         Some((t, p)) => {
             let err_msg = format!("Expected variable name, got unexpected token '{}'", t.original_string());
-            Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())))
+            Err(Error::new(ErrMsg::SyntaxError(err_msg), Some(p.clone())))
         },
         None => Err(eof_error(line!()))
     }
@@ -70,7 +70,7 @@ fn parse_functioncall(iterator: &mut TokenStream, program: &mut SlothProgram, wa
             Some((Token::Separator(Separator::Colon), _)) => module = Some(s),
             Some((t, p)) => {
                 let err_msg = format!("Expected '(' or ':', got unexpected token '{}'", t.original_string());
-                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)))
+                return Err(Error::new(ErrMsg::SyntaxError(err_msg), Some(p)))
             },
             _ => return Err(eof_error(line!()))
         };
@@ -87,7 +87,7 @@ fn parse_functioncall(iterator: &mut TokenStream, program: &mut SlothProgram, wa
             Some((token, position)) => {
                 if token != Token::Separator(Separator::Colon) {
                     let err_msg = format!("Expected ':', got unexpected token '{}'", token.original_string());
-                    return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(position.clone())));
+                    return Err(Error::new(ErrMsg::SyntaxError(err_msg), Some(position.clone())));
                 }
             }
             None => return Err(eof_error(line!()))
@@ -99,7 +99,7 @@ fn parse_functioncall(iterator: &mut TokenStream, program: &mut SlothProgram, wa
             Some((Token::Identifier(s), _)) => function_name = s,
             Some((t, p)) => {
                 let err_msg = format!("Expected function name, got unexpected token '{}'", t.original_string());
-                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())));
+                return Err(Error::new(ErrMsg::SyntaxError(err_msg), Some(p.clone())));
             },
             None => return Err(eof_error(line!()))
         };
@@ -111,7 +111,7 @@ fn parse_functioncall(iterator: &mut TokenStream, program: &mut SlothProgram, wa
         Some((token, position)) => {
             if token != Token::Separator(Separator::OpenParenthesis) {
                 let err_msg = format!("Expected '(', got unexpected token '{}'", token.original_string());
-                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(position.clone())));
+                return Err(Error::new(ErrMsg::SyntaxError(err_msg), Some(position.clone())));
             }
         }
         None => return Err(eof_error(line!()))
@@ -137,7 +137,7 @@ fn parse_functioncall(iterator: &mut TokenStream, program: &mut SlothProgram, wa
             last_pos = position.clone();
             if token != Token::Separator(Separator::CloseParenthesis) {
                 let err_msg = format!("Expected ')', got unexpected token '{}'", token.original_string());
-                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(position.clone())));
+                return Err(Error::new(ErrMsg::SyntaxError(err_msg), Some(position.clone())));
             }
         }
         None => return Err(eof_error(line!()))
@@ -188,7 +188,7 @@ fn parse_operation(iterator: &mut TokenStream, program: &mut SlothProgram, warni
                 "!" => Operator::Inv,
                 t => {
                     let err_msg = format!("Unimplemented operator {}", t);
-                    return Err(Error::new(ErrorMessage::OperationErrror(err_msg), Some(first_pos)))
+                    return Err(Error::new(ErrMsg::OperationErrror(err_msg), Some(first_pos)))
                 }
             }
         }
@@ -275,7 +275,7 @@ fn parse_bracket_access(iterator: &mut TokenStream, program: &mut SlothProgram, 
         Some((Token::Separator(Separator::CloseSquareBracket), p)) => p,
         Some((t, p)) => {
             let err_msg = format!("Expected ']', got unexpected token '{}'", t.original_string());
-            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())))
+            return Err(Error::new(ErrMsg::SyntaxError(err_msg), Some(p.clone())))
         },
         None => return Err(eof_error(line!()))
     };
@@ -302,7 +302,7 @@ fn parse_bracket_access(iterator: &mut TokenStream, program: &mut SlothProgram, 
             if !is_parenthesied {Ok(expr)}
             else {
                 let err_msg = format!("Expected ')', got unexpected token '{}'", t.original_string());
-                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)));
+                return Err(Error::new(ErrMsg::SyntaxError(err_msg), Some(p)));
             }
         },
         None => Err(eof_error(line!())),
@@ -327,7 +327,7 @@ fn parse_second_expr(iterator: &mut TokenStream, program: &mut SlothProgram, war
         Some((Token::Identifier(n), p)) => (n, p),
         Some((t, p)) => {
             let err_msg = format!("Expected identifier, got unexpected token '{}'", t.original_string());
-            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)));
+            return Err(Error::new(ErrMsg::SyntaxError(err_msg), Some(p)));
         },
         None => return Err(eof_error(line!()))
     };
@@ -378,7 +378,7 @@ fn parse_second_expr(iterator: &mut TokenStream, program: &mut SlothProgram, war
             if !is_parenthesied {Ok(expr)}
             else {
                 let err_msg = format!("Expected ')', got unexpected token '{}'", t.original_string());
-                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)));
+                return Err(Error::new(ErrMsg::SyntaxError(err_msg), Some(p)));
             }
         },
         None => Err(eof_error(line!())),
@@ -419,7 +419,7 @@ fn parse_object_construction(iterator: &mut TokenStream, program: &mut SlothProg
             },
             Some((t, p)) => {
                 let err_msg = format!("Expected module name, got unexpected token '{}'", t.original_string());
-                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())))
+                return Err(Error::new(ErrMsg::SyntaxError(err_msg), Some(p.clone())))
             },
             None => return Err(eof_error(line!()))
         }
@@ -437,7 +437,7 @@ fn parse_object_construction(iterator: &mut TokenStream, program: &mut SlothProg
         },
         Some((t, p)) => {
             let err_msg = format!("Expected structure name, got unexpected token '{}'", t.original_string());
-            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())))
+            return Err(Error::new(ErrMsg::SyntaxError(err_msg), Some(p.clone())))
         },
         None => return Err(eof_error(line!()))
     };
@@ -447,7 +447,7 @@ fn parse_object_construction(iterator: &mut TokenStream, program: &mut SlothProg
         Some((Token::Separator(Separator::OpenParenthesis), _)) => (),
         Some((t, p)) => {
             let err_msg = format!("Expected '(', got unexpected token '{}'", t.original_string());
-            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())))
+            return Err(Error::new(ErrMsg::SyntaxError(err_msg), Some(p.clone())))
         },
         None => return Err(eof_error(line!()))
     };
@@ -561,7 +561,7 @@ fn parse_expression(iterator: &mut TokenStream, program: &mut SlothProgram, warn
 
         Some((t, p)) => {
             let err_msg = format!("Unexpected expression start '{}'", t.original_string());
-            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)))
+            return Err(Error::new(ErrMsg::SyntaxError(err_msg), Some(p)))
         }
 
         None => return Err(eof_error(line!()))
@@ -592,7 +592,7 @@ fn parse_expression(iterator: &mut TokenStream, program: &mut SlothProgram, warn
             if !is_parenthesied {Ok(first_expr)}
             else {
                 let err_msg = format!("Expected ')', got unexpected token '{}'", t.original_string());
-                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)));
+                return Err(Error::new(ErrMsg::SyntaxError(err_msg), Some(p)));
             }
         },
         None => Err(eof_error(line!())),
@@ -618,7 +618,7 @@ fn parse_assignment(left_expr: (ExpressionID, ElementPosition), iterator: &mut T
         Some((token, position)) => {
             if token.original_string() != "=".to_string() {
                 let err_msg = format!("Expected '=', got unexpected token '{}'", token.original_string());
-                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(position.clone())));
+                return Err(Error::new(ErrMsg::SyntaxError(err_msg), Some(position.clone())));
             }
         }
         None => return Err(eof_error(line!()))
@@ -686,7 +686,7 @@ fn parse_statement(iterator: &mut TokenStream, program: &mut SlothProgram, warni
 
         Some((t, p)) => {
             let err_msg = format!("Unexpected token '{}'. Outside a function, you can only define structures or functions", t.original_string());
-            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)))
+            return Err(Error::new(ErrMsg::SyntaxError(err_msg), Some(p)))
         }
 
         None => return Err(eof_error(line!()))
@@ -747,7 +747,7 @@ fn parse_if(iterator: &mut TokenStream, program: &mut SlothProgram, warning: boo
     }
     else if let Some((t, p)) = current {
         let err_msg = format!("Expected '{{', got unexpected token '{}'", t.original_string());
-        return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)));
+        return Err(Error::new(ErrMsg::SyntaxError(err_msg), Some(p)));
     }
     else {return Err(eof_error(line!()))}
 
@@ -796,7 +796,7 @@ fn parse_while(iterator: &mut TokenStream, program: &mut SlothProgram, warning: 
     }
     else if let Some((t, p)) = current {
         let err_msg = format!("Expected '{{', got unexpected token '{}'", t.original_string());
-        return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)));
+        return Err(Error::new(ErrMsg::SyntaxError(err_msg), Some(p)));
     }
     else {return Err(eof_error(line!()))}
 
@@ -839,7 +839,7 @@ fn parse_type(iterator: &mut TokenStream, program: &mut SlothProgram, module_nam
         },
         Some((t, p)) => {
             let err_msg = format!("Expected type, got unexpected token '{}'", t.original_string());
-            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())))
+            return Err(Error::new(ErrMsg::SyntaxError(err_msg), Some(p.clone())))
         },
         None => return Err(eof_error(line!()))
     };
@@ -855,7 +855,7 @@ fn parse_type(iterator: &mut TokenStream, program: &mut SlothProgram, module_nam
                 Some((Token::Separator(Separator::OpenSquareBracket), _)) => (),
                 Some((t, p)) => {
                     let err_msg = format!("Expected '[', got unexpected token '{}'", t.original_string());
-                    return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())))
+                    return Err(Error::new(ErrMsg::SyntaxError(err_msg), Some(p.clone())))
                 },
                 None => return Err(eof_error(line!()))
             };
@@ -867,7 +867,7 @@ fn parse_type(iterator: &mut TokenStream, program: &mut SlothProgram, module_nam
                 Some((Token::Separator(Separator::CloseSquareBracket), p)) => last_pos = p,
                 Some((t, p)) => {
                     let err_msg = format!("Expected ']', got unexpected token '{}'", t.original_string());
-                    return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())))
+                    return Err(Error::new(ErrMsg::SyntaxError(err_msg), Some(p.clone())))
                 },
                 None => return Err(eof_error(line!()))
             };
@@ -911,7 +911,7 @@ fn parse_function(iterator: &mut TokenStream, program: &mut SlothProgram, module
         Some((t, p)) => {
             if t.original_string() != "define".to_string() {
                 let err_msg = format!("Expected 'define' keyword, got '{}'", t.original_string());
-                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)));
+                return Err(Error::new(ErrMsg::SyntaxError(err_msg), Some(p)));
             }
         }
         None => return Err(eof_error(line!())),
@@ -923,7 +923,7 @@ fn parse_function(iterator: &mut TokenStream, program: &mut SlothProgram, module
         Some((Token::Identifier(s), _)) => s.clone(),
         Some((t, p)) => {
             let err_msg = format!("Expected function name, got '{}'", t.original_string());
-            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)));
+            return Err(Error::new(ErrMsg::SyntaxError(err_msg), Some(p)));
         }
         None => return Err(eof_error(line!())),
     };
@@ -955,7 +955,7 @@ fn parse_function(iterator: &mut TokenStream, program: &mut SlothProgram, module
             if let (Token::Separator(Separator::Colon), _) = t {}
             else {
                 let err_msg = format!("Expected ':', got '{}'", t.0.original_string());
-                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(t.1.clone())));
+                return Err(Error::new(ErrMsg::SyntaxError(err_msg), Some(t.1.clone())));
             }
         },
         None => return Err(eof_error(line!())),
@@ -986,7 +986,7 @@ fn parse_function(iterator: &mut TokenStream, program: &mut SlothProgram, module
         Some((t, p)) => {
             if t.original_string() != "->".to_string() {
                 let err_msg = format!("Expected '->', got '{}'", t.original_string());
-                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)));
+                return Err(Error::new(ErrMsg::SyntaxError(err_msg), Some(p)));
             }
         },
         None => return Err(eof_error(line!())),
@@ -1003,7 +1003,7 @@ fn parse_function(iterator: &mut TokenStream, program: &mut SlothProgram, module
     if let Some((Token::Separator(Separator::OpenBracket), _)) = next {}
     else if let Some((t, p)) = next {
         let err_msg = format!("Expected '{{', got unexpected token '{}'", t.original_string());
-        return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)));
+        return Err(Error::new(ErrMsg::SyntaxError(err_msg), Some(p)));
     }
     else {return Err(eof_error(line!()))}
 
@@ -1069,7 +1069,7 @@ fn parse_builtin(iterator: &mut TokenStream, program: &mut SlothProgram, warning
             first_pos = p.clone();
             if t.original_string() != "builtin".to_string() {
                 let err_msg = format!("Expected 'builtin' keyword, got '{}'", t.original_string());
-                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())));
+                return Err(Error::new(ErrMsg::SyntaxError(err_msg), Some(p.clone())));
             }
         }
         None => return Err(eof_error(line!())),
@@ -1082,7 +1082,7 @@ fn parse_builtin(iterator: &mut TokenStream, program: &mut SlothProgram, warning
         Some((Token::Identifier(s), _)) => {submodule = s},
         Some((t, p)) => {
             let err_msg = format!("Expected builtin submodule name, got unexpected token '{}'", t.original_string());
-            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())));
+            return Err(Error::new(ErrMsg::SyntaxError(err_msg), Some(p.clone())));
         },
         None => return Err(eof_error(line!()))
     }
@@ -1099,7 +1099,7 @@ fn parse_builtin(iterator: &mut TokenStream, program: &mut SlothProgram, warning
                 Ok(()) => {
                     program.add_import(import);
                 },
-                Err(e) => {return Err(Error::new(ErrorMessage::ImportError(e), Some(pos)));}
+                Err(e) => {return Err(Error::new(ErrMsg::ImportError(e), Some(pos)));}
             };
         },
 
@@ -1118,7 +1118,7 @@ fn parse_builtin(iterator: &mut TokenStream, program: &mut SlothProgram, warning
                         Ok(()) => {
                             program.add_import(import);
                         },
-                        Err(e) => {return Err(Error::new(ErrorMessage::ImportError(e), Some(pos)));}
+                        Err(e) => {return Err(Error::new(ErrMsg::ImportError(e), Some(pos)));}
                     };
 
                     iterator.next();
@@ -1126,7 +1126,7 @@ fn parse_builtin(iterator: &mut TokenStream, program: &mut SlothProgram, warning
 
                 Some((t, p)) => {
                     let err_msg = format!("Expected built-in name, got unexpected token '{}'", t.original_string());
-                    return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)));
+                    return Err(Error::new(ErrMsg::SyntaxError(err_msg), Some(p)));
                 },
 
                 None => return Err(eof_error(line!()))
@@ -1140,7 +1140,7 @@ fn parse_builtin(iterator: &mut TokenStream, program: &mut SlothProgram, warning
                 Ok(()) => {
                     program.add_import(import);
                 },
-                Err(e) => {return Err(Error::new(ErrorMessage::ImportError(e), Some(first_pos.until(p))));}
+                Err(e) => {return Err(Error::new(ErrMsg::ImportError(e), Some(first_pos.until(p))));}
             };
         },
 
@@ -1190,7 +1190,7 @@ fn parse_structure_def(iterator: &mut TokenStream, program: &mut SlothProgram, m
         Some((t, p)) => {
             if t.original_string() != "structure".to_string() {
                 let err_msg = format!("Expected 'structure' keyword, got '{}'", t.original_string());
-                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())));
+                return Err(Error::new(ErrMsg::SyntaxError(err_msg), Some(p.clone())));
             }
         }
         None => return Err(eof_error(line!())),
@@ -1208,7 +1208,7 @@ fn parse_structure_def(iterator: &mut TokenStream, program: &mut SlothProgram, m
         },
         Some((t, p)) => {
             let err_msg = format!("Expected structure name (an identifier), got '{}'", t.original_string());
-            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())));
+            return Err(Error::new(ErrMsg::SyntaxError(err_msg), Some(p.clone())));
         },
         None => return Err(eof_error(line!())),
     };
@@ -1221,7 +1221,7 @@ fn parse_structure_def(iterator: &mut TokenStream, program: &mut SlothProgram, m
         },
         Some((t, p)) => {
             let err_msg = format!("Expected '{{', got unexpected token '{}'", t.original_string());
-            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())));
+            return Err(Error::new(ErrMsg::SyntaxError(err_msg), Some(p.clone())));
         },
         None => return Err(eof_error(line!())),
     }
@@ -1246,7 +1246,7 @@ fn parse_structure_def(iterator: &mut TokenStream, program: &mut SlothProgram, m
                 // check that the name is not already used
                 if struct_fields.0.contains(&field_name) {
                     let err_msg = format!("The name '{}' is already used for a field of the structure '{}'", field_name, struct_name);
-                    return Err(Error::new(ErrorMessage::DefinitionError(err_msg), Some(first_pos.clone())))
+                    return Err(Error::new(ErrMsg::DefinitionError(err_msg), Some(first_pos.clone())))
                 }
 
 
@@ -1257,7 +1257,7 @@ fn parse_structure_def(iterator: &mut TokenStream, program: &mut SlothProgram, m
                     Some((Token::Separator(Separator::Colon), _)) => (),
                     Some((t, p)) => {
                         let err_msg = format!("Expected ':', got unexpected token '{}'", t.original_string());
-                        return Err(Error::new(ErrorMessage::DefinitionError(err_msg), Some(p.clone())))
+                        return Err(Error::new(ErrMsg::DefinitionError(err_msg), Some(p.clone())))
                     }
                     None => return Err(eof_error(line!()))
                 }
@@ -1284,7 +1284,7 @@ fn parse_structure_def(iterator: &mut TokenStream, program: &mut SlothProgram, m
 
             Some((t, p)) => {
                 let err_msg = format!("Expected field name or '}}', got unexpected token '{}'", t.original_string());
-                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())))
+                return Err(Error::new(ErrMsg::SyntaxError(err_msg), Some(p.clone())))
             }
         }
     }
@@ -1346,20 +1346,20 @@ fn parse_import(iterator: &mut TokenStream, program: &mut SlothProgram, warning:
 
                     if origin_path == file {
                         let err_msg = format!("File '{}' imports itself", iterator.current().unwrap().1.filename);
-                        return Err(Error::new(ErrorMessage::ImportError(err_msg), Some(p.clone())))
+                        return Err(Error::new(ErrMsg::ImportError(err_msg), Some(p.clone())))
                     }
 
                     (file, p)
                 },
                 _ => {
                     let err_msg = format!("Expected filename, got unexpected token '{}'", s);
-                    return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())))
+                    return Err(Error::new(ErrMsg::SyntaxError(err_msg), Some(p.clone())))
                 }
             }
         },
         Some((t, p)) => {
             let err_msg = format!("Expected filename, got unexpected token '{}'", t.original_string());
-            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())))
+            return Err(Error::new(ErrMsg::SyntaxError(err_msg), Some(p.clone())))
         },
         None => return Err(eof_error(line!()))
     };
@@ -1410,7 +1410,7 @@ fn parse_static_expr(iterator: &mut TokenStream, program: &mut SlothProgram, war
         },
         Some((t, p)) => {
             let err_msg = format!("Expected static name, got unexpected token '{}'", t.original_string());
-            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())));
+            return Err(Error::new(ErrMsg::SyntaxError(err_msg), Some(p.clone())));
         },
         None => return Err(eof_error(line!()))
     };
@@ -1422,7 +1422,7 @@ fn parse_static_expr(iterator: &mut TokenStream, program: &mut SlothProgram, war
         Some((Token::Keyword(Keyword::Equal), _)) => (),
         Some((t, p)) => {
             let err_msg = format!("Expected '=', got unexpected token '{}'", t.original_string());
-            return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())));
+            return Err(Error::new(ErrMsg::SyntaxError(err_msg), Some(p.clone())));
         },
         None => return Err(eof_error(line!()))
     }
@@ -1449,7 +1449,7 @@ fn parse_static_expr(iterator: &mut TokenStream, program: &mut SlothProgram, war
     // add the expression to the program's statics
     match program.push_static(&name, expr) {
         Ok(_) => Ok(()),
-        Err(e) => Err(Error::new(ErrorMessage::RuntimeError(e), Some(full_pos))),
+        Err(e) => Err(Error::new(ErrMsg::RuntimeError(e), Some(full_pos))),
     }
 }
 
@@ -1486,14 +1486,14 @@ pub fn parse_file(filename: PathBuf, program: &mut SlothProgram, warning: bool, 
 
                     t => {
                         let error_msg = format!("Expected 'builtin', 'import', 'static', 'structure' or 'define', got unexpected keyword '{}'", t.to_string());
-                        return Err(Error::new(ErrorMessage::SyntaxError(error_msg), Some(p)));
+                        return Err(Error::new(ErrMsg::SyntaxError(error_msg), Some(p)));
                     }
                 }
             },
 
             Some((v, p)) => {
                 let error_msg = format!("Expected keyword, got unexpected token '{}'", v.original_string());
-                return Err(Error::new(ErrorMessage::SyntaxError(error_msg), Some(p)));
+                return Err(Error::new(ErrMsg::SyntaxError(error_msg), Some(p)));
             }
         }
     };
@@ -1517,7 +1517,7 @@ pub fn from(filename: String, warning: bool, import_default_builtins: bool) -> R
 
     match program.import_builtins() {
         Ok(()) => (),
-        Err(e) => return Err(Error::new(ErrorMessage::ImportError(e), None))
+        Err(e) => return Err(Error::new(ErrMsg::ImportError(e), None))
     };
 
     Ok(program)

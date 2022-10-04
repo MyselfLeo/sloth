@@ -7,7 +7,7 @@ const CRATE_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 
 #[derive(Debug)]
-pub enum ErrorMessage {
+pub enum ErrMsg {
     SyntaxError(String),
     NoEntryPoint(String),
     FileError(String),
@@ -24,22 +24,22 @@ pub enum ErrorMessage {
 }
 
 
-impl std::fmt::Display for ErrorMessage {
+impl std::fmt::Display for ErrMsg {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ErrorMessage::SyntaxError(e) => write!(f, "SYNTAX ERROR: {}", e),
-            ErrorMessage::NoEntryPoint(e) => write!(f, "NO ENTRY POINT: {}", e),
-            ErrorMessage::FileError(e) => write!(f, "FILE ERROR {}", e),
-            ErrorMessage::InvalidArguments(e) => write!(f, "INVALID ARGUMENTS: {}", e),
-            ErrorMessage::UnexpectedExpression(e) => write!(f, "UNEXPECTED EXPRESSION: {}", e),
-            ErrorMessage::RuntimeError(e) => write!(f, "RUNTIME ERROR: {}", e),
-            ErrorMessage::UnexpectedEOF(e) => write!(f, "UNEXPECTED EOF: {}", e),
-            ErrorMessage::TypeError(e) => write!(f, "TYPE ERROR: {}", e),
-            ErrorMessage::RustError(e) => write!(f, "RUST ERROR: {} (this error is from Rust, it is unlikely your fault)", e),
-            ErrorMessage::OperationErrror(e) => write!(f, "OPERATION ERROR: {}", e),
-            ErrorMessage::ReturnValueError(e) => write!(f, "RETURN VALUE ERROR: {}", e),
-            ErrorMessage::ImportError(e) => write!(f, "IMPORT ERROR: {}", e),
-            ErrorMessage::DefinitionError(e) => write!(f, "DEFINITION ERROR: {}", e),
+            ErrMsg::SyntaxError(e) => write!(f, "SYNTAX ERROR: {}", e),
+            ErrMsg::NoEntryPoint(e) => write!(f, "NO ENTRY POINT: {}", e),
+            ErrMsg::FileError(e) => write!(f, "FILE ERROR {}", e),
+            ErrMsg::InvalidArguments(e) => write!(f, "INVALID ARGUMENTS: {}", e),
+            ErrMsg::UnexpectedExpression(e) => write!(f, "UNEXPECTED EXPRESSION: {}", e),
+            ErrMsg::RuntimeError(e) => write!(f, "RUNTIME ERROR: {}", e),
+            ErrMsg::UnexpectedEOF(e) => write!(f, "UNEXPECTED EOF: {}", e),
+            ErrMsg::TypeError(e) => write!(f, "TYPE ERROR: {}", e),
+            ErrMsg::RustError(e) => write!(f, "RUST ERROR: {} (this error is from Rust, it is unlikely your fault)", e),
+            ErrMsg::OperationErrror(e) => write!(f, "OPERATION ERROR: {}", e),
+            ErrMsg::ReturnValueError(e) => write!(f, "RETURN VALUE ERROR: {}", e),
+            ErrMsg::ImportError(e) => write!(f, "IMPORT ERROR: {}", e),
+            ErrMsg::DefinitionError(e) => write!(f, "DEFINITION ERROR: {}", e),
         }
     }
 }
@@ -48,13 +48,13 @@ impl std::fmt::Display for ErrorMessage {
 
 #[derive(Debug)]
 pub struct Error {
-    pub message: ErrorMessage,
+    pub message: ErrMsg,
     pub position: Option<ElementPosition>
 }
 
 
 impl Error {
-    pub fn new(message: ErrorMessage, position: Option<ElementPosition>) -> Error {
+    pub fn new(message: ErrMsg, position: Option<ElementPosition>) -> Error {
         
         // if dummy pos, consider no pos was given
         let pos = match position {

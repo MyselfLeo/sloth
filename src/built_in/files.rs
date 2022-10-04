@@ -1,4 +1,4 @@
-use crate::errors::ErrorMessage;
+use crate::errors::ErrMsg;
 use crate::sloth::structure::{ObjectBlueprint};
 use crate::{errors::Error, sloth::types::Type};
 use crate::sloth::function::SlothFunction;
@@ -102,7 +102,7 @@ fn load(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Err
         Ok(f) => f,
         Err(e) => {
             let err_msg = format!("Could not open file '{}': {}", path, e.to_string());
-            return Err(Error::new(ErrorMessage::RuntimeError(err_msg), None))
+            return Err(Error::new(ErrMsg::RuntimeError(err_msg), None))
         },
     };
 
@@ -131,7 +131,7 @@ fn save(scope: Rc<RefCell<Scope>>, _: &mut SlothProgram) -> Result<(), Error> {
         Ok(()) => Ok(()),
         Err(e) => {
             let err_msg = format!("Could not save to file '{}': {}", path, e.to_string());
-            return Err(Error::new(ErrorMessage::RuntimeError(err_msg), None))
+            return Err(Error::new(ErrMsg::RuntimeError(err_msg), None))
         },
     }
 }
