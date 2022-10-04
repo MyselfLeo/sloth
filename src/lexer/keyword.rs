@@ -1,3 +1,6 @@
+pub const KEYWORDS: [&str; 11] = ["define", "->", "=", "if", "while", "builtin", "for", "new", "import", "structure", "static"];
+
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Keyword {
     Builtin,

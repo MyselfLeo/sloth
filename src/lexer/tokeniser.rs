@@ -108,7 +108,7 @@ pub fn from_file(filename: &str) -> Result<Vec<(Token, ElementPosition)>, Error>
 
             // Check if the previous token is terminated by another token, or a default separator
             // example: "fibonacci_rec:" (2 tokens: Identifier(fibonacci_rec) and Colon)
-            if string_buffer.is_empty() && (super::SEPARATORS.contains(&c.to_string().as_str()) || super::DEFAULT_SEPARATORS.contains(&c)) {
+            if string_buffer.is_empty() && (super::separator::SEPARATORS.contains(&c.to_string().as_str()) || super::DEFAULT_SEPARATORS.contains(&c)) {
 
                 // SPECIAL CASE: The period can be a separator, but can also be part of a number.
                 // we check if the current buffer can be parsed into an integer: if so, the period is
@@ -124,7 +124,7 @@ pub fn from_file(filename: &str) -> Result<Vec<(Token, ElementPosition)>, Error>
                     // Check if the token_buffer starts with an operator and is not a keyword, because the op can be sticked to its operands: !true, >=value, etc.
                     // if so, we separate it, create its own Token, etc. then continue with the rest of the buffer
 
-                    if !super::KEYWORDS.contains(&token_buffer.as_str()) {
+                    if !super::keyword::KEYWORDS.contains(&token_buffer.as_str()) {
                         for op in super::OPERATORS {
                             if token_buffer.starts_with(op) {
                                 let op_pos = ElementPosition {
@@ -169,7 +169,7 @@ pub fn from_file(filename: &str) -> Result<Vec<(Token, ElementPosition)>, Error>
                     }
 
                     // Push the separator as a token, only if SEPARATORS contains the character
-                    if super::SEPARATORS.contains(&c.to_string().as_str()) {
+                    if super::separator::SEPARATORS.contains(&c.to_string().as_str()) {
                         let position = ElementPosition {
                             filename: filename.to_string(),
                             line: line_index,

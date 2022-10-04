@@ -19,7 +19,7 @@ impl Token {
     pub fn from_str(string: &str) -> Result<Token, String> {
         let identifier_re = Regex::new(r"^(@[0-9]+|@[a-zA-Z]+|[a-zA-Z_][a-zA-Z0-9_]*)$").unwrap();
 
-        if super::KEYWORDS.contains(&string) {
+        if super::keyword::KEYWORDS.contains(&string) {
             let val = match string {
                 "builtin" => Keyword::Builtin,
                 "import" => Keyword::Import,
@@ -37,7 +37,7 @@ impl Token {
             Ok(Token::Keyword(val))
         }
 
-        else if super::SEPARATORS.contains(&string) {
+        else if super::separator::SEPARATORS.contains(&string) {
             let val = match string {
                 "(" => Separator::OpenParenthesis,
                 ")" => Separator::CloseParenthesis,

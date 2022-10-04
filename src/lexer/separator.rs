@@ -1,3 +1,6 @@
+pub const SEPARATORS: [&str; 12] = ["(", ")", "{", "}", "[", "]", ";", ":", ",", "|", ".", "~"];
+
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum Separator {
     OpenParenthesis,
