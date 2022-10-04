@@ -487,3 +487,79 @@ impl TokenizedProgram {
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+pub struct TokenIterator {
+    tokens: TokenizedProgram,
+    nb_tokens: usize,
+    current: usize,
+}
+
+impl TokenIterator {
+    //pub fn from_file(filename: &str) -> Result<TokenizedProgram, Error> {
+    pub fn new(filename: &str) -> Result<TokenIterator, Error> {
+        let program = TokenizedProgram::from_file(filename)?;
+
+        Ok(
+            TokenIterator {
+            tokens: program.clone(),
+            nb_tokens: program.tokens.len(),
+            current: 0
+            }
+        )
+    }
+
+    /// return the nth value of the iterator
+    pub fn nth(&self, index: usize) -> Option<(Token, ElementPosition)> {
+        if index >= self.nb_tokens {None}
+        else {
+            Some((self.tokens.tokens[index].clone(), self.tokens.positions[index].clone()))
+        }
+    }
+
+    /// return current value of the iterator
+    pub fn current(&self) -> Option<(Token, ElementPosition)> {
+        self.nth(self.current)
+    }
+
+    /// switch to the next value of the iterator and returns it
+    pub fn next(&mut self) -> Option<(Token, ElementPosition)> {
+        self.current += 1;
+        self.nth(self.current)
+    }
+
+    /// return the nth next value without switching to it
+    pub fn peek(&mut self, nth: isize) -> Option<(Token, ElementPosition)> {
+        if nth < 0 {self.nth(self.current - (-nth as usize))}
+        else {self.nth(self.current + nth as usize)}
+    }
+}

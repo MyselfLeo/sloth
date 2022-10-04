@@ -9,7 +9,7 @@ use crate::sloth::statement::{Statement};
 use crate::sloth::structure::{CustomDefinition, StructSignature};
 use crate::sloth::types::Type;
 use crate::sloth::value::Value;
-use crate::tokenizer::{TokenizedProgram, Token, ElementPosition, Separator, self, Keyword};
+use crate::tokenizer::{TokenIterator, Token, ElementPosition, Separator, self, Keyword};
 use crate::errors::{Error, ErrorMessage, Warning};
 
 
@@ -18,54 +18,6 @@ use crate::errors::{Error, ErrorMessage, Warning};
 fn eof_error(i: u32) -> Error {
     Error::new(ErrorMessage::UnexpectedEOF(format!("{} ({})",  "Unexpected End Of File", i)), None)
 }
-
-
-
-
-
-
-
-struct TokenIterator {
-    tokens: TokenizedProgram,
-    nb_tokens: usize,
-    current: usize,
-}
-
-impl TokenIterator {
-    pub fn new(tokens: TokenizedProgram) -> TokenIterator {
-        TokenIterator {
-            tokens: tokens.clone(),
-            nb_tokens: tokens.tokens.len(),
-            current: 0
-        }
-    }
-
-    /// return the nth value of the iterator
-    pub fn nth(&self, index: usize) -> Option<(Token, ElementPosition)> {
-        if index >= self.nb_tokens {None}
-        else {
-            Some((self.tokens.tokens[index].clone(), self.tokens.positions[index].clone()))
-        }
-    }
-
-    /// return current value of the iterator
-    pub fn current(&self) -> Option<(Token, ElementPosition)> {
-        self.nth(self.current)
-    }
-
-    /// switch to the next value of the iterator and returns it
-    pub fn next(&mut self) -> Option<(Token, ElementPosition)> {
-        self.current += 1;
-        self.nth(self.current)
-    }
-
-    /// return the nth next value without switching to it
-    pub fn peek(&mut self, nth: isize) -> Option<(Token, ElementPosition)> {
-        if nth < 0 {self.nth(self.current - (-nth as usize))}
-        else {self.nth(self.current + nth as usize)}
-    }
-}
-
 
 
 
@@ -1509,9 +1461,7 @@ fn parse_static_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, w
 
 /// Parse a whole file, populating the program object
 pub fn parse_file(filename: PathBuf, program: &mut SlothProgram, warning: bool, is_main: bool) -> Result<(), Error> {
-    let tokens = tokenizer::TokenizedProgram::from_file(filename.to_str().unwrap())?;
-
-    let mut iterator = TokenIterator::new(tokens);
+    let mut iterator = tokenizer::TokenIterator::new(filename.to_str().unwrap())?;
 
     let module_name = match is_main {
         true => None,
