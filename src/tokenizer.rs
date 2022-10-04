@@ -5,7 +5,7 @@ use crate::errors::{Error, ErrorMessage};
 use regex::Regex;
 
 
-const KEYWORDS: [&str; 12] = ["define", "none", "->", "=", "if", "while", "builtin", "for", "new", "import", "structure", "static"];
+const KEYWORDS: [&str; 11] = ["define", "->", "=", "if", "while", "builtin", "for", "new", "import", "structure", "static"];
 const OPERATORS: [&str; 12] = ["+", "-", "*", "/", "<=", ">=", "==", "<", ">", "&", "?", "!"];                                  // The '<=' and '>=' must be before '<' and '>' so the parsing works
 const SEPARATORS: [&str; 12] = ["(", ")", "{", "}", "[", "]", ";", ":", ",", "|", ".", "~"];
 
@@ -20,9 +20,9 @@ const COMMENT_CHAR: char = '#';
 #[derive(Clone, Debug, PartialEq)]
 pub enum Token {
     // Each token has a (line, column) parameter
-    Keyword(String),
-    Identifier(String),
+    Keyword(Keyword),
     Separator(Separator),
+    Identifier(String),
     Operator(String),
     Literal(String),
 }
@@ -62,6 +62,38 @@ impl Separator {
     }
 }
 
+#[derive(Clone, Debug, PartialEq)]
+pub enum Keyword {
+    Builtin,
+    Import,
+    Static,
+    Structure,
+    Define,
+    For,
+    LeftArrow,
+    New,
+    Equal,
+    If,
+    While,
+}
+
+impl Keyword {
+    pub fn to_string(&self) -> String {
+        match self {
+            Keyword::Builtin => "builtin",
+            Keyword::Import => "import",
+            Keyword::Static => "static",
+            Keyword::Structure => "structure",
+            Keyword::Define => "define",
+            Keyword::For => "for",
+            Keyword::LeftArrow => "->",
+            Keyword::New => "new",
+            Keyword::Equal => "=",
+            Keyword::If => "if",
+            Keyword::While => "while",
+        }.to_string()
+    }
+}
 
 
 
@@ -71,25 +103,44 @@ impl Token {
     pub fn from_str(string: &str) -> Result<Token, String> {
         let identifier_re = Regex::new(r"^(@[0-9]+|@[a-zA-Z]+|[a-zA-Z_][a-zA-Z0-9_]*)$").unwrap();
 
-        if KEYWORDS.contains(&string) {Ok(Token::Keyword(string.to_string()))}
-        else if OPERATORS.contains(&string) {Ok(Token::Operator(string.to_string()))}
-        else if SEPARATORS.contains(&string) {
-            match string {
-                "(" => Ok(Token::Separator(Separator::OpenParenthesis)),
-                ")" => Ok(Token::Separator(Separator::CloseParenthesis)),
-                "{" => Ok(Token::Separator(Separator::OpenBracket)),
-                "}" => Ok(Token::Separator(Separator::CloseBracket)),
-                "[" => Ok(Token::Separator(Separator::OpenSquareBracket)),
-                "]" => Ok(Token::Separator(Separator::CloseSquareBracket)),
-                ";" => Ok(Token::Separator(Separator::SemiColon)),
-                ":" => Ok(Token::Separator(Separator::Colon)),
-                "," => Ok(Token::Separator(Separator::Comma)),
-                "|" => Ok(Token::Separator(Separator::Line)),
-                "." => Ok(Token::Separator(Separator::Period)),
-                "~" => Ok(Token::Separator(Separator::Tilde)),
-                &_ => Err(format!("Unimplemented separator '{}'", string))
-            }
+        if KEYWORDS.contains(&string) {
+            let val = match string {
+                "builtin" => Keyword::Builtin,
+                "import" => Keyword::Import,
+                "static" => Keyword::Static,
+                "structure" => Keyword::Structure,
+                "define" => Keyword::Define,
+                "for" => Keyword::For,
+                "->" => Keyword::LeftArrow,
+                "new" => Keyword::New,
+                "=" => Keyword::Equal,
+                "if" => Keyword::If,
+                "while" => Keyword::While,
+                _ => return Err(format!("Unimplemented keyword '{}'", string))
+            };
+            Ok(Token::Keyword(val))
         }
+
+        else if SEPARATORS.contains(&string) {
+            let val = match string {
+                "(" => Separator::OpenParenthesis,
+                ")" => Separator::CloseParenthesis,
+                "{" => Separator::OpenBracket,
+                "}" => Separator::CloseBracket,
+                "[" => Separator::OpenSquareBracket,
+                "]" => Separator::CloseSquareBracket,
+                ";" => Separator::SemiColon,
+                ":" => Separator::Colon,
+                "," => Separator::Comma,
+                "|" => Separator::Line,
+                "." => Separator::Period,
+                "~" => Separator::Tilde,
+                &_ => return Err(format!("Unimplemented separator '{}'", string))
+            };
+            Ok(Token::Separator(val))
+        }
+
+        else if OPERATORS.contains(&string) {Ok(Token::Operator(string.to_string()))}
 
         // literals (strings, numbers or booleans)
         else if string.starts_with('"') || string.parse::<f64>().is_ok() || string == "true" || string == "false" {
@@ -114,7 +165,7 @@ impl Token {
 
     pub fn original_string(&self) -> String {
         match self {
-            Token::Keyword(x) => x.clone(),
+            Token::Keyword(x) => x.to_string(),
             Token::Identifier(x) => x.clone(),
             Token::Literal(x) => x.clone(),
             Token::Operator(x) => x.clone(),

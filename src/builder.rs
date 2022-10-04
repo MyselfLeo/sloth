@@ -9,7 +9,7 @@ use crate::sloth::statement::{Statement};
 use crate::sloth::structure::{CustomDefinition, StructSignature};
 use crate::sloth::types::Type;
 use crate::sloth::value::Value;
-use crate::tokenizer::{TokenizedProgram, Token, ElementPosition, Separator, self};
+use crate::tokenizer::{TokenizedProgram, Token, ElementPosition, Separator, self, Keyword};
 use crate::errors::{Error, ErrorMessage, Warning};
 
 
@@ -599,14 +599,8 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
 
 
         // The token is the "new" keyword: it's the construction of a struct
-        Some((Token::Keyword(n), p)) => {
-            match n.as_str() {
-                "new" => parse_object_construction(iterator, program, warning)?,
-                _ => {
-                    let err_msg = format!("Unexpected keyword '{}'", n);
-                    return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)))
-                }
-            }
+        Some((Token::Keyword(Keyword::New), _)) => {
+            parse_object_construction(iterator, program, warning)?
         },
 
 
@@ -717,19 +711,14 @@ fn parse_statement(iterator: &mut TokenIterator, program: &mut SlothProgram, war
                         // Get the expression of the left part
                         let expr = parse_expression(iterator, program, warning)?;
                         
-                        match iterator.current() {
-                            Some((token, _)) => {
-                                // Assignment
-                                if token.original_string() == "=".to_string() {
-                                    parse_assignment(expr, iterator, program, warning)?
-                                }
-                                
-                                else {
-                                    Statement::ExpressionCall(expr.0, expr.1)
-                                }
-                            },
+                        if iterator.current().is_none() {return Err(eof_error(line!()))}
 
-                            None => return Err(eof_error(line!()))
+                        // assignment or expr call
+                        if let Some((Token::Keyword(Keyword::Equal), _)) = iterator.current() {
+                            parse_assignment(expr, iterator, program, warning)?
+                        }
+                        else {
+                            Statement::ExpressionCall(expr.0, expr.1)
                         }
                     }
                 },
@@ -738,15 +727,9 @@ fn parse_statement(iterator: &mut TokenIterator, program: &mut SlothProgram, war
             }
         },
 
+        Some((Token::Keyword(Keyword::If), _)) => parse_if(iterator, program, warning)?,
+        Some((Token::Keyword(Keyword::While), _)) => parse_while(iterator, program, warning)?,
 
-        Some((Token::Keyword(s), p)) => match s.as_str() {
-            "if" => parse_if(iterator, program, warning)?,
-            "while" => parse_while(iterator, program, warning)?,
-            kw => {
-                let err_msg = format!("Unexpected keyword '{}'. Outside a function, you can only define structures or functions", kw);
-                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p)))
-            }
-        }
 
         Some((t, p)) => {
             let err_msg = format!("Unexpected token '{}'. Outside a function, you can only define structures or functions", t.original_string());
@@ -797,10 +780,8 @@ fn parse_if(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: b
     let last_pos;
 
     // first token must be 'if'. parse_if should however only be called in a way so that it's true
-    if let Some((Token::Keyword(s), p)) = iterator.current() {
-        first_pos = p;
-        if s != "if".to_string() {panic!("Called parse_if but iterator is not a on if statement")}
-    } else {panic!("Called parse_if but iterator is not a on if statement")}
+    if let Some((Token::Keyword(Keyword::If), p)) = iterator.current() {first_pos = p}
+    else {panic!("Called parse_if but iterator is not a on if statement")}
 
     iterator.next();
 
@@ -848,10 +829,8 @@ fn parse_while(iterator: &mut TokenIterator, program: &mut SlothProgram, warning
     let last_pos;
 
     // first token must be 'while'. parse_while should however only be called in a way so that it's true
-    if let Some((Token::Keyword(s), p)) = iterator.current() {
-        first_pos = p;
-        if s != "while".to_string() {panic!("Called parse_while but iterator is not a on if statement")}
-    } else {panic!("Called parse_while but iterator is not a on if statement")}
+    if let Some((Token::Keyword(Keyword::While), p)) = iterator.current() {first_pos = p}
+    else {panic!("Called parse_while but iterator is not a on while statement")}
 
     iterator.next();
 
@@ -1001,7 +980,7 @@ fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram, modu
     // If the next token is "for", the function is a method of a given type
     let owner_type = match iterator.peek(1) {
         Some((Token::Keyword(kw), _)) => {
-            if kw == "for".to_string() {
+            if kw == Keyword::For {
                 iterator.next();
                 iterator.next();
 
@@ -1036,7 +1015,7 @@ fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram, modu
     iterator.next();
 
     while match iterator.current() {
-        Some((Token::Keyword(kw), _)) => {kw != "->".to_string()},
+        Some((Token::Keyword(Keyword::LeftArrow), _)) => false,
         Some(_) => true,
         None => return Err(eof_error(line!())),
     } {
@@ -1484,14 +1463,10 @@ fn parse_static_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, w
     };
 
 
+
     // next should be a =
     match iterator.next() {
-        Some((Token::Keyword(n), p)) => {
-            if n.as_str() != "=" {
-                let err_msg = format!("Expected '=', got unexpected keyword '{n}'");
-                return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())));
-            }
-        },
+        Some((Token::Keyword(Keyword::Equal), _)) => (),
         Some((t, p)) => {
             let err_msg = format!("Expected '=', got unexpected token '{}'", t.original_string());
             return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())));
@@ -1551,15 +1526,15 @@ pub fn parse_file(filename: PathBuf, program: &mut SlothProgram, warning: bool, 
             None => break,
 
             Some((Token::Keyword(n), p)) => {
-                match n.as_str() {
-                    "define" => parse_function(&mut iterator, program, &module_name, warning)?,
-                    "builtin" => parse_builtin(&mut iterator, program, warning)?,
-                    "structure" => parse_structure_def(&mut iterator, program, &module_name, warning)?,
-                    "import" => parse_import(&mut iterator, program, warning, filename.clone())?,
-                    "static" => parse_static_expr(&mut iterator, program, warning)?,
+                match n {
+                    Keyword::Builtin => parse_builtin(&mut iterator, program, warning)?,
+                    Keyword::Import => parse_import(&mut iterator, program, warning, filename.clone())?,
+                    Keyword::Static => parse_static_expr(&mut iterator, program, warning)?,
+                    Keyword::Structure => parse_structure_def(&mut iterator, program, &module_name, warning)?,
+                    Keyword::Define => parse_function(&mut iterator, program, &module_name, warning)?,
 
                     t => {
-                        let error_msg = format!("Expected 'builtin', 'import', 'static', 'structure' or 'define', got unexpected keyword '{}'", t);
+                        let error_msg = format!("Expected 'builtin', 'import', 'static', 'structure' or 'define', got unexpected keyword '{}'", t.to_string());
                         return Err(Error::new(ErrorMessage::SyntaxError(error_msg), Some(p)));
                     }
                 }
