@@ -12,12 +12,9 @@ pub struct TokenStream {
 
 
 impl TokenStream {
-
     pub fn new(filename: String, tokens: Vec<(Token, Position)>, nb_tokens: usize, current: usize) -> TokenStream {
         TokenStream { filename, tokens, nb_tokens, current }
     }
-
-
 
     /// return the nth value of the iterator
     pub fn nth(&self, index: usize) -> Option<(Token, Position)> {
@@ -25,25 +22,21 @@ impl TokenStream {
         else {Some(self.tokens[index].clone())}
     }
 
-
     /// return current value of the iterator
     pub fn current(&self) -> Option<(Token, Position)> {
         self.nth(self.current)
     }
-
 
     /// switch to the next value of the iterator and returns it
     pub fn next(&mut self) -> Option<(Token, Position)> {
         self.skip(1)
     }
 
-
     /// does 'next()' nb times, return the final token
     pub fn skip(&mut self, nb: usize) -> Option<(Token, Position)> {
         self.current += nb;
         self.nth(self.current)
     }
-
 
     /// return the nth next value without switching to it
     pub fn peek(&mut self, nth: isize) -> Option<(Token, Position)> {
