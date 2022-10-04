@@ -1,5 +1,5 @@
 use std::fmt::Display;
-use crate::element::Position;
+use crate::position::Position;
 
 
 const CRATE_NAME: &str = env!("CARGO_PKG_NAME");

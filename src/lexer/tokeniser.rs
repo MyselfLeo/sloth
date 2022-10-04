@@ -1,4 +1,4 @@
-use crate::element::Position;
+use crate::position::Position;
 use crate::errors::{Error, ErrMsg};
 use super::token::Token;
 

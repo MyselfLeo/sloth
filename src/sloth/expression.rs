@@ -9,7 +9,7 @@ use super::operator::{Operator, apply_op};
 use super::scope::Scope;
 use super::program::SlothProgram;
 use crate::errors::{Error, ErrMsg};
-use crate::element::Position;
+use crate::position::Position;
 
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
 /// Used by scopes to reference to parent scope in the Scope stack

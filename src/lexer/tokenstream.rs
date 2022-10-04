@@ -1,5 +1,5 @@
 use super::token::Token;
-use crate::element::Position;
+use crate::position::Position;
 
 /// Iterator-like structure listing each token of a file along with their position
 #[derive(Clone)]
