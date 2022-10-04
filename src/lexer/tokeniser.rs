@@ -230,5 +230,5 @@ pub fn from_file(filename: &str) -> Result<Vec<(Token, ElementPosition)>, Error>
     }
 
 
-    todo!()
+    Ok(tokens)
 }

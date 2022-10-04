@@ -1,12 +1,15 @@
 use crate::errors::Error;
 
-use self::tokenstream::TokenStream;
-
 pub mod token;
 pub mod tokenstream;
 pub mod tokeniser;
 pub mod separator;
 pub mod keyword;
+
+pub use tokenstream::TokenStream;
+pub use token::Token;
+pub use separator::Separator;
+pub use keyword::Keyword;
 
 
 
@@ -25,7 +28,17 @@ pub const COMMENT_CHAR: char = '#';
 
 
 
-
+/// Generate a TokenStream from the given file
 pub fn get_token_stream(filename: &str) -> Result<TokenStream, Error> {
-    
+    let tokens = tokeniser::from_file(filename)?;
+    let length = tokens.len();
+
+    let stream = TokenStream::new(
+        filename.to_string(),
+        tokens,
+        length,
+        0
+    );
+
+    Ok(stream)
 }

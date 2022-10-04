@@ -8,7 +8,7 @@ mod element;
 use clap::Parser;
 use sloth::program::SlothProgram;
 use sloth::value::Value;
-use tokenizer::TokenStream;
+use lexer::TokenStream;
 
 use std::time::{Instant, Duration};
 
@@ -67,7 +67,7 @@ fn main() {
 
 
     if args.tokens {
-        let tokens = match TokenStream::from_file(&filename) {
+        let tokens = match lexer::get_token_stream(&filename) {
             Ok(t) => t,
             Err(e) => {
                 e.abort();

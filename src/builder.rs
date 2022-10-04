@@ -10,7 +10,7 @@ use crate::sloth::structure::{CustomDefinition, StructSignature};
 use crate::sloth::types::Type;
 use crate::sloth::value::Value;
 use crate::element::ElementPosition;
-use crate::tokenizer::{Token, TokenStream, Separator, self, Keyword};
+use crate::lexer::{Token, TokenStream, Keyword, Separator, get_token_stream};
 use crate::errors::{Error, ErrorMessage, Warning};
 
 
@@ -1462,7 +1462,7 @@ fn parse_static_expr(iterator: &mut TokenStream, program: &mut SlothProgram, war
 
 /// Parse a whole file, populating the program object
 pub fn parse_file(filename: PathBuf, program: &mut SlothProgram, warning: bool, is_main: bool) -> Result<(), Error> {
-    let mut iterator = tokenizer::TokenStream::from_file(filename.to_str().unwrap())?;
+    let mut iterator = get_token_stream(&filename.to_string_lossy())?;
 
     let module_name = match is_main {
         true => None,

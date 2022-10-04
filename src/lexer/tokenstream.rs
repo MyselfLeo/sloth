@@ -14,6 +14,11 @@ pub struct TokenStream {
 
 impl TokenStream {
 
+    pub fn new(filename: String, tokens: Vec<(Token, ElementPosition)>, nb_tokens: usize, current: usize) -> TokenStream {
+        TokenStream { filename, tokens, nb_tokens, current }
+    }
+
+
 
     /// return the nth value of the iterator
     pub fn nth(&self, index: usize) -> Option<(Token, ElementPosition)> {
