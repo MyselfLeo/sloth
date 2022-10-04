@@ -34,7 +34,13 @@ impl TokenStream {
 
     /// switch to the next value of the iterator and returns it
     pub fn next(&mut self) -> Option<(Token, ElementPosition)> {
-        self.current += 1;
+        self.skip(1)
+    }
+
+
+    /// does 'next()' nb times, return the final token
+    pub fn skip(&mut self, nb: usize) -> Option<(Token, ElementPosition)> {
+        self.current += nb;
         self.nth(self.current)
     }
 

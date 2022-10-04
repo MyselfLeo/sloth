@@ -876,8 +876,6 @@ fn parse_type(iterator: &mut TokenStream, program: &mut SlothProgram, module_nam
         },
         _ => {Type::Object(first_type_name)}
     };
-
-
     iterator.next();
 
     Ok((return_type, first_pos.until(last_pos)))
