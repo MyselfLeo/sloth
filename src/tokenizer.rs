@@ -226,18 +226,61 @@ impl ElementPosition {
 
 
 
+
+
+
+
+
+
+
 /// list of tokens and their respective position generated from a program file (.slo)
 #[derive(Clone)]
-pub struct TokenizedProgram {
+pub struct TokenStream {
     pub filename: String,
     pub tokens: Vec<Token>,
-    pub positions: Vec<ElementPosition>
+    pub positions: Vec<ElementPosition>,
+    nb_tokens: usize,
+    current: usize,
 }
 
 
-impl TokenizedProgram {
+impl TokenStream {
 
-    pub fn from_file(filename: &str) -> Result<TokenizedProgram, Error> {
+
+    /// return the nth value of the iterator
+    pub fn nth(&self, index: usize) -> Option<(Token, ElementPosition)> {
+        if index >= self.nb_tokens {None}
+        else {Some((self.tokens[index].clone(), self.positions[index].clone()))}
+    }
+
+
+    /// return current value of the iterator
+    pub fn current(&self) -> Option<(Token, ElementPosition)> {
+        self.nth(self.current)
+    }
+
+
+    /// switch to the next value of the iterator and returns it
+    pub fn next(&mut self) -> Option<(Token, ElementPosition)> {
+        self.current += 1;
+        self.nth(self.current)
+    }
+
+
+    /// return the nth next value without switching to it
+    pub fn peek(&mut self, nth: isize) -> Option<(Token, ElementPosition)> {
+        if nth < 0 {self.nth(self.current - (-nth as usize))}
+        else {self.nth(self.current + nth as usize)}
+    }
+
+
+
+
+
+
+
+
+    pub fn from_file(filename: &str) -> Result<TokenStream, Error> {
         let filepath = std::path::Path::new(filename);
         if !filepath.exists() {
             let err_msg = format!("File {:?} does not exists", filepath.as_os_str());
@@ -474,8 +517,18 @@ impl TokenizedProgram {
             line_index += 1;
         }
 
+        let length = token_list.len();
 
-        Ok(TokenizedProgram{filename: filename.to_string(), tokens: token_list, positions: position_list})
+
+        Ok(
+            TokenStream {
+                filename: filename.to_string(),
+                tokens: token_list,
+                positions: position_list,
+                nb_tokens: length,
+                current: 0,
+            }
+        )
     }
 
 
@@ -485,81 +538,5 @@ impl TokenizedProgram {
         for i in 0..self.tokens.len() {
             println!("{:<10}{:40}{:40}", i+1, self.tokens[i].to_string_formatted(), self.positions[i].to_string());
         }
-    }
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-pub struct TokenIterator {
-    tokens: TokenizedProgram,
-    nb_tokens: usize,
-    current: usize,
-}
-
-impl TokenIterator {
-    //pub fn from_file(filename: &str) -> Result<TokenizedProgram, Error> {
-    pub fn new(filename: &str) -> Result<TokenIterator, Error> {
-        let program = TokenizedProgram::from_file(filename)?;
-
-        Ok(
-            TokenIterator {
-            tokens: program.clone(),
-            nb_tokens: program.tokens.len(),
-            current: 0
-            }
-        )
-    }
-
-    /// return the nth value of the iterator
-    pub fn nth(&self, index: usize) -> Option<(Token, ElementPosition)> {
-        if index >= self.nb_tokens {None}
-        else {
-            Some((self.tokens.tokens[index].clone(), self.tokens.positions[index].clone()))
-        }
-    }
-
-    /// return current value of the iterator
-    pub fn current(&self) -> Option<(Token, ElementPosition)> {
-        self.nth(self.current)
-    }
-
-    /// switch to the next value of the iterator and returns it
-    pub fn next(&mut self) -> Option<(Token, ElementPosition)> {
-        self.current += 1;
-        self.nth(self.current)
-    }
-
-    /// return the nth next value without switching to it
-    pub fn peek(&mut self, nth: isize) -> Option<(Token, ElementPosition)> {
-        if nth < 0 {self.nth(self.current - (-nth as usize))}
-        else {self.nth(self.current + nth as usize)}
     }
 }

@@ -9,7 +9,7 @@ use crate::sloth::statement::{Statement};
 use crate::sloth::structure::{CustomDefinition, StructSignature};
 use crate::sloth::types::Type;
 use crate::sloth::value::Value;
-use crate::tokenizer::{TokenIterator, Token, ElementPosition, Separator, self, Keyword};
+use crate::tokenizer::{Token, TokenStream, ElementPosition, Separator, self, Keyword};
 use crate::errors::{Error, ErrorMessage, Warning};
 
 
@@ -29,7 +29,7 @@ fn eof_error(i: u32) -> Error {
 
 
 /// Parse a variable call
-fn parse_variablecall(iterator: &mut TokenIterator, _: &mut SlothProgram, _: bool) -> Result<Expression, Error> {
+fn parse_variablecall(iterator: &mut TokenStream, _: &mut SlothProgram, _: bool) -> Result<Expression, Error> {
     // Get the identifier
     match iterator.current() {
         Some((Token::Identifier(n), p)) => {
@@ -53,7 +53,7 @@ fn parse_variablecall(iterator: &mut TokenIterator, _: &mut SlothProgram, _: boo
 
 
 /// Parse a function call
-fn parse_functioncall(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<Expression, Error> {
+fn parse_functioncall(iterator: &mut TokenStream, program: &mut SlothProgram, warning: bool) -> Result<Expression, Error> {
     let mut module: Option<String> = None;
     let mut function_name= String::new();
 
@@ -154,7 +154,7 @@ fn parse_functioncall(iterator: &mut TokenIterator, program: &mut SlothProgram, 
 
 
 /// Parse an operation
-fn parse_operation(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<Expression, Error> {
+fn parse_operation(iterator: &mut TokenStream, program: &mut SlothProgram, warning: bool) -> Result<Expression, Error> {
 
     // The starting token must be an operator
     let (operator, first_pos) = match iterator.current() {
@@ -219,7 +219,7 @@ fn parse_operation(iterator: &mut TokenIterator, program: &mut SlothProgram, war
 
 
 /// Parse a list
-fn parse_list(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<(Expression, ElementPosition), Error> {
+fn parse_list(iterator: &mut TokenStream, program: &mut SlothProgram, warning: bool) -> Result<(Expression, ElementPosition), Error> {
 
     let starting_pos;
     let last_pos;
@@ -258,7 +258,7 @@ fn parse_list(iterator: &mut TokenIterator, program: &mut SlothProgram, warning:
 
 
 /// Parse expression[access]
-fn parse_bracket_access(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool, first_expr: (ExpressionID, ElementPosition), is_parenthesied: bool) -> Result<(ExpressionID, ElementPosition), Error> {
+fn parse_bracket_access(iterator: &mut TokenStream, program: &mut SlothProgram, warning: bool, first_expr: (ExpressionID, ElementPosition), is_parenthesied: bool) -> Result<(ExpressionID, ElementPosition), Error> {
     // must start on an open square bracket
     match iterator.current() {
         Some((Token::Separator(Separator::OpenSquareBracket), _)) => (),
@@ -320,7 +320,7 @@ fn parse_bracket_access(iterator: &mut TokenIterator, program: &mut SlothProgram
 
 /// In the case of a MethodCall (expr.method()), this function parses the second part (after the period)
 /// It is given the ExpressionID and ElementPosition of the first expression
-fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool, first_expr: (ExpressionID, ElementPosition), is_parenthesied: bool) -> Result<(ExpressionID, ElementPosition), Error> {
+fn parse_second_expr(iterator: &mut TokenStream, program: &mut SlothProgram, warning: bool, first_expr: (ExpressionID, ElementPosition), is_parenthesied: bool) -> Result<(ExpressionID, ElementPosition), Error> {
     // name of the variable or function to use
     let (ident, ident_pos) = match iterator.next() {
         Some((Token::Identifier(n), p)) => (n, p),
@@ -402,7 +402,7 @@ fn parse_second_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, w
 
 
 /// Parse the construction of an object
-fn parse_object_construction(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<(Expression, ElementPosition), Error> {
+fn parse_object_construction(iterator: &mut TokenStream, program: &mut SlothProgram, warning: bool) -> Result<(Expression, ElementPosition), Error> {
     iterator.next();
 
     let mut pos = None;
@@ -498,7 +498,7 @@ fn parse_object_construction(iterator: &mut TokenIterator, program: &mut SlothPr
 
 
 /// Parse an expression, push it to the program's expression stack and return its id
-fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<(ExpressionID, ElementPosition), Error> {
+fn parse_expression(iterator: &mut TokenStream, program: &mut SlothProgram, warning: bool) -> Result<(ExpressionID, ElementPosition), Error> {
     // If the first token is an open parenthesis, we expect the expression to end on a closed parenthesis.
     let is_parenthesied = match iterator.current() {
         Some((Token::Separator(Separator::OpenParenthesis), _)) => {
@@ -608,7 +608,7 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
 
 
 /// Parse an assignment statement
-fn parse_assignment(left_expr: (ExpressionID, ElementPosition), iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<Statement, Error> {
+fn parse_assignment(left_expr: (ExpressionID, ElementPosition), iterator: &mut TokenStream, program: &mut SlothProgram, warning: bool) -> Result<Statement, Error> {
     
     let (left_expr, left_pos) = left_expr;
     
@@ -646,7 +646,7 @@ fn parse_assignment(left_expr: (ExpressionID, ElementPosition), iterator: &mut T
 /// Parse and return a Statement from the iterator.
 /// Each statement SHOULD end with a semicolon. However the way the syntax works makes them unecessary, so not
 /// putting them will raise a warning
-fn parse_statement(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<Statement, Error> {
+fn parse_statement(iterator: &mut TokenStream, program: &mut SlothProgram, warning: bool) -> Result<Statement, Error> {
 
     let statement = match iterator.current() {
         // Variable assignment or expression call. We'll need the next token to find out
@@ -727,7 +727,7 @@ fn parse_statement(iterator: &mut TokenIterator, program: &mut SlothProgram, war
 
 
 
-fn parse_if(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<Statement, Error> {
+fn parse_if(iterator: &mut TokenStream, program: &mut SlothProgram, warning: bool) -> Result<Statement, Error> {
     let first_pos;
     let last_pos;
 
@@ -776,7 +776,7 @@ fn parse_if(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: b
 
 
 
-fn parse_while(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<Statement, Error> {
+fn parse_while(iterator: &mut TokenStream, program: &mut SlothProgram, warning: bool) -> Result<Statement, Error> {
     let first_pos;
     let last_pos;
 
@@ -826,7 +826,7 @@ fn parse_while(iterator: &mut TokenIterator, program: &mut SlothProgram, warning
 
 
 
-fn parse_type(iterator: &mut TokenIterator, program: &mut SlothProgram, module_name: &Option<String>, warning: bool) -> Result<(Type, ElementPosition), Error> {
+fn parse_type(iterator: &mut TokenStream, program: &mut SlothProgram, module_name: &Option<String>, warning: bool) -> Result<(Type, ElementPosition), Error> {
     let first_pos;
     let mut last_pos;
 
@@ -904,7 +904,7 @@ fn parse_type(iterator: &mut TokenIterator, program: &mut SlothProgram, module_n
 
 
 /// Parse a function
-fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram, module_name: &Option<String>, warning: bool) -> Result<(), Error> {
+fn parse_function(iterator: &mut TokenStream, program: &mut SlothProgram, module_name: &Option<String>, warning: bool) -> Result<(), Error> {
     // must start with the "define" keyword
     match iterator.current() {
         Some((t, p)) => {
@@ -1059,7 +1059,7 @@ fn parse_function(iterator: &mut TokenIterator, program: &mut SlothProgram, modu
 
 
 /// Parse a "builtin" statement and add the requested import to the program's list of imports.
-fn parse_builtin(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<(), Error> {
+fn parse_builtin(iterator: &mut TokenStream, program: &mut SlothProgram, warning: bool) -> Result<(), Error> {
     let first_pos;
 
     // must start with the "builtin" keyword
@@ -1183,7 +1183,7 @@ fn parse_builtin(iterator: &mut TokenIterator, program: &mut SlothProgram, warni
 
 
 /// Parse a structure definition, push it to the program
-fn parse_structure_def(iterator: &mut TokenIterator, program: &mut SlothProgram, module_name: &Option<String>, warning: bool) -> Result<(), Error> {
+fn parse_structure_def(iterator: &mut TokenStream, program: &mut SlothProgram, module_name: &Option<String>, warning: bool) -> Result<(), Error> {
     // must start with the "structure" keyword
     match iterator.current() {
         Some((t, p)) => {
@@ -1322,7 +1322,7 @@ fn parse_structure_def(iterator: &mut TokenIterator, program: &mut SlothProgram,
 
 
 /// Parse an "import" statement, i.e the import of another .slo file. Different from the "builtin" statement which '''imports''' builtin functions and structures
-fn parse_import(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool, origin_path: PathBuf) -> Result<(), Error> {
+fn parse_import(iterator: &mut TokenStream, program: &mut SlothProgram, warning: bool, origin_path: PathBuf) -> Result<(), Error> {
     let first_pos = match iterator.current() {
         Some((_, p)) => p.clone(),
         None => return Err(eof_error(line!()))
@@ -1389,7 +1389,7 @@ fn parse_import(iterator: &mut TokenIterator, program: &mut SlothProgram, warnin
 
 
 /// Parse a static expression definition
-fn parse_static_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, warning: bool) -> Result<(), Error> {
+fn parse_static_expr(iterator: &mut TokenStream, program: &mut SlothProgram, warning: bool) -> Result<(), Error> {
     // position of the 'static' keyword
     let first_pos = match iterator.current() {
         Some((_, p)) => p,
@@ -1461,7 +1461,7 @@ fn parse_static_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, w
 
 /// Parse a whole file, populating the program object
 pub fn parse_file(filename: PathBuf, program: &mut SlothProgram, warning: bool, is_main: bool) -> Result<(), Error> {
-    let mut iterator = tokenizer::TokenIterator::new(filename.to_str().unwrap())?;
+    let mut iterator = tokenizer::TokenStream::from_file(filename.to_str().unwrap())?;
 
     let module_name = match is_main {
         true => None,
