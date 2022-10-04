@@ -1,8 +1,9 @@
-mod tokenizer;
+mod lexer;
 mod errors;
 mod sloth;
 mod built_in;
 mod builder;
+mod element;
 
 use clap::Parser;
 use sloth::program::SlothProgram;

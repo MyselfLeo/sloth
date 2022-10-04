@@ -9,7 +9,8 @@ use crate::sloth::statement::{Statement};
 use crate::sloth::structure::{CustomDefinition, StructSignature};
 use crate::sloth::types::Type;
 use crate::sloth::value::Value;
-use crate::tokenizer::{Token, TokenStream, ElementPosition, Separator, self, Keyword};
+use crate::element::ElementPosition;
+use crate::tokenizer::{Token, TokenStream, Separator, self, Keyword};
 use crate::errors::{Error, ErrorMessage, Warning};
 
 

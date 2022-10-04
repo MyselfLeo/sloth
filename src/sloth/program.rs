@@ -4,7 +4,7 @@ use std::iter::zip;
 use std::rc::Rc;
 
 use crate::errors::{Error, ErrorMessage, formatted_vec_string};
-use crate::tokenizer::ElementPosition;
+use crate::element::ElementPosition;
 use super::function::{SlothFunction, FunctionSignature};
 use super::scope::Scope;
 use super::expression::{Expression, ExpressionID};

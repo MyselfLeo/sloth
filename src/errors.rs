@@ -1,6 +1,5 @@
 use std::fmt::Display;
-
-use crate::tokenizer::{ElementPosition};
+use crate::element::ElementPosition;
 
 
 const CRATE_NAME: &str = env!("CARGO_PKG_NAME");
@@ -11,7 +10,7 @@ const CRATE_VERSION: &str = env!("CARGO_PKG_VERSION");
 pub enum ErrorMessage {
     SyntaxError(String),
     NoEntryPoint(String),
-    FileNotFound(String),
+    FileError(String),
     InvalidArguments(String),
     UnexpectedExpression(String),
     RuntimeError(String),
@@ -21,7 +20,7 @@ pub enum ErrorMessage {
     OperationErrror(String),
     ReturnValueError(String),
     ImportError(String),
-    DefinitionError(String)
+    DefinitionError(String),
 }
 
 
@@ -30,7 +29,7 @@ impl std::fmt::Display for ErrorMessage {
         match self {
             ErrorMessage::SyntaxError(e) => write!(f, "SYNTAX ERROR: {}", e),
             ErrorMessage::NoEntryPoint(e) => write!(f, "NO ENTRY POINT: {}", e),
-            ErrorMessage::FileNotFound(e) => write!(f, "FILE NOT FOUND: {}", e),
+            ErrorMessage::FileError(e) => write!(f, "FILE ERROR {}", e),
             ErrorMessage::InvalidArguments(e) => write!(f, "INVALID ARGUMENTS: {}", e),
             ErrorMessage::UnexpectedExpression(e) => write!(f, "UNEXPECTED EXPRESSION: {}", e),
             ErrorMessage::RuntimeError(e) => write!(f, "RUNTIME ERROR: {}", e),

@@ -2,7 +2,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::errors::{Error, ErrorMessage};
-use crate::tokenizer::ElementPosition;
+use crate::element::ElementPosition;
 use super::expression::ExpressionID;
 use super::scope::Scope;
 use super::program::SlothProgram;
