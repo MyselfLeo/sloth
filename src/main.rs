@@ -8,7 +8,6 @@ mod element;
 use clap::Parser;
 use sloth::program::SlothProgram;
 use sloth::value::Value;
-use lexer::TokenStream;
 
 use std::time::{Instant, Duration};
 
