@@ -599,7 +599,7 @@ fn parse_expression(iterator: &mut TokenIterator, program: &mut SlothProgram, wa
 
 
         // The token is the "new" keyword: it's the construction of a struct
-        Some((Token::Keyword(Keyword::New), p)) => {
+        Some((Token::Keyword(Keyword::New), _)) => {
             parse_object_construction(iterator, program, warning)?
         },
 
