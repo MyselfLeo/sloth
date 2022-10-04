@@ -1466,7 +1466,7 @@ fn parse_static_expr(iterator: &mut TokenIterator, program: &mut SlothProgram, w
 
     // next should be a =
     match iterator.next() {
-        Some((Token::Keyword(Keyword::Equal), p)) => (),
+        Some((Token::Keyword(Keyword::Equal), _)) => (),
         Some((t, p)) => {
             let err_msg = format!("Expected '=', got unexpected token '{}'", t.original_string());
             return Err(Error::new(ErrorMessage::SyntaxError(err_msg), Some(p.clone())));
