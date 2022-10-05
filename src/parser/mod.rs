@@ -6,6 +6,8 @@ mod types;
 mod structure;
 mod varcall;
 mod builtin;
+mod assignment;
+mod expression;
 
 
 /*

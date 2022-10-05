@@ -607,7 +607,7 @@ fn parse_expression(iterator: &mut TokenStream, program: &mut SlothProgram, warn
 
 
 
-
+// DONE
 /// Parse an assignment statement
 fn parse_assignment(left_expr: (ExpressionID, Position), iterator: &mut TokenStream, program: &mut SlothProgram, warning: bool) -> Result<Statement, Error> {
     
