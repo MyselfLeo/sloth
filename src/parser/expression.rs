@@ -1,26 +1,24 @@
 use crate::lexer::{Token, TokenStream, Keyword, Separator};
 use crate::position::Position;
-use crate::sloth::expression::ExpressionID;
+use crate::sloth::expression::Expression;
 use crate::sloth::program::SlothProgram;
 use crate::errors::Error;
 
+use super::list::parse_list;
+use super::literal::parse_literal;
 
 
-fn parse_expression(stream: &mut TokenStream, program: &mut SlothProgram, warning: bool) -> Result<(ExpressionID, Position), Error> {
+
+pub fn parse_expression(stream: &mut TokenStream, program: &mut SlothProgram, warning: bool) -> Result<Expression, Error> {
     // If the first token is an open parenthesis, we expect the expression to end on a closed parenthesis.
     let is_parenthesied = super::current_equal(stream, Token::Separator(Separator::OpenParenthesis))?;
     
     // guess expr type from first token
-    let (expr, expr_pos) = match stream.next() {
-
-        // literal
-        Some((Token::Literal(_), _)) => {todo!() /*parse_literal()*/},
-
-        // list of exprs
+    let expr = match stream.next() {
+        Some((Token::Literal(_), ..)) => parse_literal(stream, program, warning)?,
         Some((Token::Separator(Separator::OpenSquareBracket), _)) => parse_list(stream, program, warning)?,
 
-
-
+        /*
         // The token is an identifier. Check the next token to see if its a function call, or field access
         Some((Token::Identifier(_), _)) =>  {
             match stream.peek(1) {
@@ -36,6 +34,7 @@ fn parse_expression(stream: &mut TokenStream, program: &mut SlothProgram, warnin
                 }
             }
         },
+        */
 
         // The token is an operator, so it's an operation
         Some((Token::Operator(_), _)) => {

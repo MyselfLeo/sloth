@@ -8,6 +8,9 @@ mod varcall;
 mod builtin;
 mod assignment;
 mod expression;
+mod literal;
+mod list;
+mod operation;
 
 
 /*
