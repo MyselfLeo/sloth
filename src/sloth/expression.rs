@@ -2,10 +2,10 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use super::function::{FunctionSignature};
+use super::operation::Operation;
 use super::structure::{StructSignature};
 use super::types::Type;
 use super::value::{Value, DeepClone};
-use super::operator::{Operator, apply_op};
 use super::scope::Scope;
 use super::program::SlothProgram;
 use crate::errors::{Error, ErrMsg};
@@ -30,7 +30,7 @@ pub enum Expression {
     ListInit(Vec<ExpressionID>, Position),                                                // list initialised in code. Example: [1 2 3 4 5]
     VariableAccess(Option<ExpressionID>, String, Position),                               // ExpressionID to the owner of the field and its name,
     BracketAcces(ExpressionID, ExpressionID, Position),                                   // Owner, indexing expression
-    Operation(Operator, Option<ExpressionID>, Option<ExpressionID>, Position),            // Operator to apply to one or 2 values from the Scope Expression stack (via index)
+    Operation(Operation, Position),            // Operator to apply to one or 2 values from the Scope Expression stack (via index)
     FunctionCall(Option<ExpressionID>, FunctionSignature, Vec<ExpressionID>, Position),   // optional owner (for method calls), name of the function and its list of expressions to be evaluated
     ObjectConstruction(StructSignature, Vec<ExpressionID>, Position),                     // The construction of an Object, with the 'new' keyword
 }
@@ -154,36 +154,9 @@ impl Expression {
 
 
             // process the operation and return the result
-            Expression::Operation(op, lhs, rhs, p) => {
-                // Get the value of both lhs and rhs
-                let lhs = match lhs {
-                    None => None,
-                    Some(i) => {
-                        let expr = match program.as_ref().unwrap().get_expr(*i) {
-                            Ok(e) => e,
-                            Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
-                        };
-                        
-                        Some(expr.evaluate(scope.clone(), program, false)?)
-                    }
-                };
-                let rhs = match rhs {
-                    None => None,
-                    Some(i) => {
-                        let expr = match program.as_ref().unwrap().get_expr(*i) {
-                            Ok(e) => e,
-                            Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
-                        };
-                        
-                        Some(expr.evaluate(scope, program, false)?)
-                    }
-                };
-                
-                //apply op
-                match apply_op(op, lhs, rhs) {
-                    Ok(v) => Ok(Rc::new(RefCell::new(v))),
-                    Err(s) => Err(Error::new(ErrMsg::InvalidArguments(s), Some(p.clone())))
-                }
+            Expression::Operation(operation, p) => {
+                let value = operation.execute(scope, program.as_mut().unwrap())?;
+                Ok(Rc::new(RefCell::new(value)))
             }
 
 
@@ -392,7 +365,7 @@ impl Expression {
             Expression::Literal(_, p) => p,
             Expression::ListInit(_, p) => p,
             Expression::VariableAccess(_, _, p) => p,
-            Expression::Operation(_, _, _, p) => p,
+            Expression::Operation(_, p) => p,
             Expression::FunctionCall(_, _, _, p) => p,
             Expression::ObjectConstruction(_, _, p) => p,
             Expression::BracketAcces(_, _, p) => p,

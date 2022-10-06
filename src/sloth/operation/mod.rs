@@ -1,5 +1,5 @@
-use std::rc::Rc;
 use std::cell::RefCell;
+use std::rc::Rc;
 
 use crate::errors::Error;
 
@@ -9,22 +9,27 @@ use super::program::SlothProgram;
 use super::value::Value;
 
 mod addition;
+mod substraction;
+mod multiplication;
+mod division;
+mod comparaison;
+mod boolean;
 
 
-
+#[derive(Clone, Debug)]
 pub enum Operation {
-    Addition(Expression, Expression),
-    Substraction(Expression, Expression),
-    Multiplication(Expression, Expression),
-    Division(Expression, Expression),
-    Equal(Expression, Expression),
-    Greater(Expression, Expression),
-    Lower(Expression, Expression),
-    GreaterEqual(Expression, Expression),
-    LowerEqual(Expression, Expression),
-    And(Expression, Expression),
-    Or(Expression, Expression),
-    Inverse(Expression),
+    Addition(Rc<Expression>, Rc<Expression>),
+    Substraction(Rc<Expression>, Rc<Expression>),
+    Multiplication(Rc<Expression>, Rc<Expression>),
+    Division(Rc<Expression>, Rc<Expression>),
+    Equal(Rc<Expression>, Rc<Expression>),
+    Greater(Rc<Expression>, Rc<Expression>),
+    Lower(Rc<Expression>, Rc<Expression>),
+    GreaterEqual(Rc<Expression>, Rc<Expression>),
+    LowerEqual(Rc<Expression>, Rc<Expression>),
+    And(Rc<Expression>, Rc<Expression>),
+    Or(Rc<Expression>, Rc<Expression>),
+    Inverse(Rc<Expression>),
 }
 
 
@@ -38,17 +43,71 @@ impl Operation {
                     e2.evaluate(scope, program, false)?
                 )
             },
-            Operation::Substraction(_, _) => todo!(),
-            Operation::Multiplication(_, _) => todo!(),
-            Operation::Division(_, _) => todo!(),
-            Operation::Equal(_, _) => todo!(),
-            Operation::Greater(_, _) => todo!(),
-            Operation::Lower(_, _) => todo!(),
-            Operation::GreaterEqual(_, _) => todo!(),
-            Operation::LowerEqual(_, _) => todo!(),
-            Operation::And(_, _) => todo!(),
-            Operation::Or(_, _) => todo!(),
-            Operation::Inverse(_) => todo!(),
+            Operation::Substraction(e1, e2) => {
+                substraction::sub(
+                    e1.evaluate(scope, program, false)?,
+                    e2.evaluate(scope, program, false)?
+                )
+            },
+            Operation::Multiplication(e1, e2) => {
+                multiplication::mul(
+                    e1.evaluate(scope, program, false)?,
+                    e2.evaluate(scope, program, false)?
+                )
+            },
+            Operation::Division(e1, e2) => {
+                division::div(
+                    e1.evaluate(scope, program, false)?,
+                    e2.evaluate(scope, program, false)?
+                )
+            },
+            Operation::Equal(e1, e2) => {
+                comparaison::equal(
+                    e1.evaluate(scope, program, false)?,
+                    e2.evaluate(scope, program, false)?
+                )
+            },
+            Operation::Greater(e1, e2) => {
+                comparaison::greater(
+                    e1.evaluate(scope, program, false)?,
+                    e2.evaluate(scope, program, false)?
+                )
+            },
+            Operation::Lower(e1, e2) => {
+                comparaison::lower(
+                    e1.evaluate(scope, program, false)?,
+                    e2.evaluate(scope, program, false)?
+                )
+            },
+            Operation::GreaterEqual(e1, e2) => {
+                comparaison::greater_equal(
+                    e1.evaluate(scope, program, false)?,
+                    e2.evaluate(scope, program, false)?
+                )
+            },
+            Operation::LowerEqual(e1, e2) => {
+                comparaison::lower_equal(
+                    e1.evaluate(scope, program, false)?,
+                    e2.evaluate(scope, program, false)?
+                )
+            },
+            Operation::And(e1, e2) => {
+                boolean::and(
+                    e1.evaluate(scope, program, false)?,
+                    e2.evaluate(scope, program, false)?
+                )
+            },
+            Operation::Or(e1, e2) => {
+                boolean::or(
+                    e1.evaluate(scope, program, false)?,
+                    e2.evaluate(scope, program, false)?
+                )
+            },
+            Operation::Inverse(e) => {
+                boolean::inverse(
+                    e.evaluate(scope, program, false)?
+                )
+            },
         };
 
         match res {

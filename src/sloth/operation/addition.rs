@@ -48,6 +48,6 @@ pub fn add(lhs: Rc<RefCell<Value>>, rhs: Rc<RefCell<Value>>) -> Result<Value, St
             Ok(Value::List(t1, n))
         },
 
-        (v1, v2) => Err(format!("Cannot add '{}' to '{}'", v1.get_type(), v2.get_type()))
+        (v1, v2) => Err(format!("Cannot add '{}' to '{}'", v2.get_type(), v1.get_type()))
     }
 }
