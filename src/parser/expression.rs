@@ -1,5 +1,4 @@
 use crate::lexer::{Token, TokenStream, Keyword, Separator};
-use crate::position::Position;
 use crate::sloth::expression::Expression;
 use crate::sloth::program::SlothProgram;
 use crate::errors::Error;

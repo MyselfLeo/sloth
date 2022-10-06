@@ -1,5 +1,7 @@
-
-
+use crate::lexer::{Token, TokenStream, Operator};
+use crate::sloth::expression::Expression;
+use crate::sloth::program::SlothProgram;
+use crate::errors::Error;
 
 
 
@@ -9,7 +11,7 @@ fn parse_operation(iterator: &mut TokenStream, program: &mut SlothProgram, warni
     // The starting token must be an operator
     let (operator, first_pos) = match iterator.current() {
         Some((Token::Operator(s), p)) => (s, p),
-        _ => panic!("parse_operation called but iterator is not starting on an operator")
+        o => return Err(super::wrong_token(o, "operator"))
     };
 
 

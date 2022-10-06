@@ -11,6 +11,7 @@ pub use tokenstream::TokenStream;
 pub use token::Token;
 pub use separator::Separator;
 pub use keyword::Keyword;
+pub use operator::Operator;
 
 
 // Unlike SEPARATORS, those do not have a semantic meaning (only used for separating tokens)
