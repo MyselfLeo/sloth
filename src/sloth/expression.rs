@@ -26,13 +26,13 @@ impl ExpressionID {
 #[derive(Clone, Debug)]
 /// Expressions are objects that can be evaluated into a value
 pub enum Expression {
-    Literal(Value, Position),                                                             // value of the literal
-    ListInit(Vec<ExpressionID>, Position),                                                // list initialised in code. Example: [1 2 3 4 5]
-    VariableAccess(Option<ExpressionID>, String, Position),                               // ExpressionID to the owner of the field and its name,
-    BracketAcces(ExpressionID, ExpressionID, Position),                                   // Owner, indexing expression
-    Operation(Operation, Position),            // Operator to apply to one or 2 values from the Scope Expression stack (via index)
-    FunctionCall(Option<ExpressionID>, FunctionSignature, Vec<ExpressionID>, Position),   // optional owner (for method calls), name of the function and its list of expressions to be evaluated
-    ObjectConstruction(StructSignature, Vec<ExpressionID>, Position),                     // The construction of an Object, with the 'new' keyword
+    Literal(Value, Position),                                                                   // value of the literal
+    ListInit(Vec<Rc<Expression>>, Position),                                                    // list initialised in code. Example: [1 2 3 4 5]
+    VariableAccess(Option<Rc<Expression>>, String, Position),                                   // ExpressionID to the owner of the field and its name,
+    BracketAcces(Rc<Expression>, Rc<Expression>, Position),                                     // Owner, indexing expression
+    Operation(Operation, Position),                                                             // Operator to apply to one or 2 values from the Scope Expression stack (via index)
+    FunctionCall(Option<Rc<Expression>>, FunctionSignature, Vec<Rc<Expression>>, Position),     // optional owner (for method calls), name of the function and its list of expressions to be evaluated
+    ObjectConstruction(StructSignature, Vec<Rc<Expression>>, Position),                         // The construction of an Object, with the 'new' keyword
 }
 
 

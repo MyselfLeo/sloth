@@ -1,64 +1,47 @@
 use crate::lexer::{Token, TokenStream, Operator};
 use crate::sloth::expression::Expression;
+use crate::sloth::operation::Operation;
 use crate::sloth::program::SlothProgram;
 use crate::errors::Error;
 
+use super::expression::parse_expression;
 
 
 /// Parse an operation
-fn parse_operation(iterator: &mut TokenStream, program: &mut SlothProgram, warning: bool) -> Result<Expression, Error> {
-
+pub fn parse_operation(stream: &mut TokenStream, program: &mut SlothProgram, warning: bool) -> Result<Expression, Error> {
     // The starting token must be an operator
-    let (operator, first_pos) = match iterator.current() {
+    let (operator, first_pos) = match stream.current() {
         Some((Token::Operator(s), p)) => (s, p),
         o => return Err(super::wrong_token(o, "operator"))
     };
 
+    let lhs = parse_expression(stream, program, warning)?;
 
-    // determine the number of operands
-    let mut nb_operands = 2;
+    let (operation, pos) = {
+        // use rhs if not the inverse operator (1 operand)
+        if operator != Operator::Inv {
+            let rhs = parse_expression(stream, program, warning)?;
 
-    let operator = match operator.as_str() {
-        // 2 elements operators
-        "+" => Operator::Add,
-        "-" => Operator::Sub,
-        "*" => Operator::Mul,
-        "/" => Operator::Div,
-        "==" => Operator::Eq,
-        ">" => Operator::Gr,
-        "<" => Operator::Lw,
-        ">=" => Operator::Ge,
-        "<=" => Operator::Le,
-        "?" => Operator::Or,
-        "&" => Operator::And,
-
-        // 1 element operators
-        _ => {
-            nb_operands = 1;
-            match operator.as_str() {
-                "!" => Operator::Inv,
-                t => {
-                    let err_msg = format!("Unimplemented operator {}", t);
-                    return Err(Error::new(ErrMsg::OperationErrror(err_msg), Some(first_pos)))
-                }
-            }
+            let operation = match operator {
+                Operator::Add => Operation::Addition(lhs, rhs),
+                Operator::Sub => Operation::Substraction(lhs, rhs),
+                Operator::Mul => Operation::Multiplication(lhs, rhs),
+                Operator::Div => Operation::Division(lhs, rhs),
+                Operator::Eq => Operation::Equal(lhs, rhs),
+                Operator::Gr => Operation::Greater(lhs, rhs),
+                Operator::Lw => Operation::Lower(lhs, rhs),
+                Operator::Ge => Operation::GreaterEqual(lhs, rhs),
+                Operator::Le => Operation::LowerEqual(lhs, rhs),
+                Operator::And => Operation::And(lhs, rhs),
+                Operator::Or => Operation::Or(lhs, rhs),
+                _ => unreachable!(),
+            };
+            (operation, first_pos.until(rhs.get_pos()))
+        }
+        else {
+            (Operation::Inverse(lhs), first_pos.until(lhs.get_pos()))
         }
     };
 
-    // get the first and potential second expression
-    iterator.next();
-    let (first_expr_id, mut last_pos) = parse_expression(iterator, program, warning)?;
-
-    // Get second expression, if needed
-    let second_expr_id = match nb_operands > 1 {
-        true => {
-            let (expr_id, pos) = parse_expression(iterator, program, warning)?;
-            last_pos = pos;
-            Some(expr_id)
-        }, 
-        false => None,
-    };
-
-    let op_pos = first_pos.until(last_pos);
-    Ok(Expression::Operation(operator, Some(first_expr_id), second_expr_id, op_pos))
+    Ok(Expression::Operation(operation, pos))
 }

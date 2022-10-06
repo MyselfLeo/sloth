@@ -5,6 +5,7 @@ use crate::errors::Error;
 
 use super::list::parse_list;
 use super::literal::parse_literal;
+use super::operation::parse_operation;
 
 
 
@@ -16,6 +17,7 @@ pub fn parse_expression(stream: &mut TokenStream, program: &mut SlothProgram, wa
     let expr = match stream.next() {
         Some((Token::Literal(_), ..)) => parse_literal(stream, program, warning)?,
         Some((Token::Separator(Separator::OpenSquareBracket), _)) => parse_list(stream, program, warning)?,
+        Some((Token::Operator(_), ..)) => parse_operation(stream, program, warning)?,
 
         /*
         // The token is an identifier. Check the next token to see if its a function call, or field access
@@ -34,13 +36,6 @@ pub fn parse_expression(stream: &mut TokenStream, program: &mut SlothProgram, wa
             }
         },
         */
-
-        // The token is an operator, so it's an operation
-        Some((Token::Operator(_), _)) => {
-            let operation = parse_operation(stream, program, warning)?;
-            if let Expression::Operation(_, _, _, p) = operation.clone() {(operation, p)}
-            else {panic!("parse_operation did not return an Expression::Operation enum")}
-        },
 
 
 
