@@ -42,7 +42,7 @@ impl Expression {
     /// Evaluate the expression in the given context (scope and program) and return its value
     pub unsafe fn evaluate(&self, scope: Rc<RefCell<Scope>>, program: *mut SlothProgram, for_assignment: bool) -> Result<Rc<RefCell<Value>>, Error> {
 
-        match self {
+        let res = match self {
             // return this literal value
             Expression::Literal(v, _) => Ok(Rc::new(RefCell::new(v.clone()))),
 
@@ -370,6 +370,15 @@ impl Expression {
                 let expr = Expression::VariableAccess(Some(*owner), access_str, p.clone());
                 expr.evaluate(scope, program, for_assignment)
             },
+        };
+
+
+        match res {
+            Ok(v) => Ok(v),
+            Err(mut e) => {
+                e.clog_pos(self.get_pos());
+                Err(e)
+            }
         }
     }
 
