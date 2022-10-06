@@ -2,6 +2,7 @@ use regex::Regex;
 
 use super::keyword::Keyword;
 use super::separator::Separator;
+use super::operator::Operator;
 
 
 
@@ -20,8 +21,8 @@ pub enum TokenType {
 pub enum Token {
     Keyword(Keyword),
     Separator(Separator),
+    Operator(Operator),
     Identifier(String),
-    Operator(String),
     Literal(String),
 }
 
@@ -43,44 +44,15 @@ impl Token {
         let identifier_re = Regex::new(r"^(@[0-9]+|@[a-zA-Z]+|[a-zA-Z_][a-zA-Z0-9_]*)$").unwrap();
 
         if super::keyword::KEYWORDS.contains(&string) {
-            let val = match string {
-                "builtin" => Keyword::Builtin,
-                "import" => Keyword::Import,
-                "static" => Keyword::Static,
-                "structure" => Keyword::Structure,
-                "define" => Keyword::Define,
-                "for" => Keyword::For,
-                "->" => Keyword::LeftArrow,
-                "new" => Keyword::New,
-                "=" => Keyword::Equal,
-                "if" => Keyword::If,
-                "while" => Keyword::While,
-                _ => return Err(format!("Unimplemented keyword '{}'", string))
-            };
-            Ok(Token::Keyword(val))
+            Ok(Token::Keyword(Keyword::from_str(string)?))
         }
 
         else if super::separator::SEPARATORS.contains(&string) {
-            let val = match string {
-                "(" => Separator::OpenParenthesis,
-                ")" => Separator::CloseParenthesis,
-                "{" => Separator::OpenBracket,
-                "}" => Separator::CloseBracket,
-                "[" => Separator::OpenSquareBracket,
-                "]" => Separator::CloseSquareBracket,
-                ";" => Separator::SemiColon,
-                ":" => Separator::Colon,
-                "," => Separator::Comma,
-                "|" => Separator::Line,
-                "." => Separator::Period,
-                "~" => Separator::Tilde,
-                &_ => return Err(format!("Unimplemented separator '{}'", string))
-            };
-            Ok(Token::Separator(val))
+            Ok(Token::Separator(Separator::from_str(string)?))
         }
 
-        else if super::OPERATORS.contains(&string) {
-            Ok(Token::Operator(string.to_string()))
+        else if super::operator::OPERATORS.contains(&string) {
+            Ok(Token::Operator(Operator::from_str(string)?))
         }
 
         // literals (strings, numbers or booleans)
@@ -107,10 +79,10 @@ impl Token {
     pub fn original_string(&self) -> String {
         match self {
             Token::Keyword(x) => x.to_string(),
+            Token::Operator(x) => x.to_string(),
+            Token::Separator(x) => x.to_string(),
             Token::Identifier(x) => x.clone(),
             Token::Literal(x) => x.clone(),
-            Token::Operator(x) => x.clone(),
-            Token::Separator(x) => x.to_string()
         }
     }
 }

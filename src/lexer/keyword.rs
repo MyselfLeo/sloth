@@ -33,4 +33,23 @@ impl Keyword {
             Keyword::While => "while",
         }.to_string()
     }
+
+
+    pub fn from_str(str: &str) -> Result<Keyword, String> {
+        let val = match str {
+            "builtin" => Keyword::Builtin,
+            "import" => Keyword::Import,
+            "static" => Keyword::Static,
+            "structure" => Keyword::Structure,
+            "define" => Keyword::Define,
+            "for" => Keyword::For,
+            "->" => Keyword::LeftArrow,
+            "new" => Keyword::New,
+            "=" => Keyword::Equal,
+            "if" => Keyword::If,
+            "while" => Keyword::While,
+            _ => return Err(format!("Unimplemented keyword '{}'", str))
+        };
+        Ok(val)
+    }
 }

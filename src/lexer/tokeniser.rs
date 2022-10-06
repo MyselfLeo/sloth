@@ -125,7 +125,7 @@ pub fn from_file(filename: &str) -> Result<Vec<(Token, Position)>, Error> {
                     // if so, we separate it, create its own Token, etc. then continue with the rest of the buffer
 
                     if !super::keyword::KEYWORDS.contains(&token_buffer.as_str()) {
-                        for op in super::OPERATORS {
+                        for op in super::operator::OPERATORS {
                             if token_buffer.starts_with(op) {
                                 let op_pos = Position {
                                     filename: filename.to_string(),

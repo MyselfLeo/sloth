@@ -5,6 +5,7 @@ pub mod tokenstream;
 pub mod tokeniser;
 pub mod separator;
 pub mod keyword;
+pub mod operator;
 
 pub use tokenstream::TokenStream;
 pub use token::Token;
@@ -12,8 +13,6 @@ pub use separator::Separator;
 pub use keyword::Keyword;
 
 
-// The '<=' and '>=' must be before '<' and '>' so the parsing works
-pub const OPERATORS: [&str; 12] = ["+", "-", "*", "/", "<=", ">=", "==", "<", ">", "&", "?", "!"];
 // Unlike SEPARATORS, those do not have a semantic meaning (only used for separating tokens)
 pub const DEFAULT_SEPARATORS: [char; 2] = [' ', '"'];
 // Comments starts with this str and ends at the end of the line
