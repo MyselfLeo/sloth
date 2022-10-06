@@ -6,6 +6,8 @@ use crate::errors::Error;
 use super::list::parse_list;
 use super::literal::parse_literal;
 use super::operation::parse_operation;
+use super::object_construction::parse_object_construction;
+use super::varcall::parse_variablecall;
 
 
 
@@ -18,48 +20,23 @@ pub fn parse_expression(stream: &mut TokenStream, program: &mut SlothProgram, wa
         Some((Token::Literal(_), ..)) => parse_literal(stream, program, warning)?,
         Some((Token::Separator(Separator::OpenSquareBracket), _)) => parse_list(stream, program, warning)?,
         Some((Token::Operator(_), ..)) => parse_operation(stream, program, warning)?,
+        Some((Token::Keyword(Keyword::New), _)) => parse_object_construction(stream, program, warning)?,
 
-        /*
-        // The token is an identifier. Check the next token to see if its a function call, or field access
+        // Function call or field access, determined by the following token
         Some((Token::Identifier(_), _)) =>  {
             match stream.peek(1) {
-                Some((Token::Separator(Separator::OpenParenthesis), _)) | Some((Token::Separator(Separator::Colon), _)) => {
-                    let func_call = parse_functioncall(stream, program, warning)?;
-                    if let Expression::FunctionCall(_, _, _, p) = func_call.clone() {(func_call, p)}
-                    else {panic!("parse_functioncall did not return an Expression::FunctionCall enum")}
-                },
-                _ => {
-                    let var_call = parse_variablecall(stream, program, warning)?;
-                    if let Expression::VariableAccess(_, _, p) = var_call.clone() {(var_call, p)}
-                    else {panic!("pare_variablecall did not return an Expression::VariableAccess")}
-                }
+                Some((Token::Separator(Separator::OpenParenthesis), _)) | Some((Token::Separator(Separator::Colon), _)) => parse_functioncall(stream, program, warning)?,
+                _ => parse_variablecall(stream, program, warning)?,
             }
         },
-        */
 
-
-
-        // The token is the "new" keyword: it's the construction of a struct
-        Some((Token::Keyword(Keyword::New), _)) => {
-            parse_object_construction(stream, program, warning)?
-        },
-
-
-
-
-        Some((t, p)) => {
-            let err_msg = format!("Unexpected expression start '{}'", t.original_string());
-            return Err(Error::new(ErrMsg::SyntaxError(err_msg), Some(p)))
-        }
-
-        None => return Err(eof_error(line!()))
+        o => return Err(super::wrong_token(o, "expression"))
     };
 
-    let first_expr = (program.push_expr(expr.clone()), expr_pos);
+    
 
 
-
-
+    /*
     // determines whether the expression if finished here or not.
     match stream.current() {
         Some((Token::Separator(Separator::CloseParenthesis), _)) => {
@@ -85,4 +62,5 @@ pub fn parse_expression(stream: &mut TokenStream, program: &mut SlothProgram, wa
         },
         None => Err(eof_error(line!())),
     }
+    */
 }
