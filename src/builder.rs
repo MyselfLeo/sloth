@@ -151,7 +151,6 @@ fn parse_second_expr(iterator: &mut TokenStream, program: &mut SlothProgram, war
 
 
 
-
 /// Parse an expression, push it to the program's expression stack and return its id
 fn parse_expression(iterator: &mut TokenStream, program: &mut SlothProgram, warning: bool) -> Result<(ExpressionID, Position), Error> {
     // If the first token is an open parenthesis, we expect the expression to end on a closed parenthesis.

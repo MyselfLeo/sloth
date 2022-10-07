@@ -2,8 +2,10 @@ use std::rc::Rc;
 
 use crate::lexer::{Token, TokenStream, Keyword, Separator};
 use crate::sloth::program::SlothProgram;
-use crate::errors::Error;
+use crate::errors::{Error, Warning, ErrMsg};
 use crate::sloth::statement::Statement;
+
+use super::expression::parse_expression;
 
 
 
@@ -29,8 +31,8 @@ pub fn parse_static_expr(stream: &mut TokenStream, program: &mut SlothProgram, w
     super::expect_token(stream, Token::Keyword(Keyword::Equal))?;
 
     // next is the expression
-    let (expr, expr_pos) = parse_expression(iterator, program, warning)?;
-    let full_pos = first_pos.until(expr_pos);
+    let expr = parse_expression(stream, program, warning)?;
+    let full_pos = first_pos.until(expr.get_pos());
 
     // ; recommended here
     super::check_semicolon(stream, warning, &full_pos)?;
