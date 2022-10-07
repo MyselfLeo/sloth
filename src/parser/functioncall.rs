@@ -10,7 +10,7 @@ use super::expression::parse_expression;
 
 
 
-pub fn parse_functioncall(stream: &mut TokenStream, program: &mut SlothProgram, warning: bool) -> Result<Expression, Error> {
+pub fn parse_functioncall(stream: &mut TokenStream, program: &mut SlothProgram, warning: bool, first_expr: Option<Rc<Expression>>) -> Result<Expression, Error> {
     // the user can specify a module
     let (module_name, temp_fpos) = match super::module_check(stream)? {
         Some((m, p)) => (Some(m), Some(p)),
@@ -44,5 +44,5 @@ pub fn parse_functioncall(stream: &mut TokenStream, program: &mut SlothProgram, 
     let functioncall_pos = first_pos.until(end_pos);
     let func_sign = FunctionSignature::new(module_name, func_name, None, None, None);
     
-    Ok(Expression::FunctionCall(None, func_sign, arg_exprs, functioncall_pos))
+    Ok(Expression::FunctionCall(first_expr, func_sign, arg_exprs, functioncall_pos))
 }

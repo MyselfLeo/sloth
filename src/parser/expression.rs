@@ -26,7 +26,7 @@ pub fn parse_expression(stream: &mut TokenStream, program: &mut SlothProgram, wa
         // Function call or field access, determined by the following token
         Some((Token::Identifier(_), _)) =>  {
             match stream.peek(1) {
-                Some((Token::Separator(Separator::OpenParenthesis), _)) | Some((Token::Separator(Separator::Colon), _)) => parse_functioncall(stream, program, warning)?,
+                Some((Token::Separator(Separator::OpenParenthesis), _)) | Some((Token::Separator(Separator::Colon), _)) => parse_functioncall(stream, program, warning, None)?,
                 _ => parse_variablecall(stream, program, warning)?,
             }
         },

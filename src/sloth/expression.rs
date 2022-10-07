@@ -29,7 +29,7 @@ pub enum Expression {
     Literal(Value, Position),                                                                   // value of the literal
     ListInit(Vec<Rc<Expression>>, Position),                                                    // list initialised in code. Example: [1 2 3 4 5]
     VariableAccess(Option<Rc<Expression>>, String, Position),                                   // ExpressionID to the owner of the field and its name,
-    BracketAcces(Rc<Expression>, Rc<Expression>, Position),                                     // Owner, indexing expression
+    BracketAccess(Rc<Expression>, Rc<Expression>, Position),                                    // Owner, indexing expression
     Operation(Operation, Position),                                                             // Operator to apply to one or 2 values from the Scope Expression stack (via index)
     FunctionCall(Option<Rc<Expression>>, FunctionSignature, Vec<Rc<Expression>>, Position),     // optional owner (for method calls), name of the function and its list of expressions to be evaluated
     ObjectConstruction(StructSignature, Vec<Rc<Expression>>, Position),                         // The construction of an Object, with the 'new' keyword
@@ -291,7 +291,7 @@ impl Expression {
             },
 
             
-            Expression::BracketAcces(owner, access, p) => {
+            Expression::BracketAccess(owner, access, p) => {
                 let access_ref = access.evaluate(scope.clone(), program, false)?;
                 let access_str = access_ref.borrow().to_string();
 
@@ -325,7 +325,7 @@ impl Expression {
             Expression::Operation(_, p) => p,
             Expression::FunctionCall(_, _, _, p) => p,
             Expression::ObjectConstruction(_, _, p) => p,
-            Expression::BracketAcces(_, _, p) => p,
+            Expression::BracketAccess(_, _, p) => p,
         }.clone() 
     }
 }

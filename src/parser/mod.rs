@@ -13,6 +13,9 @@ mod list;
 mod operation;
 mod object_construction;
 mod functioncall;
+mod bracket;
+mod statement;
+mod flow_control;
 
 
 /*
