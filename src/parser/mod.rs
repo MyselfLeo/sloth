@@ -16,6 +16,7 @@ mod functioncall;
 mod bracket;
 mod statement;
 mod flow_control;
+mod statics;
 
 
 /*
