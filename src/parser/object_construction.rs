@@ -14,18 +14,10 @@ use super::expression::parse_expression;
 pub fn parse_object_construction(stream: &mut TokenStream, program: &mut SlothProgram, warning: bool) -> Result<Expression, Error> {
     let (_, first_pos) = super::expect_token(stream, Token::Keyword(Keyword::New))?;
 
-    // if there is a ':' then the current token is the module name
-    let module_name = {
-        if let Some((Token::Separator(Separator::Colon), _)) = stream.peek(1) {
-            let res = match stream.current() {
-                Some((Token::Identifier(n), _)) => Some(n),
-                o => return Err(super::wrong_token(o, "module")),
-            };
-            // go over the colon, set the stream to the structure name
-            stream.skip(2);
-            res
-        }
-        else {None}
+    // the user can specify a module
+    let module_name = match super::module_check(stream)? {
+        Some((m, _)) => Some(m),
+        None => None
     };
 
 
@@ -41,11 +33,10 @@ pub fn parse_object_construction(stream: &mut TokenStream, program: &mut SlothPr
 
     let mut exprs = Vec::new();
     // Next is a sequence of expressions, until a closed parenthesis is met
-    while !super::current_equal(stream, Token::Separator(Separator::OpenParenthesis))? {
+    while !super::current_equal(stream, Token::Separator(Separator::CloseParenthesis))? {
         let expr = parse_expression(stream, program, warning)?;
         exprs.push(Rc::new(expr));
     }
-
 
     // closing of the arguments
     let (_, end_pos) = super::expect_token(stream, Token::Separator(Separator::CloseParenthesis))?;

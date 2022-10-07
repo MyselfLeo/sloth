@@ -273,7 +273,7 @@ impl SlothProgram {
         let main_inputs = main_func.get_signature().input_types.unwrap();
 
         // Convert given arguments to Values, push them to the Expression Stack and store its Expression ids
-        let mut args_id: Vec<ExpressionID> = Vec::new();
+        let mut args: Vec<Rc<Expression>> = Vec::new();
 
         let dummy_pos = Position {filename: "".to_string(), line: 0, first_column: 0, last_column: Some(0)};
 
@@ -293,12 +293,11 @@ impl SlothProgram {
                 }
             };
 
-            let expr = Expression::Literal(value, dummy_pos.clone());
-            args_id.push(self.push_expr(expr))
+            args.push(Rc::new(Expression::Literal(value, dummy_pos.clone())));
         }
 
         // Call the main function
-        let f_call = Expression::FunctionCall(None, main_func_id, args_id, dummy_pos.clone());
+        let f_call = Expression::FunctionCall(None, main_func_id, args, dummy_pos.clone());
 
         let scope = Rc::new(RefCell::new(Scope::new()));
         match f_call.evaluate(scope, self, false) {

@@ -52,23 +52,11 @@ impl Expression {
                 let mut list_type = Type::Any;
 
                 if exprs.len() != 0 {
-                    // get the type of the list from the first expression
-                    let expr = match program.as_ref().unwrap().get_expr(exprs[0]) {
-                        Ok(e) => e,
-                        Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
-                    };
-                    values.push(expr.evaluate(scope.clone(), program, false)?);
-
+                    values.push(exprs[0].evaluate(scope.clone(), program, false)?);
                     list_type = values[0].borrow().get_type();
 
-
                     // Add the other elements to the value list, but checking the type of the value first
-                    for id in exprs.iter().skip(1) {
-                        let expr = match program.as_ref().unwrap().get_expr(*id) {
-                            Ok(e) => e,
-                            Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
-                        };
-
+                    for expr in exprs.iter().skip(1) {
                         let value = expr.evaluate(scope.clone(), program, false)?;
 
                         if value.borrow().get_type() == list_type {values.push(value);}
@@ -93,14 +81,8 @@ impl Expression {
                     // Field of a value
                     Some(o) => {
                         // Get the reference to the owner
-                        let owner_expr = match program.as_mut().unwrap().get_expr(*o) {
-                            Ok(e) => e,
-                            Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
-                        };
-                        let owner_ref = owner_expr.evaluate(scope.clone(), program, false)?;
-
+                        let owner_ref = o.evaluate(scope.clone(), program, false)?;
                         let field = owner_ref.borrow().get_field(name);
-
                         match field {
                             Ok(v) => Ok(v),
                             Err(e) => Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))
@@ -162,23 +144,16 @@ impl Expression {
 
             
             Expression::FunctionCall(owner, signature, arguments, p) => {
-
                 let mut signature_clone = signature.clone();
                 
-
                 // Get the owner value reference
                 let owner_value = match owner {
                     Some(s) => {
-                        match program.as_ref().unwrap().get_expr(*s) {
-                            Ok(e) => Some(e.evaluate(scope.clone(), program, false)?),
-                            Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
-                        }
+                        Some(s.evaluate(scope.clone(), program, false)?)
                     },
-
                     None => None
                 };
 
-                
                 // try to find if the method, applied to the type of the value, exists
                 // TODO: Make defining owned function both work for 'list' (means List(Any)) and 'list[type]'
                 signature_clone.owner_type = match owner_value {
@@ -209,16 +184,8 @@ impl Expression {
 
 
                 // Evaluate each given expression in the scope, and create an input variable (@0, @1, etc.) with the set value
-                for (i, param_expr_id) in arguments.iter().enumerate() {
-
-                    let expr = match program.as_ref().unwrap().get_expr(*param_expr_id) {
-                        Ok(e) => e,
-                        Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
-                    };
-
-                    
-                    let mut value = expr.evaluate(scope.clone(), program, false)?;
-
+                for (i, param) in arguments.iter().enumerate() {
+                    let mut value = param.evaluate(scope.clone(), program, false)?;
 
                     // if the values are cloned, allocate a new Value instead of using the reference given by expr.evaluate()
                     if !inputs_ref_or_cloned[i] {
@@ -310,12 +277,7 @@ impl Expression {
                 // Evaluate each given values
                 let mut given_values = Vec::new();
 
-                for expr_id in given_fields {
-                    let expr = match program.as_ref().unwrap().get_expr(*expr_id) {
-                        Ok(e) => e,
-                        Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
-                    };
-
+                for expr in given_fields {
                     given_values.push(expr.evaluate(scope.clone(), program, false)?);
                 }
 
@@ -329,13 +291,8 @@ impl Expression {
             },
 
             
-            Expression::BracketAcces(owner, access_expr_id, p) => {
-                // get the field by evaluating access_expr_id into a string
-                let access_expr = match program.as_mut().unwrap().get_expr(*access_expr_id) {
-                    Ok(e) => e,
-                    Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
-                };
-                let access_ref = access_expr.evaluate(scope.clone(), program, false)?;
+            Expression::BracketAcces(owner, access, p) => {
+                let access_ref = access.evaluate(scope.clone(), program, false)?;
                 let access_str = access_ref.borrow().to_string();
 
 

@@ -12,6 +12,7 @@ mod literal;
 mod list;
 mod operation;
 mod object_construction;
+mod functioncall;
 
 
 /*
@@ -98,4 +99,20 @@ pub fn check_semicolon(stream: &mut TokenStream, warn: bool, statement_pos: &Pos
         },
         None => return Err(eof_error())
     }
+}
+
+
+
+/// Check if the user defines a module (module:)
+pub fn module_check(stream: &mut TokenStream) -> Result<Option<(String, Position)>, Error> {
+    if let Some((Token::Separator(Separator::Colon), _)) = stream.peek(1) {
+        let res = match stream.current() {
+            Some((Token::Identifier(n), p)) => Some((n, p)),
+            o => return Err(wrong_token(o, "module")),
+        };
+        // go over the colon
+        stream.skip(2);
+        Ok(res)
+    }
+    else {Ok(None)}
 }

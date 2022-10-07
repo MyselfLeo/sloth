@@ -8,6 +8,7 @@ use super::literal::parse_literal;
 use super::operation::parse_operation;
 use super::object_construction::parse_object_construction;
 use super::varcall::parse_variablecall;
+use super::functioncall::parse_functioncall;
 
 
 
@@ -34,6 +35,8 @@ pub fn parse_expression(stream: &mut TokenStream, program: &mut SlothProgram, wa
     };
 
     
+
+    todo!()
 
 
     /*
