@@ -18,7 +18,7 @@ fn parse_assignment(target: (Rc<Expression>, Position), stream: &mut TokenStream
     super::expect_token(stream, Token::Keyword(Keyword::Equal))?;
 
     // Rest of the assignment is an expression
-    let source = Rc::new(parse_expression(stream, program, warning)?);
+    let source = Rc::new(parse_expression(stream, program, warning, None)?);
     let assignment_position = target_pos.until(source.get_pos());
 
     Ok(Statement::Assignment(target_expr, source, assignment_position))

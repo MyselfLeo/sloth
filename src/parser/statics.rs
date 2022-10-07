@@ -31,14 +31,14 @@ pub fn parse_static_expr(stream: &mut TokenStream, program: &mut SlothProgram, w
     super::expect_token(stream, Token::Keyword(Keyword::Equal))?;
 
     // next is the expression
-    let expr = parse_expression(stream, program, warning)?;
+    let expr = parse_expression(stream, program, warning, None)?;
     let full_pos = first_pos.until(expr.get_pos());
 
     // ; recommended here
     super::check_semicolon(stream, warning, &full_pos)?;
 
     // add the expression to the program's statics
-    match program.push_static(&name, expr) {
+    match program.push_static(&name, Rc::new(expr)) {
         Ok(_) => Ok(()),
         Err(e) => Err(Error::new(ErrMsg::RuntimeError(e), Some(full_pos))),
     }

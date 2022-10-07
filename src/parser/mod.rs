@@ -17,6 +17,8 @@ mod bracket;
 mod statement;
 mod flow_control;
 mod statics;
+mod function;
+mod import;
 
 
 /*

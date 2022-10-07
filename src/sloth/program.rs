@@ -35,7 +35,7 @@ pub struct SlothProgram {
     // A static is an expression defined like a global variable (ex: static NUMBER = 34;). The expression
     // is evaluated in a blank scope each time it is called.
     // note: this is my workaround for constants. It's not really constant but it's not really mutable....
-    statics: HashMap<String, ExpressionID>,
+    statics: HashMap<String, Rc<Expression>>,
 
     imported_modules: Vec<String>,
     builtins: Vec<builtins::BuiltInImport>,
@@ -199,7 +199,7 @@ impl SlothProgram {
 
 
     /// Add an expression to the statics, return error if the name is already used
-    pub fn push_static(&mut self, name: &String, expr: ExpressionID) -> Result<(), String> {
+    pub fn push_static(&mut self, name: &String, expr: Rc<Expression>) -> Result<(), String> {
         match self.statics.insert(name.clone(), expr) {
             Some(_) => Err(format!("Static expression '{}' is already defined", name)),
             None => Ok(()),
@@ -210,7 +210,7 @@ impl SlothProgram {
     /// None if it does not exists, or an error string if something occured
     pub fn get_static(&mut self, name: &String) -> Result<Option<Rc<RefCell<Value>>>, Error> {
         let expr = match self.statics.get(name) {
-            Some(v) => self.get_expr(*v).expect("A static expression was deleted from the program's expression stack"),
+            Some(v) => v,
             None => return Ok(None)
         };
 

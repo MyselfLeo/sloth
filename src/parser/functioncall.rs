@@ -35,7 +35,7 @@ pub fn parse_functioncall(stream: &mut TokenStream, program: &mut SlothProgram, 
     // each arguments
     let mut arg_exprs: Vec<Rc<Expression>> = Vec::new();
     while !super::current_equal(stream, Token::Separator(Separator::CloseParenthesis))? {
-        arg_exprs.push(Rc::new(parse_expression(stream, program, warning)?))
+        arg_exprs.push(Rc::new(parse_expression(stream, program, warning, None)?))
     }
 
     // closing of the arguments

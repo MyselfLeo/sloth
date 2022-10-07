@@ -17,12 +17,12 @@ pub fn parse_operation(stream: &mut TokenStream, program: &mut SlothProgram, war
         o => return Err(super::wrong_token(o, "operator"))
     };
 
-    let lhs = Rc::new(parse_expression(stream, program, warning)?);
+    let lhs = Rc::new(parse_expression(stream, program, warning, None)?);
 
     let (operation, pos) = {
         // use rhs if not the inverse operator (1 operand)
         if operator != Operator::Inv {
-            let rhs = Rc::new(parse_expression(stream, program, warning)?);
+            let rhs = Rc::new(parse_expression(stream, program, warning, None)?);
 
             let operation = match operator {
                 Operator::Add => Operation::Addition(lhs, rhs),

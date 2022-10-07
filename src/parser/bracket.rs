@@ -11,11 +11,11 @@ use super::expression::parse_expression;
 
 
 /// expression[access]
-pub fn parse_bracket_access(stream: &mut TokenStream, program: &mut SlothProgram, warning: bool, first_expr: Rc<Expression>, _: bool) -> Result<Expression, Error> {
+pub fn parse_bracket_access(stream: &mut TokenStream, program: &mut SlothProgram, warning: bool, first_expr: Rc<Expression>) -> Result<Expression, Error> {
     // opening [
     let (_, first_pos) = super::expect_token(stream, Token::Separator(Separator::OpenSquareBracket))?;
     // field identifier
-    let access = parse_expression(stream, program, warning)?;
+    let access = parse_expression(stream, program, warning, None)?;
     // closing ]
     let (_, end_pos) = super::expect_token(stream, Token::Separator(Separator::CloseSquareBracket))?;
 

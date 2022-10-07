@@ -13,7 +13,7 @@ use super::statement::parse_statement;
 
 pub fn parse_if(stream: &mut TokenStream, program: &mut SlothProgram, warning: bool) -> Result<Statement, Error> {
     let (_, first_pos) = super::expect_token(stream, Token::Keyword(Keyword::If))?;
-    let condition = parse_expression(stream, program, warning)?;
+    let condition = parse_expression(stream, program, warning, None)?;
     super::expect_token(stream, Token::Separator(Separator::OpenBracket))?;
 
     // parse the succession of statements until a closed bracket is reached
@@ -30,7 +30,7 @@ pub fn parse_if(stream: &mut TokenStream, program: &mut SlothProgram, warning: b
 
 pub fn parse_while(stream: &mut TokenStream, program: &mut SlothProgram, warning: bool) -> Result<Statement, Error> {
     let (_, first_pos) = super::expect_token(stream, Token::Keyword(Keyword::While))?;
-    let condition = parse_expression(stream, program, warning)?;
+    let condition = parse_expression(stream, program, warning, None)?;
     super::expect_token(stream, Token::Separator(Separator::OpenBracket))?;
 
     // parse the succession of statements until a closed bracket is reached

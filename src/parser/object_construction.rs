@@ -34,7 +34,7 @@ pub fn parse_object_construction(stream: &mut TokenStream, program: &mut SlothPr
     let mut exprs = Vec::new();
     // Next is a sequence of expressions, until a closed parenthesis is met
     while !super::current_equal(stream, Token::Separator(Separator::CloseParenthesis))? {
-        let expr = parse_expression(stream, program, warning)?;
+        let expr = parse_expression(stream, program, warning, None)?;
         exprs.push(Rc::new(expr));
     }
 

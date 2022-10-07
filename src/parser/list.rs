@@ -11,7 +11,7 @@ pub fn parse_list(stream: &mut TokenStream, program: &mut SlothProgram, warning:
     // parse each expr until the ]
     let mut exprs: Vec<Expression> = Vec::new();
     while !super::current_equal(stream, Token::Separator(Separator::CloseSquareBracket))? {
-        exprs.push(parse_expression(stream, program, warning)?);
+        exprs.push(parse_expression(stream, program, warning, None)?);
     }
 
     let (_, end_pos) = super::expect_token(stream, Token::Separator(Separator::CloseSquareBracket))?;
