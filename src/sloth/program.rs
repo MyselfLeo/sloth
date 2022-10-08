@@ -7,7 +7,7 @@ use crate::errors::{Error, ErrMsg, formatted_vec_string};
 use crate::position::Position;
 use super::function::{SlothFunction, FunctionSignature};
 use super::scope::Scope;
-use super::expression::{Expression, ExpressionID};
+use super::expression::Expression;
 use super::structure::{StructSignature, ObjectBlueprint};
 use super::types::Type;
 use super::value::Value;
@@ -29,8 +29,6 @@ pub struct SlothProgram {
     _filename: String,
     functions: BTreeMap<FunctionSignature, Box<dyn SlothFunction>>,
     structures: HashMap<StructSignature, Box<dyn ObjectBlueprint>>,
-    expressions: HashMap<ExpressionID, Expression>,
-    expressions_nb: u64,
 
     // A static is an expression defined like a global variable (ex: static NUMBER = 34;). The expression
     // is evaluated in a blank scope each time it is called.
@@ -47,8 +45,6 @@ impl SlothProgram {
             _filename: filename,
             functions: BTreeMap::new(),
             structures: HashMap::new(),
-            expressions: HashMap::new(),
-            expressions_nb: 0,
 
             statics: HashMap::new(),
 
@@ -176,25 +172,6 @@ impl SlothProgram {
     }
 
 
-
-
-
-    /// Add an expression to the Expression stack and return its ID
-    pub fn push_expr(&mut self, expr: Expression) -> ExpressionID {
-        let expr_id = ExpressionID::new(self.expressions_nb);
-        self.expressions.insert(expr_id.clone(), expr.clone());
-        self.expressions_nb += 1;
-
-        expr_id
-    }
-
-    /// Return a clone of an expression with the given ExpressionID
-    pub fn get_expr(&self, id: ExpressionID) -> Result<Expression, String> {
-        match self.expressions.get(&id) {
-            Some(v) => Ok(v.clone()),
-            None => Err("Tried to access an expression with a wrong expression ID".to_string())
-        }
-    }
 
 
 
@@ -345,16 +322,6 @@ impl SlothProgram {
             };
 
             println!("{:25}{:15}{:15}{:25}{:15}", signature.name, type_txt, module_txt, input_types_txt, output_type_str);
-        }
-    }
-
-
-
-    /// Print to console the list of expressions defined in the program
-    pub fn print_exprs(self)  {
-        println!("{:15}{}", "EXPRESSION ID", "EXPRESSION");
-        for (id, e) in self.expressions {
-            println!("{:<15}{:?}", id.id, e);
         }
     }
 }

@@ -1,8 +1,7 @@
 use crate::lexer::{Token, TokenStream, Separator};
 use crate::sloth::program::SlothProgram;
 use crate::sloth::structure::{CustomDefinition, StructSignature};
-use crate::sloth::types::Type;
-use crate::errors::Error;
+use crate::errors::{Error, ErrMsg};
 
 use super::types::parse_type;
 
@@ -22,15 +21,22 @@ pub fn parse_structure(stream: &mut TokenStream, program: &mut SlothProgram, mod
         o => return Err(super::wrong_token(o, "'{{'"))
     }
 
-    let mut fields: Vec<(String, Type)> = Vec::new();
+    let mut fields_name = Vec::new();
+    let mut fields_type = Vec::new();
 
     // Next is each fields of this structure, until we met a closed bracket
     while !super::current_equal(stream, Token::Separator(Separator::CloseBracket))? {
         // name of the field
-        let (field_name, ..) = match stream.current() {
-            Some((Token::Identifier(f), p)) => {stream.next(); (f, p)},
+        let field_name = match stream.current() {
+            Some((Token::Identifier(f), _)) => {stream.next(); f},
             o => return Err(super::wrong_token(o, "field name or '}}'"))
         };
+
+        // check that it doesnt exist yet
+        if fields_name.contains(&field_name) {
+            let err_msg = format!("The name '{}' is already used for a field of the structure '{}'", field_name, struct_name);
+            return Err(Error::new(ErrMsg::DefinitionError(err_msg), Some(first_pos)))
+        }
 
         // colon
         super::expect_token(stream, Token::Separator(Separator::Colon))?;
@@ -38,7 +44,8 @@ pub fn parse_structure(stream: &mut TokenStream, program: &mut SlothProgram, mod
         // the type of the field
         let (field_type, type_pos) = parse_type(stream, program, module_name, warning)?;
 
-        fields.push((field_name, field_type));
+        fields_name.push(field_name);
+        fields_type.push(field_type);
 
         // A semicolon here is strongly recommended, but not necessary
         super::check_semicolon(stream, warning, &first_pos.until(type_pos))?;
@@ -47,5 +54,8 @@ pub fn parse_structure(stream: &mut TokenStream, program: &mut SlothProgram, mod
 
     // return the definition
     let signature = StructSignature::new(module_name.clone(), struct_name.clone());
+
+    let fields = fields_name.into_iter().zip(fields_type.into_iter()).collect();
+
     Ok(CustomDefinition::new(signature, fields))
 }

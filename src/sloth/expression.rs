@@ -11,17 +11,6 @@ use super::program::SlothProgram;
 use crate::errors::{Error, ErrMsg};
 use crate::position::Position;
 
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-/// Used by scopes to reference to parent scope in the Scope stack
-pub struct ExpressionID {
-    pub id: u64
-}
-impl ExpressionID {
-    pub fn new(value: u64) -> ExpressionID {
-        ExpressionID { id: value }
-    }
-}
-
 
 #[derive(Clone, Debug)]
 /// Expressions are objects that can be evaluated into a value
@@ -47,7 +36,7 @@ impl Expression {
             Expression::Literal(v, _) => Ok(Rc::new(RefCell::new(v.clone()))),
 
             // a list
-            Expression::ListInit(exprs, p) => {
+            Expression::ListInit(exprs, _) => {
                 let mut values = Vec::new();
                 let mut list_type = Type::Any;
 
@@ -136,7 +125,7 @@ impl Expression {
 
 
             // process the operation and return the result
-            Expression::Operation(operation, p) => {
+            Expression::Operation(operation, _) => {
                 let value = operation.execute(scope, program.as_mut().unwrap())?;
                 Ok(Rc::new(RefCell::new(value)))
             }

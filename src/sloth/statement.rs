@@ -49,7 +49,7 @@ impl Statement {
                 Ok(())
             },
 
-            Statement::ExpressionCall(expr, p) => {
+            Statement::ExpressionCall(expr, _) => {
                 expr.evaluate(scope, program, false)?;
                 Ok(())
             },
@@ -67,7 +67,7 @@ impl Statement {
                 Ok(())
             },
 
-            Statement::While(cond, statements, p) => {
+            Statement::While(cond, statements, _) => {
                 let mut loop_cond = cond.evaluate(scope.clone(), program, false)?.borrow().to_owned() == Value::Boolean(true);
                 
                 while loop_cond {

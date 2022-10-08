@@ -37,10 +37,6 @@ struct Args {
     #[clap(long, value_parser)]
     functions: bool,
 
-    /// Display the list of the expressions generated from the file instead of running it
-    #[clap(long, value_parser)]
-    expr: bool,
-
     /// Disable warnings
     #[clap(long, value_parser)]
     nowarn: bool,
@@ -85,7 +81,6 @@ fn main() {
         build_time = start_time.elapsed();
 
         if args.functions {program.print_functions()}
-        else if args.expr {program.print_exprs()}
         else {
             unsafe {
                 let return_value = program.run(args.arguments);
