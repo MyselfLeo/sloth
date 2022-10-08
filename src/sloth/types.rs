@@ -24,6 +24,7 @@ impl Type {
         }
     }
 
+
     /// Strict comparaison of types: the Type::Any won't match with any other type except Type::Any
     pub fn strict_eq(&self, other: &Self) -> bool {
         match (self, other) {

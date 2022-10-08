@@ -5,17 +5,14 @@ pub mod tokenstream;
 pub mod tokeniser;
 pub mod separator;
 pub mod keyword;
+pub mod operator;
 
 pub use tokenstream::TokenStream;
 pub use token::Token;
 pub use separator::Separator;
 pub use keyword::Keyword;
+pub use operator::Operator;
 
-
-
-pub const KEYWORDS: [&str; 11] = ["define", "->", "=", "if", "while", "builtin", "for", "new", "import", "structure", "static"];
-pub const OPERATORS: [&str; 12] = ["+", "-", "*", "/", "<=", ">=", "==", "<", ">", "&", "?", "!"];                                  // The '<=' and '>=' must be before '<' and '>' so the parsing works
-pub const SEPARATORS: [&str; 12] = ["(", ")", "{", "}", "[", "]", ";", ":", ",", "|", ".", "~"];
 
 // Unlike SEPARATORS, those do not have a semantic meaning (only used for separating tokens)
 pub const DEFAULT_SEPARATORS: [char; 2] = [' ', '"'];

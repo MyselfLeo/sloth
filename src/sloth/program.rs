@@ -4,14 +4,14 @@ use std::iter::zip;
 use std::rc::Rc;
 
 use crate::errors::{Error, ErrMsg, formatted_vec_string};
-use crate::element::ElementPosition;
+use crate::position::Position;
 use super::function::{SlothFunction, FunctionSignature};
 use super::scope::Scope;
-use super::expression::{Expression, ExpressionID};
+use super::expression::Expression;
 use super::structure::{StructSignature, ObjectBlueprint};
 use super::types::Type;
 use super::value::Value;
-use crate::built_in;
+use crate::builtins;
 
 
 
@@ -29,16 +29,14 @@ pub struct SlothProgram {
     _filename: String,
     functions: BTreeMap<FunctionSignature, Box<dyn SlothFunction>>,
     structures: HashMap<StructSignature, Box<dyn ObjectBlueprint>>,
-    expressions: HashMap<ExpressionID, Expression>,
-    expressions_nb: u64,
 
     // A static is an expression defined like a global variable (ex: static NUMBER = 34;). The expression
     // is evaluated in a blank scope each time it is called.
     // note: this is my workaround for constants. It's not really constant but it's not really mutable....
-    statics: HashMap<String, ExpressionID>,
+    statics: HashMap<String, Rc<Expression>>,
 
     imported_modules: Vec<String>,
-    builtins: Vec<built_in::BuiltInImport>,
+    builtins: Vec<builtins::BuiltInImport>,
 }
 
 impl SlothProgram {
@@ -47,8 +45,6 @@ impl SlothProgram {
             _filename: filename,
             functions: BTreeMap::new(),
             structures: HashMap::new(),
-            expressions: HashMap::new(),
-            expressions_nb: 0,
 
             statics: HashMap::new(),
 
@@ -58,7 +54,7 @@ impl SlothProgram {
 
         if import_default_builtins {
             for import in DEFAULT_BUILTIN_IMPORTS {
-                program.add_import(built_in::BuiltInImport::new(import.to_string(), None));
+                program.add_import(builtins::BuiltInImport::new(import.to_string(), None));
             }
         }
 
@@ -179,27 +175,8 @@ impl SlothProgram {
 
 
 
-    /// Add an expression to the Expression stack and return its ID
-    pub fn push_expr(&mut self, expr: Expression) -> ExpressionID {
-        let expr_id = ExpressionID::new(self.expressions_nb);
-        self.expressions.insert(expr_id.clone(), expr.clone());
-        self.expressions_nb += 1;
-
-        expr_id
-    }
-
-    /// Return a clone of an expression with the given ExpressionID
-    pub fn get_expr(&self, id: ExpressionID) -> Result<Expression, String> {
-        match self.expressions.get(&id) {
-            Some(v) => Ok(v.clone()),
-            None => Err("Tried to access an expression with a wrong expression ID".to_string())
-        }
-    }
-
-
-
     /// Add an expression to the statics, return error if the name is already used
-    pub fn push_static(&mut self, name: &String, expr: ExpressionID) -> Result<(), String> {
+    pub fn push_static(&mut self, name: &String, expr: Rc<Expression>) -> Result<(), String> {
         match self.statics.insert(name.clone(), expr) {
             Some(_) => Err(format!("Static expression '{}' is already defined", name)),
             None => Ok(()),
@@ -210,7 +187,7 @@ impl SlothProgram {
     /// None if it does not exists, or an error string if something occured
     pub fn get_static(&mut self, name: &String) -> Result<Option<Rc<RefCell<Value>>>, Error> {
         let expr = match self.statics.get(name) {
-            Some(v) => self.get_expr(*v).expect("A static expression was deleted from the program's expression stack"),
+            Some(v) => v.clone(),
             None => return Ok(None)
         };
 
@@ -237,7 +214,7 @@ impl SlothProgram {
 
 
     /// Add a new import to the program
-    pub fn add_import(&mut self, import: built_in::BuiltInImport) {
+    pub fn add_import(&mut self, import: builtins::BuiltInImport) {
         if !self.builtins.contains(&import) {
             if !self.imported_modules.contains(&import.module) {
                 self.imported_modules.push(import.module.clone())
@@ -250,7 +227,7 @@ impl SlothProgram {
 
     /// Import the requested builtins
     pub fn import_builtins(&mut self) -> Result<(), String> {
-        let (f, s) = built_in::collapse_imports(self.builtins.clone())?;
+        let (f, s) = builtins::collapse_imports(self.builtins.clone())?;
         for function in f {self.push_function(function);}
         for blueprint in s {
             let sign = blueprint.get_signature();
@@ -273,9 +250,9 @@ impl SlothProgram {
         let main_inputs = main_func.get_signature().input_types.unwrap();
 
         // Convert given arguments to Values, push them to the Expression Stack and store its Expression ids
-        let mut args_id: Vec<ExpressionID> = Vec::new();
+        let mut args: Vec<Rc<Expression>> = Vec::new();
 
-        let dummy_pos = ElementPosition {filename: "".to_string(), line: 0, first_column: 0, last_column: Some(0)};
+        let dummy_pos = Position {filename: "".to_string(), line: 0, first_column: 0, last_column: Some(0)};
 
         if s_args.len() != main_inputs.len() {
             // Create a string representing the required arguments types, like "num, bool, string"
@@ -293,12 +270,11 @@ impl SlothProgram {
                 }
             };
 
-            let expr = Expression::Literal(value, dummy_pos.clone());
-            args_id.push(self.push_expr(expr))
+            args.push(Rc::new(Expression::Literal(value, dummy_pos.clone())));
         }
 
         // Call the main function
-        let f_call = Expression::FunctionCall(None, main_func_id, args_id, dummy_pos.clone());
+        let f_call = Expression::FunctionCall(None, main_func_id, args, dummy_pos.clone());
 
         let scope = Rc::new(RefCell::new(Scope::new()));
         match f_call.evaluate(scope, self, false) {
@@ -346,16 +322,6 @@ impl SlothProgram {
             };
 
             println!("{:25}{:15}{:15}{:25}{:15}", signature.name, type_txt, module_txt, input_types_txt, output_type_str);
-        }
-    }
-
-
-
-    /// Print to console the list of expressions defined in the program
-    pub fn print_exprs(self)  {
-        println!("{:15}{}", "EXPRESSION ID", "EXPRESSION");
-        for (id, e) in self.expressions {
-            println!("{:<15}{:?}", id.id, e);
         }
     }
 }

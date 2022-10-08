@@ -1,9 +1,9 @@
 mod lexer;
-mod errors;
+mod parser;
 mod sloth;
-mod built_in;
-mod builder;
-mod element;
+mod builtins;
+mod errors;
+mod position;
 
 use clap::Parser;
 use sloth::program::SlothProgram;
@@ -37,10 +37,6 @@ struct Args {
     #[clap(long, value_parser)]
     functions: bool,
 
-    /// Display the list of the expressions generated from the file instead of running it
-    #[clap(long, value_parser)]
-    expr: bool,
-
     /// Disable warnings
     #[clap(long, value_parser)]
     nowarn: bool,
@@ -64,7 +60,6 @@ fn main() {
     let exec_time: Duration;
     let filename = args.file;
 
-
     if args.tokens {
         let tokens = match lexer::get_token_stream(&filename) {
             Ok(t) => t,
@@ -78,7 +73,7 @@ fn main() {
 
     else {
         // build the program
-        let mut program: SlothProgram = match builder::from(filename.clone(), !args.nowarn, !args.nodefault) {
+        let mut program: SlothProgram = match parser::build_program(filename.clone(), !args.nowarn, !args.nodefault) {
             Err(e) => {e.abort(); return},
             Ok(p) => p,
         };
@@ -86,7 +81,6 @@ fn main() {
         build_time = start_time.elapsed();
 
         if args.functions {program.print_functions()}
-        else if args.expr {program.print_exprs()}
         else {
             unsafe {
                 let return_value = program.run(args.arguments);

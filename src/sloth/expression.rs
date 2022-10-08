@@ -2,37 +2,26 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use super::function::{FunctionSignature};
+use super::operation::Operation;
 use super::structure::{StructSignature};
 use super::types::Type;
 use super::value::{Value, DeepClone};
-use super::operator::{Operator, apply_op};
 use super::scope::Scope;
 use super::program::SlothProgram;
 use crate::errors::{Error, ErrMsg};
-use crate::element::ElementPosition;
-
-#[derive(Clone, Copy, PartialEq, Eq, Hash, Debug)]
-/// Used by scopes to reference to parent scope in the Scope stack
-pub struct ExpressionID {
-    pub id: u64
-}
-impl ExpressionID {
-    pub fn new(value: u64) -> ExpressionID {
-        ExpressionID { id: value }
-    }
-}
+use crate::position::Position;
 
 
 #[derive(Clone, Debug)]
 /// Expressions are objects that can be evaluated into a value
 pub enum Expression {
-    Literal(Value, ElementPosition),                                                             // value of the literal
-    ListInit(Vec<ExpressionID>, ElementPosition),                                                // list initialised in code. Example: [1 2 3 4 5]
-    VariableAccess(Option<ExpressionID>, String, ElementPosition),                               // ExpressionID to the owner of the field and its name,
-    BracketAcces(ExpressionID, ExpressionID, ElementPosition),                                   // Owner, indexing expression
-    Operation(Operator, Option<ExpressionID>, Option<ExpressionID>, ElementPosition),            // Operator to apply to one or 2 values from the Scope Expression stack (via index)
-    FunctionCall(Option<ExpressionID>, FunctionSignature, Vec<ExpressionID>, ElementPosition),   // optional owner (for method calls), name of the function and its list of expressions to be evaluated
-    ObjectConstruction(StructSignature, Vec<ExpressionID>, ElementPosition),                     // The construction of an Object, with the 'new' keyword
+    Literal(Value, Position),                                                                   // value of the literal
+    ListInit(Vec<Rc<Expression>>, Position),                                                    // list initialised in code. Example: [1 2 3 4 5]
+    VariableAccess(Option<Rc<Expression>>, String, Position),                                   // ExpressionID to the owner of the field and its name,
+    BracketAccess(Rc<Expression>, Rc<Expression>, Position),                                    // Owner, indexing expression
+    Operation(Operation, Position),                                                             // Operator to apply to one or 2 values from the Scope Expression stack (via index)
+    FunctionCall(Option<Rc<Expression>>, FunctionSignature, Vec<Rc<Expression>>, Position),     // optional owner (for method calls), name of the function and its list of expressions to be evaluated
+    ObjectConstruction(StructSignature, Vec<Rc<Expression>>, Position),                         // The construction of an Object, with the 'new' keyword
 }
 
 
@@ -42,33 +31,21 @@ impl Expression {
     /// Evaluate the expression in the given context (scope and program) and return its value
     pub unsafe fn evaluate(&self, scope: Rc<RefCell<Scope>>, program: *mut SlothProgram, for_assignment: bool) -> Result<Rc<RefCell<Value>>, Error> {
 
-        match self {
+        let res = match self {
             // return this literal value
             Expression::Literal(v, _) => Ok(Rc::new(RefCell::new(v.clone()))),
 
             // a list
-            Expression::ListInit(exprs, p) => {
+            Expression::ListInit(exprs, _) => {
                 let mut values = Vec::new();
                 let mut list_type = Type::Any;
 
                 if exprs.len() != 0 {
-                    // get the type of the list from the first expression
-                    let expr = match program.as_ref().unwrap().get_expr(exprs[0]) {
-                        Ok(e) => e,
-                        Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
-                    };
-                    values.push(expr.evaluate(scope.clone(), program, false)?);
-
+                    values.push(exprs[0].evaluate(scope.clone(), program, false)?);
                     list_type = values[0].borrow().get_type();
 
-
                     // Add the other elements to the value list, but checking the type of the value first
-                    for id in exprs.iter().skip(1) {
-                        let expr = match program.as_ref().unwrap().get_expr(*id) {
-                            Ok(e) => e,
-                            Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
-                        };
-
+                    for expr in exprs.iter().skip(1) {
                         let value = expr.evaluate(scope.clone(), program, false)?;
 
                         if value.borrow().get_type() == list_type {values.push(value);}
@@ -93,14 +70,8 @@ impl Expression {
                     // Field of a value
                     Some(o) => {
                         // Get the reference to the owner
-                        let owner_expr = match program.as_mut().unwrap().get_expr(*o) {
-                            Ok(e) => e,
-                            Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
-                        };
-                        let owner_ref = owner_expr.evaluate(scope.clone(), program, false)?;
-
+                        let owner_ref = o.evaluate(scope.clone(), program, false)?;
                         let field = owner_ref.borrow().get_field(name);
-
                         match field {
                             Ok(v) => Ok(v),
                             Err(e) => Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))
@@ -154,58 +125,24 @@ impl Expression {
 
 
             // process the operation and return the result
-            Expression::Operation(op, lhs, rhs, p) => {
-                // Get the value of both lhs and rhs
-                let lhs = match lhs {
-                    None => None,
-                    Some(i) => {
-                        let expr = match program.as_ref().unwrap().get_expr(*i) {
-                            Ok(e) => e,
-                            Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
-                        };
-                        
-                        Some(expr.evaluate(scope.clone(), program, false)?)
-                    }
-                };
-                let rhs = match rhs {
-                    None => None,
-                    Some(i) => {
-                        let expr = match program.as_ref().unwrap().get_expr(*i) {
-                            Ok(e) => e,
-                            Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
-                        };
-                        
-                        Some(expr.evaluate(scope, program, false)?)
-                    }
-                };
-                
-                //apply op
-                match apply_op(op, lhs, rhs) {
-                    Ok(v) => Ok(Rc::new(RefCell::new(v))),
-                    Err(s) => Err(Error::new(ErrMsg::InvalidArguments(s), Some(p.clone())))
-                }
+            Expression::Operation(operation, _) => {
+                let value = operation.execute(scope, program.as_mut().unwrap())?;
+                Ok(Rc::new(RefCell::new(value)))
             }
 
 
             
             Expression::FunctionCall(owner, signature, arguments, p) => {
-
                 let mut signature_clone = signature.clone();
                 
-
                 // Get the owner value reference
                 let owner_value = match owner {
                     Some(s) => {
-                        match program.as_ref().unwrap().get_expr(*s) {
-                            Ok(e) => Some(e.evaluate(scope.clone(), program, false)?),
-                            Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
-                        }
+                        Some(s.evaluate(scope.clone(), program, false)?)
                     },
-
                     None => None
                 };
 
-                
                 // try to find if the method, applied to the type of the value, exists
                 // TODO: Make defining owned function both work for 'list' (means List(Any)) and 'list[type]'
                 signature_clone.owner_type = match owner_value {
@@ -236,16 +173,8 @@ impl Expression {
 
 
                 // Evaluate each given expression in the scope, and create an input variable (@0, @1, etc.) with the set value
-                for (i, param_expr_id) in arguments.iter().enumerate() {
-
-                    let expr = match program.as_ref().unwrap().get_expr(*param_expr_id) {
-                        Ok(e) => e,
-                        Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
-                    };
-
-                    
-                    let mut value = expr.evaluate(scope.clone(), program, false)?;
-
+                for (i, param) in arguments.iter().enumerate() {
+                    let mut value = param.evaluate(scope.clone(), program, false)?;
 
                     // if the values are cloned, allocate a new Value instead of using the reference given by expr.evaluate()
                     if !inputs_ref_or_cloned[i] {
@@ -337,12 +266,7 @@ impl Expression {
                 // Evaluate each given values
                 let mut given_values = Vec::new();
 
-                for expr_id in given_fields {
-                    let expr = match program.as_ref().unwrap().get_expr(*expr_id) {
-                        Ok(e) => e,
-                        Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
-                    };
-
+                for expr in given_fields {
                     given_values.push(expr.evaluate(scope.clone(), program, false)?);
                 }
 
@@ -356,20 +280,24 @@ impl Expression {
             },
 
             
-            Expression::BracketAcces(owner, access_expr_id, p) => {
-                // get the field by evaluating access_expr_id into a string
-                let access_expr = match program.as_mut().unwrap().get_expr(*access_expr_id) {
-                    Ok(e) => e,
-                    Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
-                };
-                let access_ref = access_expr.evaluate(scope.clone(), program, false)?;
+            Expression::BracketAccess(owner, access, p) => {
+                let access_ref = access.evaluate(scope.clone(), program, false)?;
                 let access_str = access_ref.borrow().to_string();
 
 
                 // create a new expression::variableaccess and evaluate it
-                let expr = Expression::VariableAccess(Some(*owner), access_str, p.clone());
+                let expr = Expression::VariableAccess(Some(owner.clone()), access_str, p.clone());
                 expr.evaluate(scope, program, for_assignment)
             },
+        };
+
+
+        match res {
+            Ok(v) => Ok(v),
+            Err(mut e) => {
+                e.clog_pos(self.get_pos());
+                Err(e)
+            }
         }
     }
 
@@ -378,15 +306,15 @@ impl Expression {
 
 
     /// Return the position of the expression
-    pub fn get_pos(&self) -> ElementPosition {
+    pub fn get_pos(&self) -> Position {
         match self {
             Expression::Literal(_, p) => p,
             Expression::ListInit(_, p) => p,
             Expression::VariableAccess(_, _, p) => p,
-            Expression::Operation(_, _, _, p) => p,
+            Expression::Operation(_, p) => p,
             Expression::FunctionCall(_, _, _, p) => p,
             Expression::ObjectConstruction(_, _, p) => p,
-            Expression::BracketAcces(_, _, p) => p,
+            Expression::BracketAccess(_, _, p) => p,
         }.clone() 
     }
 }

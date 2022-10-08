@@ -2,8 +2,8 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::errors::{Error, ErrMsg};
-use crate::element::ElementPosition;
-use super::expression::ExpressionID;
+use crate::position::Position;
+use super::expression::Expression;
 use super::scope::Scope;
 use super::program::SlothProgram;
 use super::value::Value;
@@ -11,10 +11,10 @@ use super::value::Value;
 /// Statements are instructions that modify a scope (variable assignment for example)
 #[derive(Clone, Debug)]
 pub enum Statement {
-    Assignment(ExpressionID, ExpressionID, ElementPosition),            // Assignment of an expression evaluation to a variable
-    ExpressionCall(ExpressionID, ElementPosition),                      // Evaluation of an expression, not storing it
-    If(ExpressionID, Vec<Statement>, ElementPosition),                  // If block. Condition expr index and list of statements
-    While(ExpressionID, Vec<Statement>, ElementPosition),               // while look. same specs as if
+    Assignment(Rc<Expression>, Rc<Expression>, Position),            // Assignment of an expression evaluation to a variable
+    ExpressionCall(Rc<Expression>, Position),                      // Evaluation of an expression, not storing it
+    If(Rc<Expression>, Vec<Statement>, Position),                  // If block. Condition expr index and list of statements
+    While(Rc<Expression>, Vec<Statement>, Position),               // while look. same specs as if
 }
 
 
@@ -26,22 +26,10 @@ impl Statement {
     // Apply the statement to the given scope
     pub unsafe fn apply(&self, scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
         match self {
-            Statement::Assignment(target_id, source_id, p) => {
-
-                // Get the reference to the source
-                let source_expr = match program.get_expr(*source_id) {
-                    Ok(e) => e,
-                    Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
-                };
-                let source_ref = source_expr.evaluate(scope.clone(), program, false)?;
-
-
-                // Get the reference to the target
-                let target_expr = match program.get_expr(*target_id) {
-                    Ok(e) => e,
-                    Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
-                };
-                let target_ref = target_expr.evaluate(scope.clone(), program, true)?;
+            Statement::Assignment(target, source, p) => {
+                // Get the reference to the source and target
+                let source_ref = source.evaluate(scope.clone(), program, false)?;
+                let target_ref = target.evaluate(scope.clone(), program, true)?;
 
                 // Compare the types, and if they match, assign the new value
                 let source_type = source_ref.borrow().get_type();
@@ -61,24 +49,13 @@ impl Statement {
                 Ok(())
             },
 
-            Statement::ExpressionCall(expr_id, p) => {
-                let expr = match program.get_expr(*expr_id) {
-                    Ok(e) => e,
-                    Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
-                };
-
+            Statement::ExpressionCall(expr, _) => {
                 expr.evaluate(scope, program, false)?;
-
                 Ok(())
             },
 
-            Statement::If(cond_expr_id, statements, p) => {
-                let expr = match program.get_expr(*cond_expr_id) {
-                    Ok(e) => e,
-                    Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
-                };
-
-                let cond_value = expr.evaluate(scope.clone(), program, false)?.borrow().to_owned();
+            Statement::If(cond, statements, p) => {
+                let cond_value = cond.evaluate(scope.clone(), program, false)?.borrow().to_owned();
                 match cond_value {
                     Value::Boolean(true) => {
                         for statement in statements {statement.apply(scope.clone(), program)?}
@@ -90,17 +67,12 @@ impl Statement {
                 Ok(())
             },
 
-            Statement::While(cond_expr_id, statements, p) => {
-                let expr = match program.get_expr(*cond_expr_id) {
-                    Ok(e) => e,
-                    Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
-                };
-
-                let mut loop_cond = expr.evaluate(scope.clone(), program, false)?.borrow().to_owned() == Value::Boolean(true);
+            Statement::While(cond, statements, _) => {
+                let mut loop_cond = cond.evaluate(scope.clone(), program, false)?.borrow().to_owned() == Value::Boolean(true);
                 
                 while loop_cond {
                     for statement in statements {statement.apply(scope.clone(), program)?}
-                    loop_cond = expr.evaluate(scope.clone(), program, false)?.borrow().to_owned() == Value::Boolean(true);
+                    loop_cond = cond.evaluate(scope.clone(), program, false)?.borrow().to_owned() == Value::Boolean(true);
                 }
 
                 Ok(())
@@ -109,7 +81,7 @@ impl Statement {
     }
 
 
-    pub fn get_pos(&self) -> ElementPosition {
+    pub fn get_pos(&self) -> Position {
         match self {
             Statement::Assignment(_, _, p) => p.clone(),
             Statement::ExpressionCall(_, p) => p.clone(),
