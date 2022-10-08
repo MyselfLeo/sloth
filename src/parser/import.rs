@@ -7,7 +7,6 @@ use crate::errors::{Error, ErrMsg};
 
 /// Parse an "import" statement, i.e the import of another .slo file. Different from the "builtin" statement which '''imports''' builtin functions and structures
 pub fn parse_import(stream: &mut TokenStream, program: &mut SlothProgram, warning: bool, _: String) -> Result<(), Error> {
-    println!("parsing import");
     // import keyword
     let (_, first_pos) = super::expect_token(stream, Token::Keyword(Keyword::Import))?;
     

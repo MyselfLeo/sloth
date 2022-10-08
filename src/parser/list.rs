@@ -8,8 +8,6 @@ use super::expression::parse_expression;
 
 
 pub fn parse_list(stream: &mut TokenStream, program: &mut SlothProgram, warning: bool) -> Result<Expression, Error> {
-    println!("parsing list");
-
     let (_, start_pos) = super::expect_token(stream, Token::Separator(Separator::OpenSquareBracket))?;
 
     // parse each expr until the ]

@@ -16,8 +16,6 @@ use super::functioncall::parse_functioncall;
 
 
 pub fn parse_expression(stream: &mut TokenStream, program: &mut SlothProgram, warning: bool, first_expr: Option<Rc<Expression>>) -> Result<Expression, Error> {
-    println!("parsing expression {:?}", stream.current());
-    
     // guess expr type from first token
     let expr = match stream.current() {
         Some((Token::Literal(_), ..)) => parse_literal(stream, program, warning)?,

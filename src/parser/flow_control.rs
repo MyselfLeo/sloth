@@ -12,8 +12,6 @@ use super::statement::parse_statement;
 
 
 pub fn parse_if(stream: &mut TokenStream, program: &mut SlothProgram, warning: bool) -> Result<Statement, Error> {
-    println!("parsing if");
-
     let (_, first_pos) = super::expect_token(stream, Token::Keyword(Keyword::If))?;
     let condition = parse_expression(stream, program, warning, None)?;
     super::expect_token(stream, Token::Separator(Separator::OpenBracket))?;

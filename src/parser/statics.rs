@@ -10,8 +10,6 @@ use super::expression::parse_expression;
 
 /// Push the static exprs to the program
 pub fn parse_static_expr(stream: &mut TokenStream, program: &mut SlothProgram, warning: bool) -> Result<(), Error> {
-    println!("parsing static expr");
-
     // static keyword
     let (_, first_pos) = super::expect_token(stream, Token::Keyword(Keyword::Static))?;
 

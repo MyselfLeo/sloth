@@ -7,8 +7,6 @@ use crate::errors::Error;
 
 /// Parse a type (ex: num, string, list[num], Struct, list[list[string]], etc.)
 pub fn parse_type(stream: &mut TokenStream, program: &mut SlothProgram, module_name: &Option<String>, warning: bool) -> Result<(Type, Position), Error> {
-    println!("parsing type");
-
     let first_pos;
     let mut last_pos;
 

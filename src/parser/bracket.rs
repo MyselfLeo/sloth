@@ -12,9 +12,6 @@ use super::expression::parse_expression;
 
 /// expression[access]
 pub fn parse_bracket_access(stream: &mut TokenStream, program: &mut SlothProgram, warning: bool, first_expr: Rc<Expression>) -> Result<Expression, Error> {
-
-    println!("parsing bracket access");
-
     // opening [
     let (_, first_pos) = super::expect_token(stream, Token::Separator(Separator::OpenSquareBracket))?;
     // field identifier
