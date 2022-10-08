@@ -1,5 +1,0 @@
-builtin io; # Import the builtin functions from the module 'io'. This includes 'print'
-
-define main: -> num {
-    print("Hello, world!\n");
-}
