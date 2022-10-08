@@ -5,8 +5,6 @@ I do not ensure the stability of the language: **use it at your own risk!**
 
 ## Syntax example
 ```
-builtin io;
-
 # Return the factorial of @0
 define factorial: num -> num {
     @return = 1;
