@@ -4,6 +4,7 @@ use crate::position::Position;
 use crate::lexer::{Token, TokenStream, Separator, Keyword};
 use crate::errors::{Error, ErrMsg, Warning};
 use crate::sloth::program::SlothProgram;
+use crate::sloth::structure::ObjectBlueprint;
 
 mod types;
 mod structure;
@@ -149,7 +150,7 @@ pub fn parse_file(filename: String, program: &mut SlothProgram, warning: bool, i
 
     let module_name = match is_main {
         true => None,
-        false => Some(PathBuf::from(filename).file_stem().unwrap().to_str().unwrap().to_string()),
+        false => Some(PathBuf::from(&filename).file_stem().unwrap().to_str().unwrap().to_string()),
     };
 
     // main building loop, going over each tokens
@@ -163,19 +164,37 @@ pub fn parse_file(filename: String, program: &mut SlothProgram, warning: bool, i
                 match n {
                     Keyword::Builtin => {
                         let import = builtin::parse_builtin(&mut stream, program, warning)?;
-                        program.
+                        program.add_import(import);
                     },
                     Keyword::Import => {
                         import::parse_import(&mut stream, program, warning, filename.clone())?;
-                        todo!()
                     },
-                    Keyword::Static => statics::parse_static_expr(&mut stream, program, warning)?,
+                    Keyword::Static => {
+                        statics::parse_static_expr(&mut stream, program, warning)?;
+                    },
                     Keyword::Structure => {
                         let structure = structure::parse_structure(&mut stream, program, &module_name, warning)?;
+                        let res = program.push_struct(
+                            structure.get_signature().name,
+                            structure.get_signature().module,
+                            Box::new(structure)
+                        );
+
+                        // raise warning if the struct is overwritten
+                        match res {
+                            None => (),
+                            Some(w) => Warning::new(w, None).warn()
+                        }
                     },
                     Keyword::Define => {
                         let function = function::parse_function(&mut stream, program, &module_name, warning)?;
+                        let res = program.push_function(Box::new(function));
 
+                        // raise warning if the function is overwritten
+                        match res {
+                            None => (),
+                            Some(w) => Warning::new(w, None).warn()
+                        }
                     },
 
                     t => {
@@ -189,4 +208,24 @@ pub fn parse_file(filename: String, program: &mut SlothProgram, warning: bool, i
         }
     };
     Ok(())
+}
+
+
+
+
+
+
+
+
+/// 
+pub fn build_program(filename: String, warning: bool, import_default_builtins: bool) -> Result<SlothProgram, Error> {
+    let mut program = SlothProgram::new(PathBuf::from(&filename).file_stem().unwrap().to_str().unwrap().to_string(), import_default_builtins);
+    parse_file(filename, &mut program, warning, true)?;
+
+    match program.import_builtins() {
+        Ok(()) => (),
+        Err(e) => return Err(Error::new(ErrMsg::ImportError(e), None))
+    };
+
+    Ok(program)
 }

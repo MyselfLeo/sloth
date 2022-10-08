@@ -17,7 +17,7 @@ use super::statement::parse_statement;
 
 pub fn parse_function(stream: &mut TokenStream, program: &mut SlothProgram, module_name: &Option<String>, warning: bool) -> Result<CustomFunction, Error> {
     // "define' keyword
-    let (_, first_pos) = super::expect_token(stream, Token::Keyword(Keyword::Define))?;
+    super::expect_token(stream, Token::Keyword(Keyword::Define))?;
 
     // function name
     let func_name = match stream.current() {
@@ -44,7 +44,7 @@ pub fn parse_function(stream: &mut TokenStream, program: &mut SlothProgram, modu
     // input types until '->'
     let mut input_types: Vec<(Type, bool)> = Vec::new(); // bool => true = passed by reference
 
-    while super::current_equal(stream, Token::Keyword(Keyword::LeftArrow))? {
+    while !super::current_equal(stream, Token::Keyword(Keyword::LeftArrow))? {
         let by_ref = super::current_equal(stream, Token::Separator(Separator::Tilde))?;
         if by_ref {stream.next();};
 
@@ -63,7 +63,7 @@ pub fn parse_function(stream: &mut TokenStream, program: &mut SlothProgram, modu
 
     // each statement until '}'
     let mut statements: Vec<Statement> = Vec::new();
-    while super::current_equal(stream, Token::Separator(Separator::CloseBracket))? {
+    while !super::current_equal(stream, Token::Separator(Separator::CloseBracket))? {
         statements.push(parse_statement(stream, program, warning)?);
     };
 

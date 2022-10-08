@@ -18,11 +18,13 @@ pub fn parse_operation(stream: &mut TokenStream, program: &mut SlothProgram, war
     };
 
     let lhs = Rc::new(parse_expression(stream, program, warning, None)?);
+    let lhs_pos = lhs.get_pos();
 
     let (operation, pos) = {
         // use rhs if not the inverse operator (1 operand)
         if operator != Operator::Inv {
             let rhs = Rc::new(parse_expression(stream, program, warning, None)?);
+            let rhs_pos = rhs.get_pos();
 
             let operation = match operator {
                 Operator::Add => Operation::Addition(lhs, rhs),
@@ -38,10 +40,10 @@ pub fn parse_operation(stream: &mut TokenStream, program: &mut SlothProgram, war
                 Operator::Or => Operation::Or(lhs, rhs),
                 _ => unreachable!(),
             };
-            (operation, first_pos.until(rhs.get_pos()))
+            (operation, first_pos.until(rhs_pos))
         }
         else {
-            (Operation::Inverse(lhs), first_pos.until(lhs.get_pos()))
+            (Operation::Inverse(lhs), first_pos.until(lhs_pos))
         }
     };
 

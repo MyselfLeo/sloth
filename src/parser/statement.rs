@@ -16,16 +16,18 @@ pub fn parse_statement(stream: &mut TokenStream, program: &mut SlothProgram, war
         // expr call or assignment
         Some((Token::Identifier(_), _)) => {
             let target = parse_expression(stream, program, warning, None)?;
+            let target_pos = target.get_pos();
 
             // if a '=' follows, it's an assignment, else it's an expression call
             if super::current_equal(stream, Token::Keyword(Keyword::Equal))? {
                 stream.next();
                 let source = parse_expression(stream, program, warning, None)?;
+                let source_pos = source.get_pos();
                 // return the assignment
-                Statement::Assignment(Rc::new(target), Rc::new(source), target.get_pos().until(source.get_pos()))
+                Statement::Assignment(Rc::new(target), Rc::new(source), target_pos.until(source_pos))
             }
             else {
-                Statement::ExpressionCall(Rc::new(target), target.get_pos())
+                Statement::ExpressionCall(Rc::new(target), target_pos)
             }
         },
 

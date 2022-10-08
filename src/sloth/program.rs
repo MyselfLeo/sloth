@@ -210,7 +210,7 @@ impl SlothProgram {
     /// None if it does not exists, or an error string if something occured
     pub fn get_static(&mut self, name: &String) -> Result<Option<Rc<RefCell<Value>>>, Error> {
         let expr = match self.statics.get(name) {
-            Some(v) => v,
+            Some(v) => v.clone(),
             None => return Ok(None)
         };
 

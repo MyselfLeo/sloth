@@ -24,6 +24,7 @@ pub fn parse_functioncall(stream: &mut TokenStream, program: &mut SlothProgram, 
                 Some(p) => p,
                 None => n_pos
             };
+            stream.next();
             (n, p)
         },
         o => return Err(super::wrong_token(o, "function"))

@@ -12,7 +12,7 @@ pub fn parse_builtin(stream: &mut TokenStream, _: &mut SlothProgram, warning: bo
     let (_, mut pos) = super::expect_token(stream, Token::Keyword(Keyword::Builtin))?;
 
     // module name
-    let module = match stream.next() {
+    let module = match stream.current() {
         Some((Token::Identifier(n), p)) => {pos = pos.until(p); n},
         o => return Err(super::wrong_token(o, "module"))
     };
@@ -25,7 +25,7 @@ pub fn parse_builtin(stream: &mut TokenStream, _: &mut SlothProgram, warning: bo
     // imported element name
     let builtin = {
         if is_particular {
-            let v = match stream.next() {
+            let v = match stream.current() {
                 Some((Token::Identifier(n), p)) => {pos = pos.until(p); vec![n]},
                 o => return Err(super::wrong_token(o, "function or structure name"))
             };

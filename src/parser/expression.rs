@@ -20,7 +20,7 @@ pub fn parse_expression(stream: &mut TokenStream, program: &mut SlothProgram, wa
     //let is_parenthesied = super::current_equal(stream, Token::Separator(Separator::OpenParenthesis))?;
     
     // guess expr type from first token
-    let expr = match stream.next() {
+    let expr = match stream.current() {
         Some((Token::Literal(_), ..)) => parse_literal(stream, program, warning)?,
         Some((Token::Separator(Separator::OpenSquareBracket), _)) => {
             match first_expr {

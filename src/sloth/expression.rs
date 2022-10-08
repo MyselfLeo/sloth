@@ -297,7 +297,7 @@ impl Expression {
 
 
                 // create a new expression::variableaccess and evaluate it
-                let expr = Expression::VariableAccess(Some(*owner), access_str, p.clone());
+                let expr = Expression::VariableAccess(Some(owner.clone()), access_str, p.clone());
                 expr.evaluate(scope, program, for_assignment)
             },
         };

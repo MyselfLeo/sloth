@@ -3,7 +3,6 @@ mod parser;
 mod sloth;
 mod builtins;
 mod errors;
-mod builder;
 mod position;
 
 use clap::Parser;
@@ -79,7 +78,7 @@ fn main() {
 
     else {
         // build the program
-        let mut program: SlothProgram = match builder::from(filename.clone(), !args.nowarn, !args.nodefault) {
+        let mut program: SlothProgram = match parser::build_program(filename.clone(), !args.nowarn, !args.nodefault) {
             Err(e) => {e.abort(); return},
             Ok(p) => p,
         };

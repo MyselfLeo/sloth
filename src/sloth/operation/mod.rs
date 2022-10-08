@@ -39,67 +39,67 @@ impl Operation {
         let res = match self {
             Operation::Addition(e1, e2) => {
                 addition::add(
-                    e1.evaluate(scope, program, false)?,
+                    e1.evaluate(scope.clone(), program, false)?,
                     e2.evaluate(scope, program, false)?
                 )
             },
             Operation::Substraction(e1, e2) => {
                 substraction::sub(
-                    e1.evaluate(scope, program, false)?,
+                    e1.evaluate(scope.clone(), program, false)?,
                     e2.evaluate(scope, program, false)?
                 )
             },
             Operation::Multiplication(e1, e2) => {
                 multiplication::mul(
-                    e1.evaluate(scope, program, false)?,
+                    e1.evaluate(scope.clone(), program, false)?,
                     e2.evaluate(scope, program, false)?
                 )
             },
             Operation::Division(e1, e2) => {
                 division::div(
-                    e1.evaluate(scope, program, false)?,
+                    e1.evaluate(scope.clone(), program, false)?,
                     e2.evaluate(scope, program, false)?
                 )
             },
             Operation::Equal(e1, e2) => {
                 comparaison::equal(
-                    e1.evaluate(scope, program, false)?,
+                    e1.evaluate(scope.clone(), program, false)?,
                     e2.evaluate(scope, program, false)?
                 )
             },
             Operation::Greater(e1, e2) => {
                 comparaison::greater(
-                    e1.evaluate(scope, program, false)?,
+                    e1.evaluate(scope.clone(), program, false)?,
                     e2.evaluate(scope, program, false)?
                 )
             },
             Operation::Lower(e1, e2) => {
                 comparaison::lower(
-                    e1.evaluate(scope, program, false)?,
+                    e1.evaluate(scope.clone(), program, false)?,
                     e2.evaluate(scope, program, false)?
                 )
             },
             Operation::GreaterEqual(e1, e2) => {
                 comparaison::greater_equal(
-                    e1.evaluate(scope, program, false)?,
+                    e1.evaluate(scope.clone(), program, false)?,
                     e2.evaluate(scope, program, false)?
                 )
             },
             Operation::LowerEqual(e1, e2) => {
                 comparaison::lower_equal(
-                    e1.evaluate(scope, program, false)?,
+                    e1.evaluate(scope.clone(), program, false)?,
                     e2.evaluate(scope, program, false)?
                 )
             },
             Operation::And(e1, e2) => {
                 boolean::and(
-                    e1.evaluate(scope, program, false)?,
+                    e1.evaluate(scope.clone(), program, false)?,
                     e2.evaluate(scope, program, false)?
                 )
             },
             Operation::Or(e1, e2) => {
                 boolean::or(
-                    e1.evaluate(scope, program, false)?,
+                    e1.evaluate(scope.clone(), program, false)?,
                     e2.evaluate(scope, program, false)?
                 )
             },
