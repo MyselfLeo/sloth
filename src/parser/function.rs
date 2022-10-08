@@ -15,7 +15,7 @@ use super::statement::parse_statement;
 
 
 
-fn parse_function(stream: &mut TokenStream, program: &mut SlothProgram, module_name: &Option<String>, warning: bool) -> Result<CustomFunction, Error> {
+pub fn parse_function(stream: &mut TokenStream, program: &mut SlothProgram, module_name: &Option<String>, warning: bool) -> Result<CustomFunction, Error> {
     // "define' keyword
     let (_, first_pos) = super::expect_token(stream, Token::Keyword(Keyword::Define))?;
 

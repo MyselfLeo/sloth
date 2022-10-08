@@ -1,6 +1,9 @@
+use std::path::PathBuf;
+
 use crate::position::Position;
-use crate::lexer::{Token, TokenStream, Separator};
+use crate::lexer::{Token, TokenStream, Separator, Keyword};
 use crate::errors::{Error, ErrMsg, Warning};
+use crate::sloth::program::SlothProgram;
 
 mod types;
 mod structure;
@@ -121,4 +124,69 @@ pub fn module_check(stream: &mut TokenStream) -> Result<Option<(String, Position
         Ok(res)
     }
     else {Ok(None)}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/// Parse a whole file, populating the program object
+pub fn parse_file(filename: String, program: &mut SlothProgram, warning: bool, is_main: bool) -> Result<(), Error> {
+    let mut stream = crate::lexer::get_token_stream(&filename)?;
+
+    let module_name = match is_main {
+        true => None,
+        false => Some(PathBuf::from(filename).file_stem().unwrap().to_str().unwrap().to_string()),
+    };
+
+    // main building loop, going over each tokens
+    loop {
+        let token = stream.current();
+
+        match token {
+            None => break,
+
+            Some((Token::Keyword(n), p)) => {
+                match n {
+                    Keyword::Builtin => {
+                        let import = builtin::parse_builtin(&mut stream, program, warning)?;
+                        program.
+                    },
+                    Keyword::Import => {
+                        import::parse_import(&mut stream, program, warning, filename.clone())?;
+                        todo!()
+                    },
+                    Keyword::Static => statics::parse_static_expr(&mut stream, program, warning)?,
+                    Keyword::Structure => {
+                        let structure = structure::parse_structure(&mut stream, program, &module_name, warning)?;
+                    },
+                    Keyword::Define => {
+                        let function = function::parse_function(&mut stream, program, &module_name, warning)?;
+
+                    },
+
+                    t => {
+                        let error_msg = format!("Expected 'builtin', 'import', 'static', 'structure' or 'define', got unexpected keyword '{}'", t.to_string());
+                        return Err(Error::new(ErrMsg::SyntaxError(error_msg), Some(p)));
+                    }
+                }
+            },
+
+            o => return Err(wrong_token(o, "keyword"))
+        }
+    };
+    Ok(())
 }

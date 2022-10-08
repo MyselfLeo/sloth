@@ -1,9 +1,8 @@
 use std::rc::Rc;
 
-use crate::lexer::{Token, TokenStream, Keyword, Separator};
+use crate::lexer::{Token, TokenStream, Keyword};
 use crate::sloth::program::SlothProgram;
 use crate::errors::{Error, Warning, ErrMsg};
-use crate::sloth::statement::Statement;
 
 use super::expression::parse_expression;
 

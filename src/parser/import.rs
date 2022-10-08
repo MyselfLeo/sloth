@@ -12,12 +12,12 @@ use crate::sloth::types::Type;
 
 
 /// Parse an "import" statement, i.e the import of another .slo file. Different from the "builtin" statement which '''imports''' builtin functions and structures
-pub fn parse_import(stream: &mut TokenStream, program: &mut SlothProgram, warning: bool, origin_path: PathBuf) -> Result<(), Error> {
+pub fn parse_import(stream: &mut TokenStream, program: &mut SlothProgram, warning: bool, origin_path: String) -> Result<(), Error> {
     // import keyword
     let (_, first_pos) = super::expect_token(stream, Token::Keyword(Keyword::Import))?;
     
     // name of the file, as a literal (NOT an identifier)
-    let filename = match stream.current() {
+    let (filename, last_pos) = match stream.current() {
         Some((Token::Literal(s), p)) => {
             let re = Regex::new(r#"^"(.*)""#).unwrap();
             let file_name = match re.captures(&s) {
@@ -26,7 +26,7 @@ pub fn parse_import(stream: &mut TokenStream, program: &mut SlothProgram, warnin
             };
 
             match file_name {
-                Some(v) => v.as_str().to_string(),
+                Some(v) => (v.as_str().to_string(), p),
                 None => {
                     let err_msg = format!("Expected filename, got '{}'", s);
                     return Err(Error::new(ErrMsg::ImportError(err_msg), Some(p)))
@@ -38,20 +38,9 @@ pub fn parse_import(stream: &mut TokenStream, program: &mut SlothProgram, warnin
     };
 
     // parse the file for the program
-    parse_file(path, program, warning, false)?;
+    super::parse_file(filename, program, warning, false)?;
 
-
-    // A semicolon here is strongly recommended, but not necessary
-    match iterator.next() {
-        Some((Token::Separator(Separator::SemiColon), _)) => {iterator.next();},
-        Some((_, _)) => {
-            if warning {
-                let warning = Warning::new("Use of a semicolon at the end of each field definition is highly recommended".to_string(), Some(first_pos.until(last_pos)));
-                warning.warn();
-            }
-        },
-        None => return Err(eof_error(line!()))
-    }
+    super::check_semicolon(stream, warning, &first_pos.until(last_pos))?;
 
     Ok(())
 }

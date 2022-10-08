@@ -9,7 +9,7 @@ use super::types::parse_type;
 
 
 /// Parse a structure definition (starting with keyword "structure")
-fn parse_structure(stream: &mut TokenStream, program: &mut SlothProgram, module_name: &Option<String>, warning: bool) -> Result<CustomDefinition, Error> {
+pub fn parse_structure(stream: &mut TokenStream, program: &mut SlothProgram, module_name: &Option<String>, warning: bool) -> Result<CustomDefinition, Error> {
     // name of the structure
     let (struct_name, first_pos) = match stream.next() {
         Some((Token::Identifier(n), p)) => (n, p),
