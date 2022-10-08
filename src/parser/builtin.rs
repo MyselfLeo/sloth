@@ -8,6 +8,9 @@ use crate::errors::{Error, ErrMsg};
 
 /// Parse a 'builtin' statement, return the resulting BuiltInImport
 pub fn parse_builtin(stream: &mut TokenStream, _: &mut SlothProgram, warning: bool) -> Result<BuiltInImport, Error> {
+
+    println!("parsing builtin");
+
     // "builtin" keyword
     let (_, mut pos) = super::expect_token(stream, Token::Keyword(Keyword::Builtin))?;
 

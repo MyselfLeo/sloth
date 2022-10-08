@@ -11,9 +11,14 @@ use super::expression::parse_expression;
 
 /// Parse an operation
 pub fn parse_operation(stream: &mut TokenStream, program: &mut SlothProgram, warning: bool) -> Result<Expression, Error> {
+    println!("parsing operation");
+
     // The starting token must be an operator
     let (operator, first_pos) = match stream.current() {
-        Some((Token::Operator(s), p)) => (s, p),
+        Some((Token::Operator(s), p)) => {
+            stream.next();
+            (s, p)
+        },
         o => return Err(super::wrong_token(o, "operator"))
     };
 

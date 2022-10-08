@@ -12,6 +12,8 @@ use super::expression::parse_expression;
 
 
 pub fn parse_object_construction(stream: &mut TokenStream, program: &mut SlothProgram, warning: bool) -> Result<Expression, Error> {
+    println!("parsing object construction");
+
     let (_, first_pos) = super::expect_token(stream, Token::Keyword(Keyword::New))?;
 
     // the user can specify a module
@@ -22,7 +24,7 @@ pub fn parse_object_construction(stream: &mut TokenStream, program: &mut SlothPr
 
 
     let struct_name = match stream.current() {
-        Some((Token::Identifier(n), p)) => n,
+        Some((Token::Identifier(n), _)) => n,
         o => return Err(super::wrong_token(o, "structure")),
     };
 

@@ -12,6 +12,8 @@ use super::flow_control::parse_while;
 
 
 pub fn parse_statement(stream: &mut TokenStream, program: &mut SlothProgram, warning: bool) -> Result<Statement, Error> {
+    println!("parsing statement");
+
     let statement = match stream.current() {
         // expr call or assignment
         Some((Token::Identifier(_), _)) => {

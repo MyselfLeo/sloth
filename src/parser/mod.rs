@@ -10,7 +10,6 @@ mod types;
 mod structure;
 mod varcall;
 mod builtin;
-mod assignment;
 mod expression;
 mod literal;
 mod list;
@@ -146,6 +145,9 @@ pub fn module_check(stream: &mut TokenStream) -> Result<Option<(String, Position
 
 /// Parse a whole file, populating the program object
 pub fn parse_file(filename: String, program: &mut SlothProgram, warning: bool, is_main: bool) -> Result<(), Error> {
+
+    println!("parsing file {}", filename);
+
     let mut stream = crate::lexer::get_token_stream(&filename)?;
 
     let module_name = match is_main {

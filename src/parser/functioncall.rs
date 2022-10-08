@@ -11,6 +11,8 @@ use super::expression::parse_expression;
 
 
 pub fn parse_functioncall(stream: &mut TokenStream, program: &mut SlothProgram, warning: bool, first_expr: Option<Rc<Expression>>) -> Result<Expression, Error> {
+    println!("parsing functioncall");
+
     // the user can specify a module
     let (module_name, temp_fpos) = match super::module_check(stream)? {
         Some((m, p)) => (Some(m), Some(p)),

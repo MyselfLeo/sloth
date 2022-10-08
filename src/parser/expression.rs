@@ -16,8 +16,7 @@ use super::functioncall::parse_functioncall;
 
 
 pub fn parse_expression(stream: &mut TokenStream, program: &mut SlothProgram, warning: bool, first_expr: Option<Rc<Expression>>) -> Result<Expression, Error> {
-    // If the first token is an open parenthesis, we expect the expression to end on a closed parenthesis.
-    //let is_parenthesied = super::current_equal(stream, Token::Separator(Separator::OpenParenthesis))?;
+    println!("parsing expression {:?}", stream.current());
     
     // guess expr type from first token
     let expr = match stream.current() {

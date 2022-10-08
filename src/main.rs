@@ -64,7 +64,6 @@ fn main() {
     let exec_time: Duration;
     let filename = args.file;
 
-
     if args.tokens {
         let tokens = match lexer::get_token_stream(&filename) {
             Ok(t) => t,

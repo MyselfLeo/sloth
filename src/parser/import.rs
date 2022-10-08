@@ -1,18 +1,13 @@
-use std::path::PathBuf;
 use regex::Regex;
 
-use crate::lexer::{Token, TokenStream, Keyword, Separator};
-use crate::sloth::function::{CustomFunction, FunctionSignature};
+use crate::lexer::{Token, TokenStream, Keyword};
 use crate::sloth::program::SlothProgram;
 use crate::errors::{Error, ErrMsg};
-use crate::sloth::statement::Statement;
-use crate::sloth::types::Type;
-
-
 
 
 /// Parse an "import" statement, i.e the import of another .slo file. Different from the "builtin" statement which '''imports''' builtin functions and structures
-pub fn parse_import(stream: &mut TokenStream, program: &mut SlothProgram, warning: bool, origin_path: String) -> Result<(), Error> {
+pub fn parse_import(stream: &mut TokenStream, program: &mut SlothProgram, warning: bool, _: String) -> Result<(), Error> {
+    println!("parsing import");
     // import keyword
     let (_, first_pos) = super::expect_token(stream, Token::Keyword(Keyword::Import))?;
     
