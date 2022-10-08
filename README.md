@@ -1,7 +1,7 @@
 # 🦥 Sloth - The weird, slow and a bit moldy programming language
 
 **Sloth** is an interpreted programming language, implemented in _Rust_. Its syntax is inspired by C-like languages, Rust, Python, and Lisp-like languages.  
-I do not ensure the stability of the language: use it at your own risk!
+I do not ensure the stability of the language: **use it at your own risk!**
 
 ## Syntax example
 ```
@@ -30,6 +30,8 @@ Install using **[cargo](https://github.com/rust-lang/cargo)**:
 ```
 $ cargo install slothlang
 ```
+
+I may provide executables in the future.
 
 ## License
 
