@@ -71,8 +71,8 @@ pub fn wrong_token(given: Option<(Token, Position)>, expected: &str) -> Error {
 pub fn expect_token(stream: &mut TokenStream, token: Token) -> Result<(Token, Position), Error> {
     match stream.current() {
         Some((t, p)) => {
-            if t == token {stream.next(); Ok((t, p))}                                                // token is correct
-            else {Err(wrong_token(Some((t, p)), &token.original_string()))}     // token is not correct, generate error msg
+            if t == token {stream.next(); Ok((t, p))}                                                            // token is correct
+            else {Err(wrong_token(Some((t, p)), &format!("'{}'", token.original_string())))}     // token is not correct, generate error msg
         },
         None => Err(eof_error())
     }

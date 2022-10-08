@@ -20,7 +20,8 @@ pub fn parse_static_expr(stream: &mut TokenStream, program: &mut SlothProgram, w
             if warning && n.to_uppercase() != n {
                 let warn_msg = format!("It is recommended to set in full uppercase the name of static expressions ('{}')", n.to_uppercase());
                 Warning::new(warn_msg, Some(p.clone())).warn()
-            }
+            };
+            stream.next();
             (n, p)
         },
         o => return Err(super::wrong_token(o, "static expr. name"))

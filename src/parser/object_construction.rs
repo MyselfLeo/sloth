@@ -22,7 +22,10 @@ pub fn parse_object_construction(stream: &mut TokenStream, program: &mut SlothPr
 
 
     let struct_name = match stream.current() {
-        Some((Token::Identifier(n), _)) => n,
+        Some((Token::Identifier(n), _)) => {
+            stream.next();
+            n
+        },
         o => return Err(super::wrong_token(o, "structure")),
     };
 
