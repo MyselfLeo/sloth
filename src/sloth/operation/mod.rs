@@ -14,6 +14,7 @@ mod multiplication;
 mod division;
 mod comparaison;
 mod boolean;
+mod modulo;
 
 
 #[derive(Clone, Debug)]
@@ -22,6 +23,7 @@ pub enum Operation {
     Substraction(Rc<Expression>, Rc<Expression>),
     Multiplication(Rc<Expression>, Rc<Expression>),
     Division(Rc<Expression>, Rc<Expression>),
+    Modulo(Rc<Expression>, Rc<Expression>),
     Equal(Rc<Expression>, Rc<Expression>),
     Greater(Rc<Expression>, Rc<Expression>),
     Lower(Rc<Expression>, Rc<Expression>),
@@ -60,6 +62,11 @@ impl Operation {
                     e1.evaluate(scope.clone(), program, false)?,
                     e2.evaluate(scope, program, false)?
                 )
+            },
+            Operation::Modulo(e1, e2) => {
+                modulo::modulo(
+                e1.evaluate(scope.clone(), program, false)?,
+                e2.evaluate(scope, program, false)?)
             },
             Operation::Equal(e1, e2) => {
                 comparaison::equal(

@@ -1,5 +1,5 @@
 // The '<=' and '>=' must be before '<' and '>' so the parsing works
-pub const OPERATORS: [&str; 12] = ["+", "-", "*", "/", "<=", ">=", "==", "<", ">", "&", "?", "!"];
+pub const OPERATORS: [&str; 13] = ["+", "-", "*", "/", "%", "<=", ">=", "==", "<", ">", "&", "?", "!"];
 
 
 #[derive(Clone, Debug, PartialEq)]
@@ -8,6 +8,7 @@ pub enum Operator {
     Sub,
     Mul,
     Div,
+    Mod,    // modulo
     Eq,     // Equal
     Gr,     // Greater than
     Lw,     // Lower than
@@ -26,6 +27,7 @@ impl Operator {
             Operator::Sub => "-",
             Operator::Mul => "*",
             Operator::Div => "/",
+            Operator::Mod => "%",
             Operator::Eq => "==",
             Operator::Gr => ">",
             Operator::Lw => "<",
@@ -44,6 +46,7 @@ impl Operator {
             "-" => Operator::Sub,
             "*" => Operator::Mul,
             "/" => Operator::Div,
+            "%" => Operator::Mod,
             "==" => Operator::Eq,
             ">" => Operator::Gr,
             "<" => Operator::Lw,

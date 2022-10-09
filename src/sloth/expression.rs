@@ -125,8 +125,14 @@ impl Expression {
 
 
             // process the operation and return the result
-            Expression::Operation(operation, _) => {
-                let value = operation.execute(scope, program.as_mut().unwrap())?;
+            Expression::Operation(operation, p) => {
+                let value = match operation.execute(scope, program.as_mut().unwrap()) {
+                    Ok(v) => v,
+                    Err(mut e) => {
+                        e.clog_pos(p.clone());
+                        return Err(e)
+                    }
+                };
                 Ok(Rc::new(RefCell::new(value)))
             }
 

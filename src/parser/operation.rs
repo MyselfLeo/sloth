@@ -34,6 +34,7 @@ pub fn parse_operation(stream: &mut TokenStream, program: &mut SlothProgram, war
                 Operator::Sub => Operation::Substraction(lhs, rhs),
                 Operator::Mul => Operation::Multiplication(lhs, rhs),
                 Operator::Div => Operation::Division(lhs, rhs),
+                Operator::Mod => Operation::Modulo(lhs, rhs),
                 Operator::Eq => Operation::Equal(lhs, rhs),
                 Operator::Gr => Operation::Greater(lhs, rhs),
                 Operator::Lw => Operation::Lower(lhs, rhs),
