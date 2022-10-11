@@ -1,6 +1,6 @@
 use super::value::Value;
 
-#[derive(Debug, Clone, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, Eq, PartialOrd, Ord, Hash)]
 pub enum Type {
     Any,             // used in lists of size 0
     Boolean,

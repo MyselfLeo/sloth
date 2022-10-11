@@ -27,7 +27,7 @@ const DEFAULT_BUILTIN_IMPORTS: [&str; 1] = ["io"];
 /// Note: Variables are stored in the scopes
 pub struct SlothProgram {
     _filename: String,
-    functions: BTreeMap<FunctionSignature, Box<dyn SlothFunction>>,
+    functions: HashMap<FunctionSignature, Box<dyn SlothFunction>>,
     structures: HashMap<StructSignature, Box<dyn ObjectBlueprint>>,
 
     // A static is an expression defined like a global variable (ex: static NUMBER = 34;). The expression
@@ -43,7 +43,7 @@ impl SlothProgram {
     pub fn new(filename: String, import_default_builtins: bool) -> SlothProgram {
         let mut program = SlothProgram {
             _filename: filename,
-            functions: BTreeMap::new(),
+            functions: HashMap::new(),
             structures: HashMap::new(),
 
             statics: HashMap::new(),

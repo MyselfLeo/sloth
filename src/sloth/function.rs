@@ -8,7 +8,7 @@ use super::{types::Type};
 use super::scope::{Scope};
 
 
-#[derive(PartialEq, PartialOrd, Eq, Ord, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone, Hash)]
 pub struct FunctionSignature {
     pub module: Option<String>,                     // In case of a function imported (from builtin for example)
     pub name: String,                               // name of the function
