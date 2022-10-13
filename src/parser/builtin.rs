@@ -25,7 +25,7 @@ pub fn parse_builtin(stream: &mut TokenStream, _: &mut SlothProgram, warning: bo
     // imported element name
     let builtin = {
         if is_particular {
-            let v = match stream.current() {
+            let v = match stream.next() {
                 Some((Token::Identifier(n), p)) => {pos = pos.until(p); vec![n]},
                 o => return Err(super::wrong_token(o, "function or structure name"))
             };

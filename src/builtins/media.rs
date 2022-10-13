@@ -107,7 +107,7 @@ pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
 /// Return an ObjectBlueprint along with the list of requirements this structure has
 pub fn get_struct(s_name: String) -> (Box<dyn ObjectBlueprint>, Vec<String>) {
     match s_name.as_str() {
-        "Canvas" => (Box::new(CanvasBlueprint {}), vec!["update".to_string(), "set_pixel".to_string()]),
+        "Canvas" => (Box::new(CanvasBlueprint {}), vec!["update".to_string(), "set_pixel".to_string(), "set_rect".to_string()]),
         s => panic!("Requested unknown built-in structure '{}'", s)
     }
 }
