@@ -50,7 +50,7 @@ pub const MODULES: [&str; 9] = [
 /// It contains the module being imported, and a list of builtins from this module
 /// or the whole module if the list is None
 /// Note: This struct CAN represent builtins that do not exists (either a fake module or fake builtin)
-#[derive(Clone, PartialEq)]
+#[derive(Clone, PartialEq, Debug)]
 pub struct BuiltInImport {
     pub module: String,
     builtins: Option<Vec<String>>
@@ -236,6 +236,11 @@ pub struct BuiltInFunction {
     call_function: fn(Rc<RefCell<Scope>>, &mut SlothProgram) -> Result<(), Error>,
 }
 
+impl std::fmt::Debug for BuiltInFunction {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("BuiltInFunction").field("signature", &self.signature).finish()
+    }
+}
 
 impl SlothFunction for BuiltInFunction {
     fn get_owner_type(&self) -> Option<Type> {self.signature.owner_type.clone()}

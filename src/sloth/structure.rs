@@ -1,6 +1,7 @@
 use std::any::Any;
 use std::cell::RefCell;
 use std::collections::HashMap;
+use std::fmt::Debug;
 use std::rc::Rc;
 use std::iter::zip;
 
@@ -30,7 +31,7 @@ impl StructSignature {
 
 
 /// Trait stored in the Program. Used to build SlothObject
-pub trait ObjectBlueprint {
+pub trait ObjectBlueprint: Debug {
     fn box_clone(&self) -> Box<dyn ObjectBlueprint>;
     fn get_signature(&self) -> StructSignature;
     fn build(&self, given_values: Vec<Rc<RefCell<Value>>>) -> Result<Box<dyn SlothObject>, String>; // TODO: Change the Err from String to errors::Error to allow the builder to return any error msg

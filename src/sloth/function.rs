@@ -1,4 +1,5 @@
 use std::cell::RefCell;
+use std::fmt::Debug;
 use std::rc::Rc;
 
 use crate::errors::{Error, ErrMsg};
@@ -27,7 +28,7 @@ impl FunctionSignature {
 
 
 
-pub trait SlothFunction {
+pub trait SlothFunction: Debug {
     /// Return the type owning this function, or None if this is not a method
     fn get_owner_type(&self) -> Option<Type>;
 
@@ -51,6 +52,7 @@ pub trait SlothFunction {
 
 /// Function defined in the code, written in Sloth
 /// The input_types and output_type can't be None because Sloth code can't permit it
+#[derive(Debug)]
 pub struct CustomFunction {
     pub signature: FunctionSignature,
     pub instructions: Vec<Statement>,

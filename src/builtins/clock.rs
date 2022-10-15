@@ -121,7 +121,7 @@ fn duration_from_sec_f64(x: f64) -> time::Duration {
 
 
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct DurationBlueprint {}
 
 impl ObjectBlueprint for DurationBlueprint {
@@ -207,7 +207,7 @@ impl std::fmt::Display for Duration {
 
 
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct InstantBlueprint {}
 
 impl ObjectBlueprint for InstantBlueprint {

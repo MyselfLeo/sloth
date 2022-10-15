@@ -139,7 +139,7 @@ pub fn expect_positive_value(value: Value) -> Result<u32, String> {
 
 
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct CanvasBlueprint {}
 
 impl ObjectBlueprint for CanvasBlueprint {

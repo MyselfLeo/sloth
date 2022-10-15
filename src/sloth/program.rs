@@ -25,6 +25,7 @@ const DEFAULT_BUILTIN_IMPORTS: [&str; 1] = ["io"];
 
 /// Main structure of a Sloth program. Stores global definitions (function definition, structs definition, scopes)
 /// Note: Variables are stored in the scopes
+#[derive(Debug)]
 pub struct SlothProgram {
     _filename: String,
     functions: HashMap<FunctionSignature, Box<dyn SlothFunction>>,

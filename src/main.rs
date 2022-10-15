@@ -37,6 +37,10 @@ struct Args {
     #[clap(long, value_parser)]
     functions: bool,
 
+    /// Print the AST-like structure of the program, for fun only
+    #[clap(long, value_parser)]
+    ast: bool,
+
     /// Disable warnings
     #[clap(long, value_parser)]
     nowarn: bool,
@@ -81,6 +85,9 @@ fn main() {
         build_time = start_time.elapsed();
 
         if args.functions {program.print_functions()}
+        else if args.ast {
+            println!("{:#?}", program);
+        }
         else {
             unsafe {
                 let return_value = program.run(args.arguments);
