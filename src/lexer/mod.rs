@@ -15,7 +15,7 @@ pub use operator::Operator;
 
 
 // Unlike SEPARATORS, those do not have a semantic meaning (only used for separating tokens)
-pub const DEFAULT_SEPARATORS: [char; 2] = [' ', '"'];
+pub const DEFAULT_SEPARATORS: [char; 3] = [' ', '"', '\t'];
 // Comments starts with this str and ends at the end of the line
 pub const COMMENT_CHAR: char = '#';
 
