@@ -100,10 +100,18 @@ pub fn check_semicolon(stream: &mut TokenStream, warn: bool, statement_pos: &Pos
     match stream.current() {
         Some((Token::Separator(Separator::SemiColon), _)) => {stream.next(); Ok(())},
         Some(..) => {
-            if warn {
-                let warning = Warning::new("Use of a semicolon here is highly recommended".to_string(), Some(statement_pos.clone()));
-                warning.warn();
+
+            // a semicolon is not necessary if there is a } before
+            match stream.peek(-1) {
+                Some((Token::Separator(Separator::CloseBracket), _)) => (),
+                _ => {
+                    if warn {
+                        let warning = Warning::new("Use of a semicolon here is highly recommended".to_string(), Some(statement_pos.clone()));
+                        warning.warn();
+                    };
+                }
             };
+
             Ok(())
         },
         None => return Err(eof_error())
