@@ -16,7 +16,7 @@ use crate::builtins;
 
 
 
-const DEFAULT_BUILTIN_IMPORTS: [&str; 1] = ["io"];
+const DEFAULT_BUILTIN_IMPORTS: [&str; 2] = ["io", "lists"];
 
 
 
