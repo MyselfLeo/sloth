@@ -14,7 +14,7 @@ use super::flow_control::parse_while;
 pub fn parse_statement(stream: &mut TokenStream, program: &mut SlothProgram, warning: bool) -> Result<Statement, Error> {
     let statement = match stream.current() {
         // expr call or assignment
-        Some((Token::Identifier(_), _)) => {
+        Some((Token::Identifier(_), _)) | Some((Token::Literal(_), _)) => {
             let target = parse_expression(stream, program, warning, None)?;
             let target_pos = target.get_pos();
 
