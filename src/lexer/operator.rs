@@ -39,6 +39,25 @@ impl Operator {
         }.to_string()
     }
 
+    /// Return the unique name of this operator (add, mul, div, etc.)
+    pub fn get_name(&self) -> String {
+        match self {
+            Operator::Add => "add",
+            Operator::Sub => "sub",
+            Operator::Mul => "mul",
+            Operator::Div => "div",
+            Operator::Mod => "mod",
+            Operator::Eq => "eq",
+            Operator::Gr => "gr",
+            Operator::Lw => "lw",
+            Operator::Ge => "ge",
+            Operator::Le => "le",
+            Operator::And => "and",
+            Operator::Or => "or",
+            Operator::Inv => "inv",
+        }.to_string()
+    }
+
 
     pub fn from_str(str: &str) -> Result<Operator, String> {
         let val = match str {

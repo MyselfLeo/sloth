@@ -150,7 +150,6 @@ impl Expression {
                 };
 
                 // try to find if the method, applied to the type of the value, exists
-                // TODO: Make defining owned function both work for 'list' (means List(Any)) and 'list[type]'
                 signature_clone.owner_type = match owner_value {
                     Some(ref v) => {
                         match v.borrow().get_type() {
