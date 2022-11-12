@@ -139,6 +139,37 @@ impl Expression {
 
             
             Expression::FunctionCall(owner, signature, arguments, p) => {
+
+                // Get the reference to each value. The inputs by value (without "~") are deep-cloned at a later step,
+                // and are added to the function scope even after
+                let mut inputs = arguments.iter().map(|e| e.evaluate(scope.clone(), program, false)).collect::<Result<Vec<Rc<RefCell<Value>>>, Error>>()?;
+
+                
+                // we can complete the signature with the input types
+                let mut signature = signature.clone();
+                let input_types: Vec<Type> = inputs.iter().map(|i| i.borrow().get_type()).collect();
+                signature.input_types = Some(input_types);
+
+
+
+
+
+
+                /*
+                // if the values are cloned, allocate a new Value instead of using the reference given by expr.evaluate()
+                    if !inputs_ref_or_cloned[i] {
+                        let cloned_value = value.borrow().deep_clone();
+                        value = match cloned_value {
+                            Ok(v) => v,
+                            Err(e) => return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))
+                        };
+                    } */
+
+
+
+
+
+
                 let mut signature_clone = signature.clone();
                 
                 // Get the owner value reference
