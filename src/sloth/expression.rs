@@ -1,7 +1,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use super::function::{FunctionSignature};
+use super::function::{FunctionCallSignature};
 use super::operation::Operation;
 use super::structure::{StructSignature};
 use super::types::Type;
@@ -20,8 +20,9 @@ pub enum Expression {
     VariableAccess(Option<Rc<Expression>>, String, Position),                                   // ExpressionID to the owner of the field and its name,
     BracketAccess(Rc<Expression>, Rc<Expression>, Position),                                    // Owner, indexing expression
     Operation(Operation, Position),                                                             // Operator to apply to one or 2 values from the Scope Expression stack (via index)
-    FunctionCall(Option<Rc<Expression>>, FunctionSignature, Vec<Rc<Expression>>, Position),     // optional owner (for method calls), name of the function and its list of expressions to be evaluated
+    FunctionCall(Option<Rc<Expression>>, FunctionCallSignature, Vec<Rc<Expression>>, Position), // optional owner (for method calls), name of the function and its list of expressions to be evaluated
     ObjectConstruction(StructSignature, Vec<Rc<Expression>>, Position),                         // The construction of an Object, with the 'new' keyword
+    MainCall(Vec<Rc<Value>>)                                                                    // Fake expression used to call the main function
 }
 
 
@@ -134,7 +135,16 @@ impl Expression {
                     }
                 };
                 Ok(Rc::new(RefCell::new(value)))
-            }
+            },
+
+
+
+
+
+            Expression::MainCall(arguments) => {
+                
+            },
+
 
 
             
@@ -144,13 +154,25 @@ impl Expression {
                 // and are added to the function scope even after
                 let mut inputs = arguments.iter().map(|e| e.evaluate(scope.clone(), program, false)).collect::<Result<Vec<Rc<RefCell<Value>>>, Error>>()?;
 
+                // Get the reference to the owner value, if any
+                let owner_value = match owner {
+                    Some(s) => Some(s.evaluate(scope.clone(), program, false)?),
+                    None => None
+                };
+
                 
-                // we can complete the signature with the input types
+                // we can complete the signature with the input types and the owner type
                 let mut signature = signature.clone();
+                if let Some(v) = owner_value {signature.owner_type = Some(v.borrow().get_type())}
                 let input_types: Vec<Type> = inputs.iter().map(|i| i.borrow().get_type()).collect();
-                signature.input_types = Some(input_types);
+                signature.input_types = input_types;
+                
 
-
+                // get the function corresponding to the signature
+                let function = match program.as_ref().unwrap().get_function(&signature_clone) {
+                    Ok(f) => f,
+                    Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
+                };
 
 
 
@@ -163,24 +185,10 @@ impl Expression {
                             Ok(v) => v,
                             Err(e) => return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))
                         };
-                    } */
+                    }
 
+            
 
-
-
-
-
-                let mut signature_clone = signature.clone();
-                
-                // Get the owner value reference
-                let owner_value = match owner {
-                    Some(s) => {
-                        Some(s.evaluate(scope.clone(), program, false)?)
-                    },
-                    None => None
-                };
-
-                // try to find if the method, applied to the type of the value, exists
                 signature_clone.owner_type = match owner_value {
                     Some(ref v) => {
                         match v.borrow().get_type() {
@@ -190,6 +198,7 @@ impl Expression {
                     },
                     None => None
                 };
+                 */
 
 
                 let method = match program.as_ref().unwrap().get_function(&signature_clone) {

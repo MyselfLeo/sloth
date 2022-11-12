@@ -8,7 +8,7 @@ use super::statement::Statement;
 use super::{types::Type};
 use super::scope::{Scope};
 
-
+/// Signature of a defined function; its name, module, input, output, etc.
 #[derive(PartialEq, Eq, Debug, Clone, Hash)]
 pub struct FunctionSignature {
     pub module: Option<String>,                     // In case of a function imported (from builtin for example)
@@ -21,6 +21,22 @@ pub struct FunctionSignature {
 impl FunctionSignature {
     pub fn new(module: Option<String>, name: String, owner_type: Option<Type>, input_types: Option<Vec<(Type, bool)>>, output_type: Option<Type>) -> FunctionSignature {
         FunctionSignature {module, name, owner_type, input_types, output_type}
+    }
+}
+
+#[derive(PartialEq, Eq, Debug, Clone, Hash)]
+/// Signature of a functioncall. It is used to find a matching FunctionSignature
+pub struct FunctionCallSignature {
+    pub module: Option<String>,
+    pub name: String,
+    pub owner_type: Option<Type>,
+    pub input_types: Vec<Type>,
+    pub output_type: Type,
+}
+
+impl FunctionCallSignature {
+    pub fn new(module: Option<String>, name: String, owner_type: Option<Type>, input_types: Vec<Type>, output_type: Type) -> FunctionCallSignature {
+        FunctionCallSignature {module, name, owner_type, input_types, output_type}
     }
 }
 
