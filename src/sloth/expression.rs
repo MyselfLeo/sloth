@@ -1,3 +1,4 @@
+use std::borrow::Borrow;
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -142,7 +143,17 @@ impl Expression {
 
 
             Expression::MainCall(arguments) => {
+                // get the types of the inputs
+                let types: Vec<Type> = arguments.iter().map(|a| a.get_type()).collect();
+                
                 // generate a FunctionCallSignature to a corresponding main function
+                let signature = FunctionCallSignature::new(None, "main".to_string(), None, types, Type::Number);
+
+                // get the function corresponding to the signature
+                let function = match program.as_ref().unwrap().get_function(&signature) {
+                    Ok(f) => f,
+                    Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
+                };
             },
 
 
