@@ -26,6 +26,7 @@ const DEFAULT_BUILTIN_IMPORTS: [&str; 2] = ["io", "lists"];
 /// Main structure of a Sloth program. Stores global definitions (function definition, structs definition, scopes)
 /// Note: Variables are stored in the scopes
 #[derive(Debug)]
+
 pub struct SlothProgram {
     _filename: String,
     functions: HashMap<FunctionSignature, Box<dyn SlothFunction>>,
@@ -36,8 +37,10 @@ pub struct SlothProgram {
     // note: this is my workaround for constants. It's not really constant but it's not really mutable....
     statics: HashMap<String, Rc<Expression>>,
 
-    imported_modules: Vec<String>,
     builtins: Vec<builtins::BuiltInImport>,
+
+    // list of every module name that can be called by module_name:function()
+    imported_modules: Vec<String>,
 }
 
 impl SlothProgram {
@@ -50,7 +53,7 @@ impl SlothProgram {
             statics: HashMap::new(),
 
             imported_modules: Vec::new(),
-            builtins: Vec::new(),
+            builtins: Vec::new()
         };
 
         if import_default_builtins {
@@ -65,9 +68,14 @@ impl SlothProgram {
 
 
     
-    /// Add a function to the Function Hashmap.
+    /// Add a function to the Function Hashmap
     /// Can return an optional warning message if a previously defined function was overwritten
     pub fn push_function(&mut self, function: Box<dyn SlothFunction>) -> Option<String> {
+        // add the module of the function in the imported_module vec
+        if let Some(m) = function.get_module() {
+            if !self.imported_modules.contains(&m) {self.imported_modules.push(m)}
+        }
+
         match self.functions.insert(function.get_signature(), function) {
             Some(f) => {
                 let msg = format!("Redefinition of function {}. Previous definition was overwritten", f.get_name());
@@ -77,9 +85,83 @@ impl SlothProgram {
         }
     }
 
+
+
+
     /// Return the requested function definition
     pub fn get_function(&self, signature: &FunctionCallSignature) -> Result<&Box<dyn SlothFunction>, String> {
-        //TODO: rewrite
+        let mut signatures = Vec::new();
+        for (key, _) in self.functions {
+            signatures.push(key)
+        }
+
+        // remove each signature that don't match, criteria by criteria.
+        // at each point, check if no signature is left, in order to return a
+        // fitting error msg
+
+        // name of the function
+        signatures.retain(|k| k.name == *signature.name);
+        if signatures.is_empty() {
+            return Err(format!("Function '{}' is not defined", signature.name))
+        }
+
+        // module of the function
+        if let Some(module) = signature.module {
+            // return err if the module was never imported
+            if !self.imported_modules.contains(&module) {
+                return Err(format!("Module '{}' was not imported", module))
+            }
+
+            signatures.retain(|k| k.module.is_none() || k.module == Some(module));
+            if signatures.is_empty() {
+                return Err(format!("Function '{}' is not defined in the module '{}'", signature.name, module))
+            }
+        }
+
+        // owner type
+        signatures.retain(|k| k.owner_type == signature.owner_type);
+        if signatures.is_empty() {
+            return match signature.owner_type {
+                Some(t) => Err(format!("Function '{}' is not defined for the type {}", signature.name, t)),
+                None => Err(format!("Function '{}' is not defined", signature.name))
+            }
+        }
+
+        // input types
+        signatures.retain(
+            |k| {
+                match k.input_types {
+                    None => true,
+                    Some(t) => {
+                        let types: Vec<Type> = t.iter().map(|(v, _)| *v).collect();
+                        types == signature.input_types
+                    }
+                }
+            }
+        );
+        if signatures.is_empty() {
+            let type_str = signature.input_types.iter().map(|t| t.to_string()).collect::<Vec<String>>().join(", ");
+            return Err(format!("Function '{}' is not defined for the following input types: {}", signature.name, type_str))
+        }
+
+        // output type
+        signatures.retain(|k| k.output_type.is_none() || k.output_type == Some(signature.output_type));
+        if signatures.is_empty() {
+            return Err(format!("Function '{}' is not defined with an output type of {}", signature.name, signature.output_type))
+        }
+
+
+        // At this point, there should be only one signature left:
+        // - 2 same signatures should not exist (hashmap)
+        // - 'no signature' was previously tested
+
+        // return the function
+        match signatures.get(0) {
+            Some(s) => {
+                Ok(self.functions.get(s).unwrap())
+            },
+            None => unreachable!()
+        }
     }
 
 
@@ -91,6 +173,11 @@ impl SlothProgram {
     /// Push a new ObjectBlueprint to the program
     /// Can return an optional warning message if a previously defined function was overwritten
     pub fn push_struct(&mut self, struct_name: String, struct_module: Option<String>, blueprint: Box<dyn ObjectBlueprint>) -> Option<String> {
+        // add the module of the struct in the imported_module vec
+        if let Some(m) = struct_module {
+            if !self.imported_modules.contains(&m) {self.imported_modules.push(m)}
+        }
+        
         let signature = StructSignature::new(struct_module, struct_name.clone());
         match self.structures.insert(signature.clone(), blueprint) {
             Some(_) => {
