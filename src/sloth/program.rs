@@ -5,7 +5,7 @@ use std::rc::Rc;
 
 use crate::errors::{Error, ErrMsg, formatted_vec_string};
 use crate::position::Position;
-use super::function::{SlothFunction, FunctionSignature};
+use super::function::{SlothFunction, FunctionSignature, FunctionCallSignature};
 use super::scope::Scope;
 use super::expression::Expression;
 use super::structure::{StructSignature, ObjectBlueprint};
@@ -77,37 +77,9 @@ impl SlothProgram {
         }
     }
 
-    /// Return a clone of the requested function definition
-    pub fn get_function(&self, signature: &FunctionSignature) -> Result<&Box<dyn SlothFunction>, String> {
-        
-        // If the module is given, we can try to find the perfect match
-        if signature.module.is_some() {
-            for (sign, f) in &self.functions {
-                if sign.name == signature.name && sign.module == signature.module {return Ok(f.clone())}
-            }
-            return Err(format!("No function named '{}' in the module '{}'", signature.name, signature.module.clone().unwrap()));
-        }
-
-
-        let mut fitting_functions: Vec<&Box<dyn SlothFunction>> = Vec::new();
-
-        for (sign, f) in &self.functions {
-            if sign.name == signature.name
-            && sign.owner_type == signature.owner_type
-            && (sign.input_types == signature.input_types || sign.input_types.is_none() || signature.input_types.is_none())
-            && (sign.output_type == signature.output_type || signature.output_type.is_none()) {fitting_functions.push(f.clone());}
-        }
-
-        match fitting_functions.len() {
-            0 => {
-                match &signature.owner_type {
-                    Some(t) => Err(format!("No function named '{}' for type '{}' with the given inputs", signature.name, t)),
-                    None => Err(format!("No function named '{}' with the given inputs", signature.name))
-                }
-            },
-            1 => Ok(fitting_functions[0].clone()),
-            _ => {Err(format!("Ambiguous function name: '{}' is found in multiple modules. Consider specifying the module ( module:{}(input1 input2 ...) )", signature.name, signature.name))}
-        }
+    /// Return the requested function definition
+    pub fn get_function(&self, signature: &FunctionCallSignature) -> Result<&Box<dyn SlothFunction>, String> {
+        //TODO: rewrite
     }
 
 
