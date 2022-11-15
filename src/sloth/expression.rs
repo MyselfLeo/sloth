@@ -1,13 +1,12 @@
-use std::borrow::Borrow;
 use std::cell::RefCell;
 use std::fmt::Display;
 use std::rc::Rc;
 
-use super::function::{FunctionCallSignature};
+use super::function::{FunctionCallSignature, SlothFunction};
 use super::operation::Operation;
 use super::structure::{StructSignature};
 use super::types::Type;
-use super::value::{Value};
+use super::value::{Value, DeepClone};
 use super::scope::Scope;
 use super::program::{SlothProgram, ENTRY_POINT_NAME};
 use crate::errors::{Error, ErrMsg};
@@ -24,7 +23,7 @@ pub enum Expression {
     Operation(Operation, Position),                                                             // Operator to apply to one or 2 values from the Scope Expression stack (via index)
     FunctionCall(Option<Rc<Expression>>, FunctionCallSignature, Vec<Rc<Expression>>, Position), // optional owner (for method calls), name of the function and its list of expressions to be evaluated
     ObjectConstruction(StructSignature, Vec<Rc<Expression>>, Position),                         // The construction of an Object, with the 'new' keyword
-    MainCall(Vec<Rc<Value>>)                                                                    // Fake expression used to call the main function
+    MainCall(Vec<Rc<RefCell<Value>>>)                                                           // Fake expression used to call the main function
 }
 
 
@@ -145,7 +144,7 @@ impl Expression {
 
             Expression::MainCall(arguments) => {
                 // get the types of the inputs
-                let types: Vec<Type> = arguments.iter().map(|a| a.get_type()).collect();
+                let types: Vec<Type> = arguments.iter().map(|a| a.borrow().get_type()).collect();
                 
                 // get the entry point
                 let main_function = match program.as_ref().unwrap().get_main() {
@@ -170,12 +169,14 @@ impl Expression {
                         if t != types {
                             let err_msg = format!("Incorrect inputs.\nExpected: {}\n   Given: {}", format_list(t), format_list(types));
                             return Err(Error::new(ErrMsg::InvalidArguments(err_msg), None));
-                        }
+                        };
                     }
                 };
 
                 // The function is correct, proceed to run it
-                
+                unsafe {
+                    Expression::execute_function(*main_function, None, *arguments, program)
+                }
             },
 
 
@@ -207,127 +208,15 @@ impl Expression {
                     Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
                 };
 
-
-
-
-                /*
-                // if the values are cloned, allocate a new Value instead of using the reference given by expr.evaluate()
-                    if !inputs_ref_or_cloned[i] {
-                        let cloned_value = value.borrow().deep_clone();
-                        value = match cloned_value {
-                            Ok(v) => v,
-                            Err(e) => return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))
-                        };
-                    }
-
-            
-
-                signature_clone.owner_type = match owner_value {
-                    Some(ref v) => {
-                        match v.borrow().get_type() {
-                            Type::List(_t) => Some(Type::List(Box::new(Type::Any))),
-                            t => Some(t),
+                unsafe {
+                    match Expression::execute_function(*function, owner_value, inputs, program) {
+                        Ok(v) => Ok(v),
+                        Err(mut e) => {
+                            e.clog_pos(*p);
+                            Err(e)
                         }
-                    },
-                    None => None
-                };
-                 */
-
-
-                let method = match program.as_ref().unwrap().get_function(&signature_clone) {
-                    Ok(f) => f,
-                    Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
-                };
-
-
-                let inputs_ref_or_cloned: Vec<bool> = match method.get_signature().input_types {
-                    Some(v) => v.iter().map(|(_, b)| *b).collect(),
-                    None => vec![true; arguments.len()]
-                };
-
-
-                // Create a new scope for the execution of the method
-                let func_scope = Rc::new(RefCell::new(Scope::new()));
-
-
-                // Evaluate each given expression in the scope, and create an input variable (@0, @1, etc.) with the set value
-                for (i, param) in arguments.iter().enumerate() {
-                    let mut value = param.evaluate(scope.clone(), program, false)?;
-
-                    // if the values are cloned, allocate a new Value instead of using the reference given by expr.evaluate()
-                    if !inputs_ref_or_cloned[i] {
-                        let cloned_value = value.borrow().deep_clone();
-                        value = match cloned_value {
-                            Ok(v) => v,
-                            Err(e) => return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))
-                        };
                     }
-
-
-                    match func_scope.try_borrow_mut() {
-                        Ok(mut reference) => match (*reference).push_variable(format!("@{}", i), value) {
-                            Ok(()) => (),
-                            Err(e) => return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))
-                        },
-                        Err(e) => return Err(Error::new(ErrMsg::RustError(e.to_string()), Some(p.clone())))
-                    };
                 }
-
-                // Create the @return variable, with default value, and the "@self" variable, containing a copy of the value stored in the variable
-                {
-                    let default_value = method.get_output_type().default();
-                    match func_scope.try_borrow_mut() {
-                        Ok(mut reference) => {
-                            match (*reference).push_variable("@return".to_string(), Rc::new(RefCell::new(default_value))) {
-                                Ok(()) => (),
-                                Err(e) => return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))
-                            };
-
-                            match owner_value {
-                                Some(v) => {
-                                    match (*reference).push_variable("@self".to_string(), v.clone()) {
-                                        Ok(()) => (),
-                                        Err(e) => return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))
-                                    };
-                                },
-
-                                None => ()
-                            };
-                        },
-                        Err(e) => return Err(Error::new(ErrMsg::RustError(e.to_string()), Some(p.clone())))
-                    };
-                }
-
-                // run the method in the given scope.
-                // If the method call returned an error without position, set its position to this function call's
-                match method.call(func_scope.clone(), program.as_mut().unwrap()) {
-                    Ok(()) => (),
-                    Err(mut e) => {
-                        if e.position.is_none() && p.filename != "" {e.position = Some(p.clone());}
-                        return Err(e)
-                    }
-                };
-
-
-
-
-                // return the value in the '@return' variable, but check its type first
-                let res = match func_scope.borrow().get_variable("@return".to_string(), program.as_mut().unwrap()) {
-                    Ok(v) => {
-                        let brrw = v.borrow();
-                        if brrw.get_type() != method.get_output_type() {
-                            let err_msg = format!("Function {} should return a value of type {}, but it returned {} which is of type {}", method.get_name(), method.get_output_type(), brrw.to_string(), brrw.get_type());
-                            Err(Error::new(ErrMsg::ReturnValueError(err_msg), Some(p.clone())))
-                        }
-                        else {Ok(v.clone())}
-                    },
-                    Err(mut e) => {
-                        e.clog_pos(p.clone());
-                        Err(e)
-                    }
-                };
-
-                res
             },
 
 
@@ -383,6 +272,99 @@ impl Expression {
 
 
 
+
+    unsafe fn execute_function(function: Box<dyn SlothFunction>, owner_value: Option<Rc<RefCell<Value>>>, arguments: Vec<Rc<RefCell<Value>>>, program: *mut SlothProgram) -> Result<Rc<RefCell<Value>>, Error> {
+
+        // Whether the arguments are passed by value or by reference
+        let inputs_ref_or_cloned: Vec<bool> = match function.get_signature().input_types {
+            Some(v) => v.iter().map(|(_, b)| *b).collect(),
+            None => vec![true; arguments.len()]
+        };
+
+
+        // Create a new scope for the execution of the function
+        let func_scope = Rc::new(RefCell::new(Scope::new()));
+
+
+        // Create the input variable (@0, @1, etc.) with the default value
+        for (i, value) in arguments.iter().enumerate() {
+
+            // if the values are cloned, allocate a new Value instead of using the reference
+            // TODO: Is it inverted ?
+            if !inputs_ref_or_cloned[i] {
+                let cloned_value = match value.borrow().to_owned().deep_clone() {
+                    Ok(v) => v,
+                    Err(e) => return Err(Error::new(ErrMsg::InvalidArguments(e), None))
+                };
+
+                value = &cloned_value;
+            }
+
+
+            match func_scope.try_borrow_mut() {
+                Ok(mut reference) => match (*reference).push_variable(format!("@{}", i), *value) {
+                    Ok(()) => (),
+                    Err(e) => return Err(Error::new(ErrMsg::RuntimeError(e), None))
+                },
+                Err(e) => return Err(Error::new(ErrMsg::RustError(e.to_string()), None))
+            };
+        }
+
+        // Create the @return variable, with default value, and the "@self" variable, containing a copy of the value stored in the variable
+        {
+            let default_value = function.get_output_type().default();
+            match func_scope.try_borrow_mut() {
+                Ok(mut reference) => {
+                    match (*reference).push_variable("@return".to_string(), Rc::new(RefCell::new(default_value))) {
+                        Ok(()) => (),
+                        Err(e) => return Err(Error::new(ErrMsg::RuntimeError(e), None))
+                    };
+
+                    match owner_value {
+                        Some(v) => {
+                            match (*reference).push_variable("@self".to_string(), v.clone()) {
+                                Ok(()) => (),
+                                Err(e) => return Err(Error::new(ErrMsg::RuntimeError(e), None))
+                            };
+                        },
+
+                        None => ()
+                    };
+                },
+                Err(e) => return Err(Error::new(ErrMsg::RustError(e.to_string()), None))
+            };
+        }
+
+        // run the method in the given scope.
+        // If the method call returned an error without position, set its position to this function call's
+        function.call(func_scope.clone(), program.as_mut().unwrap());
+
+
+
+
+        // return the value in the '@return' variable, but check its type first
+        let res = match func_scope.borrow().get_variable("@return".to_string(), program.as_mut().unwrap()) {
+            Ok(v) => {
+                let brrw = v.borrow();
+                if brrw.get_type() != function.get_output_type() {
+                    let err_msg = format!("Function {} should return a value of type {}, but it returned {} which is of type {}", function.get_name(), function.get_output_type(), brrw.to_string(), brrw.get_type());
+                    Err(Error::new(ErrMsg::ReturnValueError(err_msg), None))
+                }
+                else {Ok(v.clone())}
+            },
+            Err(e) => Err(e)
+        };
+
+        res
+    }
+
+
+
+
+
+
+
+
     /// Return the position of the expression
     pub fn get_pos(&self) -> Position {
         match self {
@@ -393,6 +375,7 @@ impl Expression {
             Expression::FunctionCall(_, _, _, p) => p,
             Expression::ObjectConstruction(_, _, p) => p,
             Expression::BracketAccess(_, _, p) => p,
+            Expression::MainCall(_) => unreachable!()
         }.clone() 
     }
 }

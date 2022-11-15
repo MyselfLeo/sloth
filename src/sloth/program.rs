@@ -324,27 +324,11 @@ impl SlothProgram {
 
     /// Find the 'main' function, check its validity, execute it with the given arguments and return what the main function returned
     pub unsafe fn run(&mut self, s_args: Vec<String>) -> Result<Value, Error> {
-        let main_func_id = FunctionSignature::new(None, "main".to_string(), None, None, Some(Type::Number));
-
-        // Check if the main function exists and is well defined
-        let main_func = match self.get_function(&main_func_id) {
-            Ok(v) => v,
-            Err(_) => {return Err(Error::new(ErrMsg::NoEntryPoint("Your program needs a 'main' function, returning a Number (the return code of your program), as an entry point.".to_string()), None))}
-        };
-
-        let main_inputs = main_func.get_signature().input_types.unwrap();
-
         // Convert given arguments to Values, push them to the Expression Stack and store its Expression ids
         let mut args: Vec<Rc<Expression>> = Vec::new();
 
-        let dummy_pos = Position {filename: "".to_string(), line: 0, first_column: 0, last_column: Some(0)};
-
-        if s_args.len() != main_inputs.len() {
-            // Create a string representing the required arguments types, like "num, bool, string"
-            let input_types_list = formatted_vec_string(&main_inputs.iter().map(|(t, _)| t).collect(), ',');
-            let err_msg = format!("Given {} command-line argument(s), but the main function requires {} argument(s): {}", s_args.len(), main_inputs.len(), input_types_list);
-            return Err(Error::new(ErrMsg::InvalidArguments(err_msg), None))
-        }
+        // TODO: Get the expected types to parse inputs accordingly
+        // TODO: we could do this step in the MainCall Expression, instead of passing it Values, we pass it Strings
 
         for (arg, (t, _)) in zip(s_args, main_inputs) {
             let value = match Value::string_to_value(arg, t) {
