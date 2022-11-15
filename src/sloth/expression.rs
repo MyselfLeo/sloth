@@ -1,14 +1,15 @@
 use std::borrow::Borrow;
 use std::cell::RefCell;
+use std::fmt::Display;
 use std::rc::Rc;
 
 use super::function::{FunctionCallSignature};
 use super::operation::Operation;
 use super::structure::{StructSignature};
 use super::types::Type;
-use super::value::{Value, DeepClone};
+use super::value::{Value};
 use super::scope::Scope;
-use super::program::SlothProgram;
+use super::program::{SlothProgram, ENTRY_POINT_NAME};
 use crate::errors::{Error, ErrMsg};
 use crate::position::Position;
 
@@ -146,14 +147,35 @@ impl Expression {
                 // get the types of the inputs
                 let types: Vec<Type> = arguments.iter().map(|a| a.get_type()).collect();
                 
-                // generate a FunctionCallSignature to a corresponding main function
-                let signature = FunctionCallSignature::new(None, "main".to_string(), None, types, Type::Number);
-
-                // get the function corresponding to the signature
-                let function = match program.as_ref().unwrap().get_function(&signature) {
+                // get the entry point
+                let main_function = match program.as_ref().unwrap().get_main() {
                     Ok(f) => f,
-                    Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
+                    Err(e) => return Err(Error::new(ErrMsg::NoEntryPoint(e), None))
                 };
+
+                // Check that the entry point output is of type num
+                if main_function.get_output_type() != Type::Number {
+                    let err_msg = format!("Your '{}' function must return a value of type '{}'", ENTRY_POINT_NAME, Type::Number);
+                    return Err(Error::new(ErrMsg::ReturnValueError(err_msg), None));
+                }
+
+                // Check that the given inputs match the ones of the entry point
+                match main_function.get_input_types() {
+                    None => {
+                        let err_msg = format!("The '{}' function has no defined input types", ENTRY_POINT_NAME);
+                        return Err(Error::new(ErrMsg::NoEntryPoint(err_msg), None));
+                    },
+
+                    Some(t) => {
+                        if t != types {
+                            let err_msg = format!("Incorrect inputs.\nExpected: {}\n   Given: {}", format_list(t), format_list(types));
+                            return Err(Error::new(ErrMsg::InvalidArguments(err_msg), None));
+                        }
+                    }
+                };
+
+                // The function is correct, proceed to run it
+                
             },
 
 
@@ -180,7 +202,7 @@ impl Expression {
                 
 
                 // get the function corresponding to the signature
-                let function = match program.as_ref().unwrap().get_function(&signature_clone) {
+                let function = match program.as_ref().unwrap().get_function(&signature) {
                     Ok(f) => f,
                     Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
                 };
@@ -373,4 +395,16 @@ impl Expression {
             Expression::BracketAccess(_, _, p) => p,
         }.clone() 
     }
+}
+
+
+
+
+
+
+
+fn format_list<T: Display>(v: Vec<T>) -> String {
+    let mut s = String::new();
+    for e in v {s += &format!("{e} ")}
+    s.trim_end().to_string()
 }

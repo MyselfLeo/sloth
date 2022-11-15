@@ -15,7 +15,7 @@ use crate::builtins;
 
 
 
-
+pub const ENTRY_POINT_NAME: &str = "@main";
 const DEFAULT_BUILTIN_IMPORTS: [&str; 2] = ["io", "lists"];
 
 
@@ -162,6 +162,31 @@ impl SlothProgram {
             },
             None => unreachable!()
         }
+    }
+
+
+
+
+
+    /// Return the 'main' function of the program.
+    /// Raise an error if there is 0 or more than 1 'main' functions
+    pub fn get_main(&self) -> Result<&Box<dyn SlothFunction>, String> {
+        let mut functions = Vec::new();
+        for (k, v) in self.functions {
+            if k.name == ENTRY_POINT_NAME && k.module.is_none() && k.owner_type == None {
+                functions.push(v)
+            }
+        }
+
+        if functions.len() == 0 {
+            return Err(format!("The program requires a '{ENTRY_POINT_NAME}' function returning a 'num' value (the exit code of the program)."))
+        }
+
+        if functions.len() > 1 {
+            return Err(format!("Multiple '{ENTRY_POINT_NAME}' functions defined. Only one is allowed in the program."))
+        }
+
+        Ok(&Box::new(functions[0]))
     }
 
 
