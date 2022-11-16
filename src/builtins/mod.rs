@@ -248,6 +248,18 @@ impl SlothFunction for BuiltInFunction {
     fn get_module(&self) -> Option<String> {self.signature.module.clone()}
     fn get_name(&self) -> String {self.signature.name.clone()}
     fn get_output_type(&self) -> Type {self.signature.output_type.as_ref().unwrap().clone()}
+    fn get_input_types(&self) -> Option<Vec<Type>> {
+        match &self.signature.input_types {
+            None => None,
+            Some(v) => {
+                Some(
+                    v.iter()
+                     .map(|(t, _)| t.clone())
+                     .collect::<Vec<Type>>()
+                )
+            }
+        }
+    }
 
     unsafe fn call(&self, scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
         (self.call_function)(scope, program)

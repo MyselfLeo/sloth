@@ -91,7 +91,7 @@ impl SlothProgram {
     /// Return the requested function definition
     pub fn get_function(&self, signature: &FunctionCallSignature) -> Result<&Box<dyn SlothFunction>, String> {
         let mut signatures = Vec::new();
-        for (key, _) in self.functions {
+        for (key, _) in &self.functions {
             signatures.push(key)
         }
 
@@ -106,13 +106,13 @@ impl SlothProgram {
         }
 
         // module of the function
-        if let Some(module) = signature.module {
+        if let Some(module) = &signature.module {
             // return err if the module was never imported
             if !self.imported_modules.contains(&module) {
                 return Err(format!("Module '{}' was not imported", module))
             }
 
-            signatures.retain(|k| k.module.is_none() || k.module == Some(module));
+            signatures.retain(|k| k.module.is_none() || k.module == Some(module.clone()));
             if signatures.is_empty() {
                 return Err(format!("Function '{}' is not defined in the module '{}'", signature.name, module))
             }
@@ -121,7 +121,7 @@ impl SlothProgram {
         // owner type
         signatures.retain(|k| k.owner_type == signature.owner_type);
         if signatures.is_empty() {
-            return match signature.owner_type {
+            return match &signature.owner_type {
                 Some(t) => Err(format!("Function '{}' is not defined for the type {}", signature.name, t)),
                 None => Err(format!("Function '{}' is not defined", signature.name))
             }
@@ -130,10 +130,10 @@ impl SlothProgram {
         // input types
         signatures.retain(
             |k| {
-                match k.input_types {
+                match &k.input_types {
                     None => true,
                     Some(t) => {
-                        let types: Vec<Type> = t.iter().map(|(v, _)| *v).collect();
+                        let types: Vec<Type> = t.iter().map(|(v, _)| v.clone()).collect();
                         types == signature.input_types
                     }
                 }
@@ -145,7 +145,7 @@ impl SlothProgram {
         }
 
         // output type
-        signatures.retain(|k| k.output_type.is_none() || k.output_type == Some(signature.output_type));
+        signatures.retain(|k| k.output_type.is_none() || k.output_type == Some(signature.output_type.clone()));
         if signatures.is_empty() {
             return Err(format!("Function '{}' is not defined with an output type of {}", signature.name, signature.output_type))
         }
@@ -172,7 +172,7 @@ impl SlothProgram {
     /// Raise an error if there is 0 or more than 1 'main' functions
     pub fn get_main(&self) -> Result<&Box<dyn SlothFunction>, String> {
         let mut functions = Vec::new();
-        for (k, v) in self.functions {
+        for (k, v) in &self.functions {
             if k.name == ENTRY_POINT_NAME && k.module.is_none() && k.owner_type == None {
                 functions.push(v)
             }
@@ -199,8 +199,8 @@ impl SlothProgram {
     /// Can return an optional warning message if a previously defined function was overwritten
     pub fn push_struct(&mut self, struct_name: String, struct_module: Option<String>, blueprint: Box<dyn ObjectBlueprint>) -> Option<String> {
         // add the module of the struct in the imported_module vec
-        if let Some(m) = struct_module {
-            if !self.imported_modules.contains(&m) {self.imported_modules.push(m)}
+        if let Some(m) = &struct_module {
+            if !self.imported_modules.contains(&m) {self.imported_modules.push(m.clone())}
         }
         
         let signature = StructSignature::new(struct_module, struct_name.clone());
@@ -322,31 +322,12 @@ impl SlothProgram {
     }
 
 
-    /// Find the 'main' function, check its validity, execute it with the given arguments and return what the main function returned
+    /// Run the program throught the Expression::MainCall
     pub unsafe fn run(&mut self, s_args: Vec<String>) -> Result<Value, Error> {
-        // Convert given arguments to Values, push them to the Expression Stack and store its Expression ids
-        let mut args: Vec<Rc<Expression>> = Vec::new();
-
-        // TODO: Get the expected types to parse inputs accordingly
-        // TODO: we could do this step in the MainCall Expression, instead of passing it Values, we pass it Strings
-
-        for (arg, (t, _)) in zip(s_args, main_inputs) {
-            let value = match Value::string_to_value(arg, t) {
-                Ok(v) => v,
-                Err(e) => {
-                    let err_msg = format!("Error while parsing command-line arguments: {}", e);
-                    return Err(Error::new(ErrMsg::InvalidArguments(err_msg), None))
-                }
-            };
-
-            args.push(Rc::new(Expression::Literal(value, dummy_pos.clone())));
-        }
-
-        // Call the main function
-        let f_call = Expression::FunctionCall(None, main_func_id, args, dummy_pos.clone());
+        let main_call = Expression::MainCall(s_args);
 
         let scope = Rc::new(RefCell::new(Scope::new()));
-        match f_call.evaluate(scope, self, false) {
+        match main_call.evaluate(scope, self, false) {
             Ok(reference) => Ok(reference.borrow().to_owned()),
             Err(e) => Err(e)
         }

@@ -53,7 +53,7 @@ impl Statement {
                 match expr.evaluate(scope, program, false) {
                     Ok(_) => Ok(()),
                     Err(mut e) => {
-                        e.clog_pos(*p);
+                        e.clog_pos(p.clone());
                         Err(e)
                     }
                 }

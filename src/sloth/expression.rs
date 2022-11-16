@@ -23,7 +23,7 @@ pub enum Expression {
     Operation(Operation, Position),                                                             // Operator to apply to one or 2 values from the Scope Expression stack (via index)
     FunctionCall(Option<Rc<Expression>>, FunctionCallSignature, Vec<Rc<Expression>>, Position), // optional owner (for method calls), name of the function and its list of expressions to be evaluated
     ObjectConstruction(StructSignature, Vec<Rc<Expression>>, Position),                         // The construction of an Object, with the 'new' keyword
-    MainCall(Vec<Rc<RefCell<Value>>>)                                                           // Fake expression used to call the main function
+    MainCall(Vec<String>)                                                                       // Fake expression used to call the main function
 }
 
 
@@ -143,9 +143,6 @@ impl Expression {
 
 
             Expression::MainCall(arguments) => {
-                // get the types of the inputs
-                let types: Vec<Type> = arguments.iter().map(|a| a.borrow().get_type()).collect();
-                
                 // get the entry point
                 let main_function = match program.as_ref().unwrap().get_main() {
                     Ok(f) => f,
@@ -158,25 +155,41 @@ impl Expression {
                     return Err(Error::new(ErrMsg::ReturnValueError(err_msg), None));
                 }
 
-                // Check that the given inputs match the ones of the entry point
-                match main_function.get_input_types() {
+
+                // Try to parse each inputs (strings) into a value of the expected type
+                let values: Vec<Rc<RefCell<Value>>> = match main_function.get_input_types() {
                     None => {
                         let err_msg = format!("The '{}' function has no defined input types", ENTRY_POINT_NAME);
-                        return Err(Error::new(ErrMsg::NoEntryPoint(err_msg), None));
+                        return Err(Error::new(ErrMsg::RustError(err_msg), None));
                     },
 
                     Some(t) => {
-                        if t != types {
-                            let err_msg = format!("Incorrect inputs.\nExpected: {}\n   Given: {}", format_list(t), format_list(types));
+                        if t.len() != arguments.len() {
+                            let err_msg = format!("Expected {} arguments, but received {}.\nNote: Expected types: {}", t.len(), arguments.len(), format_list(t));
                             return Err(Error::new(ErrMsg::InvalidArguments(err_msg), None));
+                        }
+
+                        // generate the values
+                        let mut values = Vec::new();
+
+                        for (i, (given, expected_type)) in std::iter::zip(arguments, t).enumerate() {
+                            match Value::string_to_value(given.clone(), expected_type) {
+                                Ok(v) => values.push(Rc::new(RefCell::new(v))),
+                                Err(e) => {
+                                    let err_msg = format!("Invalid argument {}: {}", i, e);
+                                    return Err(Error::new(ErrMsg::InvalidArguments(err_msg), None))
+                                }
+                            }
                         };
+
+                        values
                     }
                 };
 
+
+
                 // The function is correct, proceed to run it
-                unsafe {
-                    Expression::execute_function(*main_function, None, *arguments, program)
-                }
+                Expression::execute_function(main_function, None, values, program)
             },
 
 
@@ -186,7 +199,7 @@ impl Expression {
 
                 // Get the reference to each value. The inputs by value (without "~") are deep-cloned at a later step,
                 // and are added to the function scope even after
-                let mut inputs = arguments.iter().map(|e| e.evaluate(scope.clone(), program, false)).collect::<Result<Vec<Rc<RefCell<Value>>>, Error>>()?;
+                let inputs = arguments.iter().map(|e| e.evaluate(scope.clone(), program, false)).collect::<Result<Vec<Rc<RefCell<Value>>>, Error>>()?;
 
                 // Get the reference to the owner value, if any
                 let owner_value = match owner {
@@ -197,7 +210,7 @@ impl Expression {
                 
                 // we can complete the signature with the input types and the owner type
                 let mut signature = signature.clone();
-                if let Some(v) = owner_value {signature.owner_type = Some(v.borrow().get_type())}
+                if let Some(v) = &owner_value {signature.owner_type = Some(v.borrow().get_type())}
                 let input_types: Vec<Type> = inputs.iter().map(|i| i.borrow().get_type()).collect();
                 signature.input_types = input_types;
                 
@@ -208,13 +221,11 @@ impl Expression {
                     Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
                 };
 
-                unsafe {
-                    match Expression::execute_function(*function, owner_value, inputs, program) {
-                        Ok(v) => Ok(v),
-                        Err(mut e) => {
-                            e.clog_pos(*p);
-                            Err(e)
-                        }
+                match Expression::execute_function(function, owner_value, inputs, program) {
+                    Ok(v) => Ok(v),
+                    Err(mut e) => {
+                        e.clog_pos(p.clone());
+                        Err(e)
                     }
                 }
             },
@@ -273,7 +284,7 @@ impl Expression {
 
 
 
-    unsafe fn execute_function(function: Box<dyn SlothFunction>, owner_value: Option<Rc<RefCell<Value>>>, arguments: Vec<Rc<RefCell<Value>>>, program: *mut SlothProgram) -> Result<Rc<RefCell<Value>>, Error> {
+    unsafe fn execute_function(function: &Box<dyn SlothFunction>, owner_value: Option<Rc<RefCell<Value>>>, arguments: Vec<Rc<RefCell<Value>>>, program: *mut SlothProgram) -> Result<Rc<RefCell<Value>>, Error> {
 
         // Whether the arguments are passed by value or by reference
         let inputs_ref_or_cloned: Vec<bool> = match function.get_signature().input_types {
@@ -288,6 +299,7 @@ impl Expression {
 
         // Create the input variable (@0, @1, etc.) with the default value
         for (i, value) in arguments.iter().enumerate() {
+            let mut v = value.clone();
 
             // if the values are cloned, allocate a new Value instead of using the reference
             // TODO: Is it inverted ?
@@ -297,12 +309,12 @@ impl Expression {
                     Err(e) => return Err(Error::new(ErrMsg::InvalidArguments(e), None))
                 };
 
-                value = &cloned_value;
+                v = cloned_value;
             }
 
 
             match func_scope.try_borrow_mut() {
-                Ok(mut reference) => match (*reference).push_variable(format!("@{}", i), *value) {
+                Ok(mut reference) => match (*reference).push_variable(format!("@{}", i), v) {
                     Ok(()) => (),
                     Err(e) => return Err(Error::new(ErrMsg::RuntimeError(e), None))
                 },
