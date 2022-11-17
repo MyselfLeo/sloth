@@ -1,10 +1,8 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::iter::zip;
 use std::rc::Rc;
 
-use crate::errors::{Error, ErrMsg, formatted_vec_string};
-use crate::position::Position;
+use crate::errors::Error;
 use super::function::{SlothFunction, FunctionSignature, FunctionCallSignature};
 use super::scope::Scope;
 use super::expression::Expression;
@@ -328,8 +326,12 @@ impl SlothProgram {
 
         let scope = Rc::new(RefCell::new(Scope::new()));
         match main_call.evaluate(scope, self, false) {
-            Ok(reference) => Ok(reference.borrow().to_owned()),
-            Err(e) => Err(e)
+            Ok(reference) => {
+                Ok(reference.borrow().to_owned())
+            },
+            Err(e) => {
+                Err(e)
+            }
         }
     }
 

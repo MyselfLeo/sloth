@@ -2,8 +2,7 @@ use std::rc::Rc;
 
 use crate::lexer::{Token, TokenStream, Operator};
 use crate::sloth::expression::Expression;
-use crate::sloth::function::{FunctionSignature, FunctionCallSignature};
-use crate::sloth::operation::Operation;
+use crate::sloth::function::FunctionCallSignature;
 use crate::sloth::program::SlothProgram;
 use crate::errors::Error;
 use crate::sloth::types::Type;
@@ -34,26 +33,21 @@ pub fn parse_operation(stream: &mut TokenStream, program: &mut SlothProgram, war
     let lhs = Rc::new(parse_expression(stream, program, warning, None)?);
     let lhs_pos = lhs.get_pos();
 
-
-    
+    // the signature is completed when evaluating the expression 
+    let sign = FunctionCallSignature::new(
+        None,
+        op_func_name(&operator),
+        None,
+        vec![],
+        Type::Any,
+    );
 
 
     let func_call = {
         // use rhs if not the inverse operator (1 operand)
         if operator != Operator::Inv {
-
-            // 
-            let sign = FunctionCallSignature::new(
-                None,
-                op_func_name(&operator),
-                None,
-                vec![Type::Any, Type::Any],
-                Type::Any,
-            );
-
             let rhs = Rc::new(parse_expression(stream, program, warning, None)?);
             let rhs_pos = rhs.get_pos();
-
             
             Expression::FunctionCall(None, sign, vec![lhs, rhs], first_pos.until(rhs_pos))
         }
@@ -63,6 +57,4 @@ pub fn parse_operation(stream: &mut TokenStream, program: &mut SlothProgram, war
     };
 
     Ok(func_call)
-
-    todo!()
 }

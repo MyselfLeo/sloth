@@ -3,7 +3,6 @@ use std::fmt::Display;
 use std::rc::Rc;
 
 use super::function::{FunctionCallSignature, SlothFunction};
-use super::operation::Operation;
 use super::structure::{StructSignature};
 use super::types::Type;
 use super::value::{Value, DeepClone};
@@ -20,7 +19,6 @@ pub enum Expression {
     ListInit(Vec<Rc<Expression>>, Position),                                                    // list initialised in code. Example: [1 2 3 4 5]
     VariableAccess(Option<Rc<Expression>>, String, Position),                                   // ExpressionID to the owner of the field and its name,
     BracketAccess(Rc<Expression>, Rc<Expression>, Position),                                    // Owner, indexing expression
-    Operation(Operation, Position),                                                             // Operator to apply to one or 2 values from the Scope Expression stack (via index)
     FunctionCall(Option<Rc<Expression>>, FunctionCallSignature, Vec<Rc<Expression>>, Position), // optional owner (for method calls), name of the function and its list of expressions to be evaluated
     ObjectConstruction(StructSignature, Vec<Rc<Expression>>, Position),                         // The construction of an Object, with the 'new' keyword
     MainCall(Vec<String>)                                                                       // Fake expression used to call the main function
@@ -126,19 +124,6 @@ impl Expression {
 
 
 
-            // process the operation and return the result
-            Expression::Operation(operation, p) => {
-                let value = match operation.execute(scope, program.as_mut().unwrap()) {
-                    Ok(v) => v,
-                    Err(mut e) => {
-                        e.clog_pos(p.clone());
-                        return Err(e)
-                    }
-                };
-                Ok(Rc::new(RefCell::new(value)))
-            },
-
-
 
 
 
@@ -199,6 +184,7 @@ impl Expression {
 
                 // Get the reference to each value. The inputs by value (without "~") are deep-cloned at a later step,
                 // and are added to the function scope even after
+
                 let inputs = arguments.iter().map(|e| e.evaluate(scope.clone(), program, false)).collect::<Result<Vec<Rc<RefCell<Value>>>, Error>>()?;
 
                 // Get the reference to the owner value, if any
@@ -214,13 +200,15 @@ impl Expression {
                 let input_types: Vec<Type> = inputs.iter().map(|i| i.borrow().get_type()).collect();
                 signature.input_types = input_types;
                 
-
                 // get the function corresponding to the signature
                 let function = match program.as_ref().unwrap().get_function(&signature) {
                     Ok(f) => f,
-                    Err(e) => {return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))}
+                    Err(e) => {
+                        return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))
+                    }
                 };
 
+                
                 match Expression::execute_function(function, owner_value, inputs, program) {
                     Ok(v) => Ok(v),
                     Err(mut e) => {
@@ -273,7 +261,11 @@ impl Expression {
         match res {
             Ok(v) => Ok(v),
             Err(mut e) => {
-                e.clog_pos(self.get_pos());
+
+                // don't clog if we're in the MainCall
+                if let Expression::MainCall(..) = self {}
+                else {e.clog_pos(self.get_pos());}
+                
                 Err(e)
             }
         }
@@ -349,7 +341,7 @@ impl Expression {
 
         // run the method in the given scope.
         // If the method call returned an error without position, set its position to this function call's
-        function.call(func_scope.clone(), program.as_mut().unwrap());
+        function.call(func_scope.clone(), program.as_mut().unwrap())?;
 
 
 
@@ -383,7 +375,6 @@ impl Expression {
             Expression::Literal(_, p) => p,
             Expression::ListInit(_, p) => p,
             Expression::VariableAccess(_, _, p) => p,
-            Expression::Operation(_, p) => p,
             Expression::FunctionCall(_, _, _, p) => p,
             Expression::ObjectConstruction(_, _, p) => p,
             Expression::BracketAccess(_, _, p) => p,
