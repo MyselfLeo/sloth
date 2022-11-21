@@ -150,7 +150,8 @@ impl Expression {
 
                     Some(t) => {
                         if t.len() != arguments.len() {
-                            let err_msg = format!("Expected {} arguments, but received {}.\nNote: Expected types: {}", t.len(), arguments.len(), format_list(t));
+                            let s = if t.len() > 1 {"s"} else {""};
+                            let err_msg = format!("Expected {} argument{s}, but received {}.\nNote: Expected types: {}", t.len(), arguments.len(), format_list(t));
                             return Err(Error::new(ErrMsg::InvalidArguments(err_msg), None));
                         }
 
@@ -204,7 +205,7 @@ impl Expression {
                 let function = match program.as_ref().unwrap().get_function(&signature) {
                     Ok(f) => f,
                     Err(e) => {
-                        return Err(Error::new(ErrMsg::RuntimeError(e), Some(p.clone())))
+                        return Err(Error::new(ErrMsg::FunctionError(e), Some(p.clone())))
                     }
                 };
 

@@ -19,6 +19,7 @@ pub enum ErrMsg {
     ReturnValueError(String),
     ImportError(String),
     DefinitionError(String),
+    FunctionError(String),
 }
 
 
@@ -37,6 +38,7 @@ impl std::fmt::Display for ErrMsg {
             ErrMsg::ReturnValueError(e) => write!(f, "RETURN VALUE ERROR: {}", e),
             ErrMsg::ImportError(e) => write!(f, "IMPORT ERROR: {}", e),
             ErrMsg::DefinitionError(e) => write!(f, "DEFINITION ERROR: {}", e),
+            ErrMsg::FunctionError(e) => write!(f, "FUNCTION ERROR: {}", e),
         }
     }
 }
