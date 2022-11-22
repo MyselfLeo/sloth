@@ -1,9 +1,16 @@
 use std::{rc::Rc, cell::RefCell};
+use crate::lexer::Operator;
 use crate::sloth::function::{FunctionSignature, SlothFunction};
 use crate::sloth::scope::Scope;
 use crate::sloth::program::SlothProgram;
 use crate::errors::Error;
 use crate::sloth::types::Type;
+use crate::sloth::value::Value;
+use crate::builtins::set_return;
+
+
+
+pub mod add;
 
 
 
@@ -15,7 +22,7 @@ use crate::sloth::types::Type;
 /// Builtin operations. Is a function to allow overloading
 pub struct OperatorFunction {
     signature: FunctionSignature,
-    call_function: fn(Rc<RefCell<Scope>>, &mut SlothProgram) -> Result<(), Error>,
+    call_function: Box<dyn Fn(Rc<RefCell<Scope>>, &mut SlothProgram) -> Result<(), Error>>,
 }
 
 impl std::fmt::Debug for OperatorFunction {
@@ -50,15 +57,27 @@ impl SlothFunction for OperatorFunction {
 
 
 impl OperatorFunction {
-    pub fn new(name: &str, module: Option<&str>, owner_type: Option<Type>, output_type: Type, call_function: fn(Rc<RefCell<Scope>>, &mut SlothProgram) -> Result<(), Error>) -> BuiltInFunction {
-        let new_module = match module {
-            Some(s) => Some(s.to_string()),
-            None => None
+    pub fn new(op: Operator, input_types: Vec<Type>, output_type: Type, op_func: fn(Vec<Value>) -> Value) -> OperatorFunction {
+        let signature = FunctionSignature::new(
+            None,
+            format!("@{}", op.get_name()),
+            None,
+            Some(std::iter::zip(input_types, Vec::with_capacity(input_types.len())).collect()),
+            Some(output_type)
+        );
+
+        let function = |s: Rc<RefCell<Scope>>, p: &mut SlothProgram| {
+            // evaluate given values in the scope
+            let values = s.borrow().get_inputs();
+            let values: Vec<Value> = values.iter().map(|r| {r.borrow().to_owned()}).collect();
+
+            set_return(&s, p, op_func(values))
         };
 
+
         OperatorFunction {
-            signature: FunctionSignature{module: new_module, name: name.to_string(), owner_type, input_types: None, output_type: Some(output_type)},
-            call_function
+            signature: signature,
+            call_function: Box::new(function)
         }
     }
 }
