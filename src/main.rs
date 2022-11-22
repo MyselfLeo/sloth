@@ -4,6 +4,7 @@ mod sloth;
 mod builtins;
 mod errors;
 mod position;
+mod operations;
 
 use clap::Parser;
 use sloth::program::SlothProgram;
