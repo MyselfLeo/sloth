@@ -39,71 +39,61 @@ pub fn get_type(builtin: &String) -> Result<BuiltinTypes, String> {
 
 /// Return a reference to a new SlothFunction. Panics if the function does not exists
 pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
-    match f_name.as_str() {
-        "set" => Box::new(
-            BuiltInFunction::new(
-                "set",
-                Some("lists"),
-                Some(Type::List(Box::new(Type::Any))),
-                Type::Number,
-                set
-            )
+    let res = match f_name.as_str() {
+        "set" => BuiltInFunction::new(
+            "set",
+            Some("lists"),
+            Some(Type::List(Box::new(Type::Any))),
+            Type::Number,
+            set
         ),
 
-        "get" => Box::new(
-            BuiltInFunction::new(
-                "get",
-                Some("lists"),
-                Some(Type::List(Box::new(Type::Any))),
-                Type::Any,
-                get
-            )
+        "get" => BuiltInFunction::new(
+            "get",
+            Some("lists"),
+            Some(Type::List(Box::new(Type::Any))),
+            Type::Any,
+            get
         ),
 
-        "push" => Box::new(
-            BuiltInFunction::new(
-                "push",
-                Some("lists"),
-                Some(Type::List(Box::new(Type::Any))),
-                Type::Number,
-                push
-            )
+        "push" => BuiltInFunction::new(
+            "push",
+            Some("lists"),
+            Some(Type::List(Box::new(Type::Any))),
+            Type::Number,
+            push
         ),
 
-        "pull" => Box::new(
-            BuiltInFunction::new(
-                "pull",
-                Some("lists"),
-                Some(Type::List(Box::new(Type::Any))),
-                Type::Any,
-                pull
-            )
+        "pull" => BuiltInFunction::new(
+            "pull",
+            Some("lists"),
+            Some(Type::List(Box::new(Type::Any))),
+            Type::Any,
+            pull
         ),
 
-        "len" => Box::new(
-            BuiltInFunction::new(
-                "len",
-                Some("lists"),
-                Some(Type::List(Box::new(Type::Any))),
-                Type::Number,
-                len
-            )
+        "len" => BuiltInFunction::new(
+            "len",
+            Some("lists"),
+            Some(Type::List(Box::new(Type::Any))),
+            Type::Number,
+            len
         ),
 
 
-        "contains" => Box::new(
-            BuiltInFunction::new(
-                "contains",
-                Some("lists"),
-                Some(Type::List(Box::new(Type::Any))),
-                Type::Boolean,
-                contains
-            )
+        "contains" => BuiltInFunction::new(
+            "contains",
+            Some("lists"),
+            Some(Type::List(Box::new(Type::Any))),
+            Type::Boolean,
+            contains
         ),
 
 
         n => panic!("Requested unknown built-in '{}'", n)
-    }
+    };
+
+    Box::new(res)
 }
 
 

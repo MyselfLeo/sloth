@@ -47,80 +47,68 @@ pub fn get_type(builtin: &String) -> Result<BuiltinTypes, String> {
 
 /// Return a reference to a new SlothFunction. Panics if the function does not exists
 pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
-    match f_name.as_str() {
-        "to_num" => Box::new(
-            BuiltInFunction::new(
-                "to_num",
-                Some("strings"),
-                Some(Type::String),
-                Type::Number,
-                to_num
-            )
+    let res = match f_name.as_str() {
+        "to_num" => BuiltInFunction::new(
+            "to_num",
+            Some("strings"),
+            Some(Type::String),
+            Type::Number,
+            to_num
         ),
 
-        "len" => Box::new(
-            BuiltInFunction::new(
-                "len",
-                Some("strings"),
-                Some(Type::String),
-                Type::Number,
-                len
-            )
+        "len" => BuiltInFunction::new(
+            "len",
+            Some("strings"),
+            Some(Type::String),
+            Type::Number,
+            len
         ),
 
-        "insert" => Box::new(
-            BuiltInFunction::new(
-                "insert",
-                Some("strings"),
-                Some(Type::String),
-                Type::Number,
-                insert
-            )
+        "insert" => BuiltInFunction::new(
+            "insert",
+            Some("strings"),
+            Some(Type::String),
+            Type::Number,
+            insert
         ),
 
-        "push" => Box::new(
-            BuiltInFunction::new(
-                "push",
-                Some("strings"),
-                Some(Type::String),
-                Type::Number,
-                push
-            )
+        "push" => BuiltInFunction::new(
+            "push",
+            Some("strings"),
+            Some(Type::String),
+            Type::Number,
+            push
         ),
 
-        "remove" => Box::new(
-            BuiltInFunction::new(
-                "remove",
-                Some("strings"),
-                Some(Type::String),
-                Type::Number,
-                remove
-            )
+        "remove" => BuiltInFunction::new(
+            "remove",
+            Some("strings"),
+            Some(Type::String),
+            Type::Number,
+            remove
         ),
 
-        "split" => Box::new(
-            BuiltInFunction::new(
-                "split",
-                Some("strings"),
-                Some(Type::String),
-                Type::List(Box::new(Type::String)),
-                split
-            )
+        "split" => BuiltInFunction::new(
+            "split",
+            Some("strings"),
+            Some(Type::String),
+            Type::List(Box::new(Type::String)),
+            split
         ),
 
-        "get" => Box::new(
-            BuiltInFunction::new(
-                "get",
-                Some("strings"),
-                Some(Type::String),
-                Type::String,
-                get
-            )
+        "get" => BuiltInFunction::new(
+            "get",
+            Some("strings"),
+            Some(Type::String),
+            Type::String,
+            get
         ),
 
 
         n => panic!("Requested unknown built-in '{}'", n)
-    }
+    };
+
+    Box::new(res)
 }
 
 
