@@ -349,15 +349,15 @@ impl SlothProgram {
 
         // sort the functions
         let mut signatures = self.functions.keys().collect::<Vec<&FunctionSignature>>();
-        signatures.sort_unstable_by_key(|s| (&s.name, &s.module, &s.input_types));
+        signatures.sort_unstable_by_key(|s| (&s.module, &s.name, &s.input_types, &s.output_type));
 
-        println!("{:25}{:15}{:15}{:25}{:15}", "FUNCTION NAME", "OWNER TYPE", "MODULE", "INPUT TYPES", "OUTPUT TYPE");
+        println!("{:25}{:15}{:15}{:25}{:15}", "FUNCTION NAME", "MODULE", "OWNER TYPE", "INPUT TYPES", "OUTPUT TYPE");
         for signature in signatures {
-            let type_txt = match &signature.owner_type {
+            let module_txt = match &signature.module {
                 Some(v) => format!("{}", v),
                 None => "-".to_string(),
             };
-            let module_txt = match &signature.module {
+            let type_txt = match &signature.owner_type {
                 Some(v) => format!("{}", v),
                 None => "-".to_string(),
             };
@@ -382,8 +382,8 @@ impl SlothProgram {
                 Some(v) => format!("{v}"),
                 None => "-".to_string()
             };
-
-            println!("{:25}{:15}{:15}{:25}{:15}", signature.name, type_txt, module_txt, input_types_txt, output_type_str);
+ 
+            println!("{:25}{:15}{:15}{:25}{:15}", signature.name, module_txt, type_txt, input_types_txt, output_type_str);
         }
     }
 }
