@@ -54,6 +54,11 @@ impl SlothProgram {
             builtins: Vec::new()
         };
 
+        // import default operator functions
+        for op in crate::operations::get_all() {
+            program.push_function(Box::new(op));
+        }
+
         if import_default_builtins {
             for import in DEFAULT_BUILTIN_IMPORTS {
                 program.add_import(builtins::BuiltInImport::new(import.to_string(), None));

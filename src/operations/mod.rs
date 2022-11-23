@@ -8,10 +8,7 @@ use crate::sloth::types::Type;
 use crate::sloth::value::Value;
 use crate::builtins::set_return;
 
-
-
 pub mod add;
-
 
 
 
@@ -58,11 +55,13 @@ impl SlothFunction for OperatorFunction {
 
 impl OperatorFunction {
     pub fn new(op: Operator, input_types: Vec<Type>, output_type: Type, op_func: fn(Vec<Value>) -> Value) -> OperatorFunction {
+        let nb_inputs = input_types.len();
+
         let signature = FunctionSignature::new(
             None,
             format!("@{}", op.get_name()),
             None,
-            Some(std::iter::zip(input_types, Vec::with_capacity(input_types.len())).collect()),
+            Some(std::iter::zip(input_types, Vec::with_capacity(nb_inputs)).collect()),
             Some(output_type)
         );
 
@@ -80,4 +79,16 @@ impl OperatorFunction {
             call_function: Box::new(function)
         }
     }
+}
+
+
+
+
+
+
+
+
+
+pub fn get_all() -> Vec<OperatorFunction> {
+    add::get_all()
 }
