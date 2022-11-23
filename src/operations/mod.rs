@@ -56,14 +56,16 @@ impl SlothFunction for OperatorFunction {
 impl OperatorFunction {
     pub fn new(op: Operator, input_types: Vec<Type>, output_type: Type, op_func: &'static fn(Vec<Value>) -> Value) -> OperatorFunction {
         let nb_inputs = input_types.len();
+        let false_vec = vec![false; nb_inputs];
 
         let signature = FunctionSignature::new(
             None,
             format!("@{}", op.get_name()),
             None,
-            Some(std::iter::zip(input_types, Vec::with_capacity(nb_inputs)).collect()),
+            Some(std::iter::zip(input_types.clone(), false_vec).collect()),
             Some(output_type)
         );
+
 
         let function = |s: Rc<RefCell<Scope>>, p: &mut SlothProgram| {
             // evaluate given values in the scope
