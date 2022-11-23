@@ -11,12 +11,14 @@ pub fn get_all() -> Vec<OperatorFunction> {
     // This is stupid i hate it
     static NUM_NUM: fn(Vec<Value>) -> Value = num_num;
     static NUM_STRING: fn(Vec<Value>) -> Value = num_string;
+    static STRING_STRING: fn(Vec<Value>) -> Value = string_string;
 
     vec![
         // Number and Strings
         OperatorFunction::new(Add, vec![Number, Number], Number, &NUM_NUM),
         OperatorFunction::new(Add, vec![Number, String], String, &NUM_STRING),
         OperatorFunction::new(Add, vec![String, Number], String, &NUM_STRING),
+        OperatorFunction::new(Add, vec![String, String], String, &STRING_STRING)
 
         // Lists
     ]
@@ -36,4 +38,11 @@ fn num_string(v: Vec<Value>) -> Value {
     else if let (Value::String(x), Value::Number(y)) = (&v[0], &v[1]) {
         Value::String(y.to_string() + x)
     } else {unreachable!()}
+}
+
+fn string_string(v: Vec<Value>) -> Value {
+    if let (Value::String(x), Value::String(y)) = (&v[0], &v[1]) {
+        Value::String(x.to_owned() + y)
+    }
+    else {unreachable!()}
 }
