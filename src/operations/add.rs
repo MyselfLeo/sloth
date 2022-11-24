@@ -12,7 +12,7 @@ pub fn get_all() -> Vec<OperatorFunction> {
     static NUM_NUM: fn(Vec<Value>) -> Value = num_num;
     static NUM_STRING: fn(Vec<Value>) -> Value = num_string;
     static STRING_STRING: fn(Vec<Value>) -> Value = string_string;
-    static SAME_LISTS: fn(Vec<Value>) -> Value = same_lists;
+    static LISTS: fn(Vec<Value>) -> Value = lists;
 
     vec![
         // Number and Strings
@@ -22,7 +22,7 @@ pub fn get_all() -> Vec<OperatorFunction> {
         OperatorFunction::new(Add, vec![String, String], String, &STRING_STRING),
 
         // Lists
-        OperatorFunction::new(Add, vec![List(Box::new(Number)), List(Box::new(Number))], List(Box::new(Number)), &SAME_LISTS),
+    OperatorFunction::new(Add, vec![List(Box::new(Any)), List(Box::new(Any))], List(Box::new(Any)), &LISTS),
     ]
 }
 
@@ -50,7 +50,7 @@ fn string_string(v: Vec<Value>) -> Value {
 }
 
 
-fn same_lists(v: Vec<Value>) -> Value {
+fn lists(v: Vec<Value>) -> Value {
     if let (Value::List(t1, mut v1), Value::List(t2, mut v2)) = (v[0].clone(), v[1].clone()) {
         if t1 == t2 {
             v1.append(&mut v2);
