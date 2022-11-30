@@ -54,7 +54,7 @@ impl SlothFunction for OperatorFunction {
 
 
 impl OperatorFunction {
-    pub fn new(op: Operator, input_types: Vec<Type>, output_type: Type, op_func: &'static fn(Vec<Value>) -> Value) -> OperatorFunction {
+    pub fn new(op: Operator, input_types: Vec<Type>, output_type: Type, op_func: fn(Vec<Value>) -> Value) -> OperatorFunction {
         let nb_inputs = input_types.len();
         let false_vec = vec![false; nb_inputs];
 
@@ -92,5 +92,6 @@ impl OperatorFunction {
 
 
 pub fn get_all() -> Vec<OperatorFunction> {
-    add::get_all()
+    todo!();
+    //add::get_all()
 }

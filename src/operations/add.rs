@@ -6,17 +6,11 @@ use crate::sloth::value::Value;
 
 
 
-
+/*
 pub fn get_all() -> Vec<OperatorFunction> {
-    // This is stupid i hate it
-    static NUM_NUM: fn(Vec<Value>) -> Value = num_num;
-    static NUM_STRING: fn(Vec<Value>) -> Value = num_string;
-    static STRING_STRING: fn(Vec<Value>) -> Value = string_string;
-    static LISTS: fn(Vec<Value>) -> Value = lists;
-
     vec![
         // Number and Strings
-        OperatorFunction::new(Add, vec![Number, Number], Number, &NUM_NUM),
+        OperatorFunction::new(Add, vec![Number, Number], Number, ),
         OperatorFunction::new(Add, vec![Number, String], String, &NUM_STRING),
         OperatorFunction::new(Add, vec![String, Number], String, &NUM_STRING),
         OperatorFunction::new(Add, vec![String, String], String, &STRING_STRING),
@@ -25,7 +19,7 @@ pub fn get_all() -> Vec<OperatorFunction> {
     OperatorFunction::new(Add, vec![List(Box::new(Any)), List(Box::new(Any))], List(Box::new(Any)), &LISTS),
     ]
 }
-
+ */
 
 fn num_num(v: Vec<Value>) -> Value {
     if let (Value::Number(x), Value::Number(y)) = (&v[0], &v[1]) {

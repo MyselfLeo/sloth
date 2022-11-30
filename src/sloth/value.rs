@@ -100,6 +100,20 @@ impl Clone for Value {
 
 
 
+// implicit convertions
+
+impl From<f64> for Value {
+    fn from(v: f64) -> Self {Value::Number(v)}
+}
+impl From<String> for Value {
+    fn from(v: String) -> Self {Value::String(v)}
+}
+impl From<bool> for Value {
+    fn from(v: bool) -> Self {Value::Boolean(v)}
+}
+
+
+
 
 
 impl Value {
