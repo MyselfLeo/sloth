@@ -53,8 +53,10 @@ impl SlothFunction for OperatorFunction {
 }
 
 
+
 impl OperatorFunction {
-    pub fn new(op: Operator, input_types: Vec<Type>, output_type: Type, op_func: fn(Vec<Value>) -> Value) -> OperatorFunction {
+    /// Implemented for 2 values, for 1 operands op (like '!'), just use Value::Any
+    pub fn new(op: Operator, input_types: Vec<Type>, output_type: Type, op_func: &'static dyn Fn(Value, Value) -> Value) -> OperatorFunction {
         let nb_inputs = input_types.len();
         let false_vec = vec![false; nb_inputs];
 
@@ -70,9 +72,11 @@ impl OperatorFunction {
         let function = |s: Rc<RefCell<Scope>>, p: &mut SlothProgram| {
             // evaluate given values in the scope
             let values = s.borrow().get_inputs();
-            let values: Vec<Value> = values.iter().map(|r| {r.borrow().to_owned()}).collect();
+            
+            let first_v = values.get(0).unwrap_or(&Rc::new(RefCell::new(Value::Any))).borrow().to_owned();
+            let second_v = values.get(0).unwrap_or(&Rc::new(RefCell::new(Value::Any))).borrow().to_owned();
 
-            set_return(&s, p, op_func(values))
+            set_return(&s, p, op_func(first_v, second_v))
         };
 
 

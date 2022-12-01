@@ -6,21 +6,19 @@ use crate::sloth::value::Value;
 
 
 
-/*
+
 pub fn get_all() -> Vec<OperatorFunction> {
     vec![
         // Number and Strings
-        OperatorFunction::new(Add, vec![Number, Number], Number, ),
-        OperatorFunction::new(Add, vec![Number, String], String, &NUM_STRING),
-        OperatorFunction::new(Add, vec![String, Number], String, &NUM_STRING),
-        OperatorFunction::new(Add, vec![String, String], String, &STRING_STRING),
-
-        // Lists
-    OperatorFunction::new(Add, vec![List(Box::new(Any)), List(Box::new(Any))], List(Box::new(Any)), &LISTS),
+        OperatorFunction::new(Add, vec![Number, Number], Number, &(|v1, v2| {<Value as Into<f64>>::into(v1) + <Value as Into<f64>>::into(v2)})),
+        //OperatorFunction::new(Add, vec![Number, String], String, &NUM_STRING),
+        //OperatorFunction::new(Add, vec![String, Number], String, &NUM_STRING),
+        //OperatorFunction::new(Add, vec![String, String], String, &STRING_STRING),
     ]
 }
- */
 
+
+ /*
 fn num_num(v: Vec<Value>) -> Value {
     if let (Value::Number(x), Value::Number(y)) = (&v[0], &v[1]) {
         Value::Number(x + y)
@@ -53,4 +51,4 @@ fn lists(v: Vec<Value>) -> Value {
         else {unreachable!()}
     }
     else {unreachable!()}
-}
+} */
