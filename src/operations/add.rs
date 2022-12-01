@@ -9,46 +9,24 @@ use crate::sloth::value::Value;
 
 pub fn get_all() -> Vec<OperatorFunction> {
     vec![
-        // Number and Strings
-        OperatorFunction::new(Add, vec![Number, Number], Number, &(|v1, v2| {<Value as Into<f64>>::into(v1) + <Value as Into<f64>>::into(v2)})),
-        //OperatorFunction::new(Add, vec![Number, String], String, &NUM_STRING),
-        //OperatorFunction::new(Add, vec![String, Number], String, &NUM_STRING),
-        //OperatorFunction::new(Add, vec![String, String], String, &STRING_STRING),
+        OperatorFunction::new(Add, vec![Number, Number], Number, add_values),
+        OperatorFunction::new(Add, vec![Number, String], String, add_values),
+        OperatorFunction::new(Add, vec![String, Number], String, add_values),
+        OperatorFunction::new(Add, vec![String, String], String, add_values),
+        OperatorFunction::new(Add, vec![Boolean, Boolean], Boolean, add_values),
     ]
 }
 
 
- /*
-fn num_num(v: Vec<Value>) -> Value {
-    if let (Value::Number(x), Value::Number(y)) = (&v[0], &v[1]) {
-        Value::Number(x + y)
-    } else {unreachable!()}
-}
 
-fn num_string(v: Vec<Value>) -> Value {
-    if let (Value::Number(x), Value::String(y)) = (&v[0], &v[1]) {
-        Value::String(x.to_string() + y)
+
+fn add_values(v1: Value, v2: Value) -> Value {
+    match (v1, v2) {
+        (Value::Number(x1), Value::Number(x2)) => Value::Number(x1 + x2),
+        (Value::Number(x), Value::String(s)) => Value::String(x.to_string() + &s),
+        (Value::Boolean(b1), Value::Boolean(b2)) => Value::Boolean(b1 || b2),
+        (Value::String(s), Value::Number(x)) => Value::String(s + &x.to_string()),
+        (Value::String(s1), Value::String(s2)) => Value::String(s1 + &s2),
+        _ => unreachable!()
     }
-    else if let (Value::String(x), Value::Number(y)) = (&v[0], &v[1]) {
-        Value::String(y.to_string() + x)
-    } else {unreachable!()}
 }
-
-fn string_string(v: Vec<Value>) -> Value {
-    if let (Value::String(x), Value::String(y)) = (&v[0], &v[1]) {
-        Value::String(x.to_owned() + y)
-    }
-    else {unreachable!()}
-}
-
-
-fn lists(v: Vec<Value>) -> Value {
-    if let (Value::List(t1, mut v1), Value::List(t2, mut v2)) = (v[0].clone(), v[1].clone()) {
-        if t1 == t2 {
-            v1.append(&mut v2);
-            Value::List(t1.clone(), v1)
-        }
-        else {unreachable!()}
-    }
-    else {unreachable!()}
-} */

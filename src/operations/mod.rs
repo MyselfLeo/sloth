@@ -9,6 +9,12 @@ use crate::sloth::value::Value;
 use crate::builtins::set_return;
 
 pub mod add;
+pub mod cmp;
+pub mod div;
+pub mod modulo;
+pub mod mul;
+pub mod sub;
+pub mod inv;
 
 
 
@@ -17,9 +23,10 @@ pub mod add;
 
 
 /// Builtin operations. Is a function to allow overloading
+#[derive(Clone)]
 pub struct OperatorFunction {
     signature: FunctionSignature,
-    call_function: Box<dyn Fn(Rc<RefCell<Scope>>, &mut SlothProgram) -> Result<(), Error>>,
+    op_function: fn(Value, Value) -> Value,
 }
 
 impl std::fmt::Debug for OperatorFunction {
@@ -48,15 +55,31 @@ impl SlothFunction for OperatorFunction {
     }
 
     unsafe fn call(&self, scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Error> {
-        (self.call_function)(scope, program)
+        // evaluate given values in the scope
+        let values = scope.borrow().get_inputs();
+
+        let first_v = match values.get(0) {
+            Some(v) => v.borrow().to_owned(),
+            None => Value::Any,
+        };
+
+        let second_v = match values.get(1) {
+            Some(v) => v.borrow().to_owned(),
+            None => Value::Any,
+        };
+
+        let res = (self.op_function)(first_v, second_v);
+
+        set_return(&scope, program, res)
     }
 }
 
 
 
+
 impl OperatorFunction {
     /// Implemented for 2 values, for 1 operands op (like '!'), just use Value::Any
-    pub fn new(op: Operator, input_types: Vec<Type>, output_type: Type, op_func: &'static dyn Fn(Value, Value) -> Value) -> OperatorFunction {
+    pub fn new(op: Operator, input_types: Vec<Type>, output_type: Type, op_func: fn(Value, Value) -> Value) -> OperatorFunction {
         let nb_inputs = input_types.len();
         let false_vec = vec![false; nb_inputs];
 
@@ -68,21 +91,9 @@ impl OperatorFunction {
             Some(output_type)
         );
 
-
-        let function = |s: Rc<RefCell<Scope>>, p: &mut SlothProgram| {
-            // evaluate given values in the scope
-            let values = s.borrow().get_inputs();
-            
-            let first_v = values.get(0).unwrap_or(&Rc::new(RefCell::new(Value::Any))).borrow().to_owned();
-            let second_v = values.get(0).unwrap_or(&Rc::new(RefCell::new(Value::Any))).borrow().to_owned();
-
-            set_return(&s, p, op_func(first_v, second_v))
-        };
-
-
         OperatorFunction {
             signature: signature,
-            call_function: Box::new(function)
+            op_function: op_func
         }
     }
 }
@@ -96,6 +107,14 @@ impl OperatorFunction {
 
 
 pub fn get_all() -> Vec<OperatorFunction> {
-    todo!();
-    //add::get_all()
+    let vecs = vec![
+        add::get_all(),
+        cmp::get_all(),
+        modulo::get_all(),
+        sub::get_all(),
+        mul::get_all(),
+        div::get_all(),
+        inv::get_all()
+    ];
+    vecs.concat()
 }
