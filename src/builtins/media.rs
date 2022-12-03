@@ -49,49 +49,43 @@ pub fn get_type(builtin: &String) -> Result<BuiltinTypes, String> {
 
 /// Return a reference to a new SlothFunction. Panics if the function does not exists
 pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
-    match f_name.as_str() {
-        "last_event" => Box::new(
-            BuiltInFunction::new(
-                "last_event",
-                Some("media"),
-                None,
-                Type::String,
-                last_event
-            )
+    let res = match f_name.as_str() {
+        "last_event" => BuiltInFunction::new(
+            "last_event",
+            Some("media"),
+            None,
+            Type::String,
+            last_event 
         ),
 
-        "update" => Box::new(
-            BuiltInFunction::new(
-                "update",
-                Some("media"),
-                Some(Type::Object("Canvas".to_string())),
-                Type::Number,
-                update
-            )
+        "update" => BuiltInFunction::new(
+            "update",
+            Some("media"),
+            Some(Type::Object("Canvas".to_string())),
+            Type::Number,
+            update  
         ),
 
-        "set_pixel" => Box::new(
-            BuiltInFunction::new(
-                "set_pixel",
-                Some("media"),
-                Some(Type::Object("Canvas".to_string())),
-                Type::Number,
-                set_pixel
-            )
+        "set_pixel" => BuiltInFunction::new(
+            "set_pixel",
+            Some("media"),
+            Some(Type::Object("Canvas".to_string())),
+            Type::Number,
+            set_pixel
         ),
 
-        "set_rect" => Box::new(
-            BuiltInFunction::new(
-                "set_rect",
-                Some("media"),
-                Some(Type::Object("Canvas".to_string())),
-                Type::Number,
-                set_rect
-            )
+        "set_rect" => BuiltInFunction::new(
+            "set_rect",
+            Some("media"),
+            Some(Type::Object("Canvas".to_string())),
+            Type::Number,
+            set_rect
         ),
 
         n => panic!("Requested unknown built-in '{}'", n)
-    }
+    };
+
+    Box::new(res)
 }
 
 

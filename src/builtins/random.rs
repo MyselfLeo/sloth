@@ -35,20 +35,20 @@ pub fn get_type(builtin: &String) -> Result<BuiltinTypes, String> {
 
 /// Return a reference to a new SlothFunction. Panics if the function does not exists
 pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
-    match f_name.as_str() {
-        "range" => Box::new(
-            BuiltInFunction::new(
-                "range",
-                Some("random"),
-                None,
-                Type::Number,
-                range
-            )
+    let res = match f_name.as_str() {
+        "range" => BuiltInFunction::new(
+            "range",
+            Some("random"),
+            None,
+            Type::Number,
+            range
         ),
 
 
         n => panic!("Requested unknown built-in '{}'", n)
-    }
+    };
+
+    Box::new(res)
 }
 
 

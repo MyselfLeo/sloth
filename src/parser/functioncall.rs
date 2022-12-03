@@ -2,9 +2,10 @@ use std::rc::Rc;
 
 use crate::lexer::{Token, TokenStream, Separator};
 use crate::sloth::expression::Expression;
-use crate::sloth::function::FunctionSignature;
+use crate::sloth::function::{FunctionCallSignature};
 use crate::sloth::program::SlothProgram;
 use crate::errors::Error;
+use crate::sloth::types::Type;
 
 use super::expression::parse_expression;
 
@@ -43,7 +44,8 @@ pub fn parse_functioncall(stream: &mut TokenStream, program: &mut SlothProgram, 
     let (_, end_pos) = super::expect_token(stream, Token::Separator(Separator::CloseParenthesis))?;
 
     let functioncall_pos = first_pos.until(end_pos);
-    let func_sign = FunctionSignature::new(module_name, func_name, None, None, None);
-    
+
+    // owner_type, input_types and output_types will be completed in the expression call
+    let func_sign = FunctionCallSignature::new(module_name, func_name, None, vec![], Type::Any);
     Ok(Expression::FunctionCall(first_expr, func_sign, arg_exprs, functioncall_pos))
 }

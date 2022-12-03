@@ -1,4 +1,3 @@
-use std::fmt::Display;
 use crate::position::Position;
 
 
@@ -17,10 +16,10 @@ pub enum ErrMsg {
     UnexpectedEOF(String),
     TypeError(String),
     RustError(String),
-    OperationErrror(String),
     ReturnValueError(String),
     ImportError(String),
     DefinitionError(String),
+    FunctionError(String),
 }
 
 
@@ -36,10 +35,10 @@ impl std::fmt::Display for ErrMsg {
             ErrMsg::UnexpectedEOF(e) => write!(f, "UNEXPECTED EOF: {}", e),
             ErrMsg::TypeError(e) => write!(f, "TYPE ERROR: {}", e),
             ErrMsg::RustError(e) => write!(f, "RUST ERROR: {} (this error is from Rust, it is unlikely your fault)", e),
-            ErrMsg::OperationErrror(e) => write!(f, "OPERATION ERROR: {}", e),
             ErrMsg::ReturnValueError(e) => write!(f, "RETURN VALUE ERROR: {}", e),
             ErrMsg::ImportError(e) => write!(f, "IMPORT ERROR: {}", e),
             ErrMsg::DefinitionError(e) => write!(f, "DEFINITION ERROR: {}", e),
+            ErrMsg::FunctionError(e) => write!(f, "FUNCTION ERROR: {}", e),
         }
     }
 }
@@ -150,21 +149,4 @@ impl Warning {
             }
         }
     }
-}
-
-
-
-
-
-
-
-
-/// Return as a String the elements of the Vec, separated by the given caracter
-pub fn formatted_vec_string<T: Display>(vec: &Vec<T>, sep: char) -> String {
-    let mut res = String::new();
-    for (i, e) in vec.iter().enumerate() {
-        res = format!("{} {}", res, e);
-        if i < vec.len() - 1 {res.push(sep)}
-    }
-    res
 }

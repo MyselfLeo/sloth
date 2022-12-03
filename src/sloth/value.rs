@@ -100,6 +100,40 @@ impl Clone for Value {
 
 
 
+// implicit convertions
+
+impl From<f64> for Value {
+    fn from(v: f64) -> Self {Value::Number(v)}
+}
+impl From<String> for Value {
+    fn from(v: String) -> Self {Value::String(v)}
+}
+impl From<bool> for Value {
+    fn from(v: bool) -> Self {Value::Boolean(v)}
+}
+
+
+impl Into<f64> for Value {
+    fn into(self) -> f64 {
+        if let Value::Number(x) = self {x}
+        else {panic!("Implicit conversion from Value to f64 failed")}
+    }
+}
+impl Into<String> for Value {
+    fn into(self) -> String {
+        if let Value::String(x) = self {x}
+        else {panic!("Implicit conversion from Value to String failed")}
+    }
+}
+impl Into<bool> for Value {
+    fn into(self) -> bool {
+        if let Value::Boolean(x) = self {x}
+        else {panic!("Implicit conversion from Value to bool failed")}
+    }
+}
+
+
+
 
 
 impl Value {

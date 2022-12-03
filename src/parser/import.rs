@@ -30,6 +30,7 @@ pub fn parse_import(stream: &mut TokenStream, program: &mut SlothProgram, warnin
 
         o => return Err(super::wrong_token(o, "file name"))
     };
+    stream.next();
 
     // parse the file for the program
     super::parse_file(filename, program, warning, false)?;

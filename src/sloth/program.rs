@@ -1,11 +1,9 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
-use std::iter::zip;
 use std::rc::Rc;
 
-use crate::errors::{Error, ErrMsg, formatted_vec_string};
-use crate::position::Position;
-use super::function::{SlothFunction, FunctionSignature};
+use crate::errors::Error;
+use super::function::{SlothFunction, FunctionSignature, FunctionCallSignature};
 use super::scope::Scope;
 use super::expression::Expression;
 use super::structure::{StructSignature, ObjectBlueprint};
@@ -15,7 +13,7 @@ use crate::builtins;
 
 
 
-
+pub const ENTRY_POINT_NAME: &str = "@main";
 const DEFAULT_BUILTIN_IMPORTS: [&str; 2] = ["io", "lists"];
 
 
@@ -26,6 +24,7 @@ const DEFAULT_BUILTIN_IMPORTS: [&str; 2] = ["io", "lists"];
 /// Main structure of a Sloth program. Stores global definitions (function definition, structs definition, scopes)
 /// Note: Variables are stored in the scopes
 #[derive(Debug)]
+
 pub struct SlothProgram {
     _filename: String,
     functions: HashMap<FunctionSignature, Box<dyn SlothFunction>>,
@@ -36,8 +35,10 @@ pub struct SlothProgram {
     // note: this is my workaround for constants. It's not really constant but it's not really mutable....
     statics: HashMap<String, Rc<Expression>>,
 
-    imported_modules: Vec<String>,
     builtins: Vec<builtins::BuiltInImport>,
+
+    // list of every module name that can be called by module_name:function()
+    imported_modules: Vec<String>,
 }
 
 impl SlothProgram {
@@ -50,8 +51,13 @@ impl SlothProgram {
             statics: HashMap::new(),
 
             imported_modules: Vec::new(),
-            builtins: Vec::new(),
+            builtins: Vec::new()
         };
+
+        // import default operator functions
+        for op in crate::operations::get_all() {
+            program.push_function(Box::new(op));
+        }
 
         if import_default_builtins {
             for import in DEFAULT_BUILTIN_IMPORTS {
@@ -65,9 +71,14 @@ impl SlothProgram {
 
 
     
-    /// Add a function to the Function Hashmap.
+    /// Add a function to the Function Hashmap
     /// Can return an optional warning message if a previously defined function was overwritten
     pub fn push_function(&mut self, function: Box<dyn SlothFunction>) -> Option<String> {
+        // add the module of the function in the imported_module vec
+        if let Some(m) = function.get_module() {
+            if !self.imported_modules.contains(&m) {self.imported_modules.push(m)}
+        }
+
         match self.functions.insert(function.get_signature(), function) {
             Some(f) => {
                 let msg = format!("Redefinition of function {}. Previous definition was overwritten", f.get_name());
@@ -77,37 +88,108 @@ impl SlothProgram {
         }
     }
 
-    /// Return a clone of the requested function definition
-    pub fn get_function(&self, signature: &FunctionSignature) -> Result<&Box<dyn SlothFunction>, String> {
-        
-        // If the module is given, we can try to find the perfect match
-        if signature.module.is_some() {
-            for (sign, f) in &self.functions {
-                if sign.name == signature.name && sign.module == signature.module {return Ok(f.clone())}
+
+
+
+    /// Return the requested function definition
+    pub fn get_function(&self, signature: &FunctionCallSignature) -> Result<&Box<dyn SlothFunction>, String> {
+        let mut signatures = Vec::new();
+        for (key, _) in &self.functions {
+            signatures.push(key)
+        }
+
+        // remove each signature that don't match, criteria by criteria.
+        // at each point, check if no signature is left, in order to return a
+        // fitting error msg
+
+        // name of the function
+        signatures.retain(|k| k.name == *signature.name);
+        if signatures.is_empty() {
+            return Err(format!("Function '{}' is not defined", signature.name))
+        }
+
+        // module of the function
+        if let Some(module) = &signature.module {
+            // return err if the module was never imported
+            if !self.imported_modules.contains(&module) {
+                return Err(format!("Module '{}' was not imported", module))
             }
-            return Err(format!("No function named '{}' in the module '{}'", signature.name, signature.module.clone().unwrap()));
+
+            signatures.retain(|k| k.module.is_none() || k.module == Some(module.clone()));
+            if signatures.is_empty() {
+                return Err(format!("Function '{}' is not defined in the module '{}'", signature.name, module))
+            }
         }
 
-
-        let mut fitting_functions: Vec<&Box<dyn SlothFunction>> = Vec::new();
-
-        for (sign, f) in &self.functions {
-            if sign.name == signature.name
-            && sign.owner_type == signature.owner_type
-            && (sign.input_types == signature.input_types || sign.input_types.is_none() || signature.input_types.is_none())
-            && (sign.output_type == signature.output_type || signature.output_type.is_none()) {fitting_functions.push(f.clone());}
+        // owner type
+        signatures.retain(|k| k.owner_type == signature.owner_type);
+        if signatures.is_empty() {
+            return match &signature.owner_type {
+                Some(t) => Err(format!("Function '{}' is not defined for the type {}", signature.name, t)),
+                None => Err(format!("Function '{}' is not defined", signature.name))
+            }
         }
 
-        match fitting_functions.len() {
-            0 => {
-                match &signature.owner_type {
-                    Some(t) => Err(format!("No function named '{}' for type '{}' with the given inputs", signature.name, t)),
-                    None => Err(format!("No function named '{}' with the given inputs", signature.name))
+        // input types
+        signatures.retain(
+            |k| {
+                match &k.input_types {
+                    None => true,
+                    Some(t) => {
+                        let types: Vec<Type> = t.iter().map(|(v, _)| v.clone()).collect();
+                        types == signature.input_types
+                    }
                 }
-            },
-            1 => Ok(fitting_functions[0].clone()),
-            _ => {Err(format!("Ambiguous function name: '{}' is found in multiple modules. Consider specifying the module ( module:{}(input1 input2 ...) )", signature.name, signature.name))}
+            }
+        );
+        if signatures.is_empty() {
+            let type_str = signature.input_types.iter().map(|t| t.to_string()).collect::<Vec<String>>().join(", ");
+            return Err(format!("Function '{}' is not defined for the following input types: {}", signature.name, type_str))
         }
+
+        // output type
+        signatures.retain(|k| k.output_type.is_none() || k.output_type == Some(signature.output_type.clone()));
+        if signatures.is_empty() {
+            return Err(format!("Function '{}' is not defined with an output type of {}", signature.name, signature.output_type))
+        }
+
+
+        // At this point, there should be only one signature left:
+        // - 2 same signatures should not exist (hashmap)
+        // - 'no signature' was previously tested
+
+        // return the function
+        match signatures.get(0) {
+            Some(s) => {
+                Ok(self.functions.get(s).unwrap())
+            },
+            None => unreachable!()
+        }
+    }
+
+
+
+
+
+    /// Return the 'main' function of the program.
+    /// Raise an error if there is 0 or more than 1 'main' functions
+    pub fn get_main(&self) -> Result<&Box<dyn SlothFunction>, String> {
+        let mut functions = Vec::new();
+        for (k, v) in &self.functions {
+            if k.name == ENTRY_POINT_NAME && k.module.is_none() && k.owner_type == None {
+                functions.push(v)
+            }
+        }
+
+        if functions.len() == 0 {
+            return Err(format!("The program requires a '{ENTRY_POINT_NAME}' function returning a 'num' value (the exit code of the program)."))
+        }
+
+        if functions.len() > 1 {
+            return Err(format!("Multiple '{ENTRY_POINT_NAME}' functions defined. Only one is allowed in the program."))
+        }
+
+        Ok(&Box::new(functions[0]))
     }
 
 
@@ -119,6 +201,11 @@ impl SlothProgram {
     /// Push a new ObjectBlueprint to the program
     /// Can return an optional warning message if a previously defined function was overwritten
     pub fn push_struct(&mut self, struct_name: String, struct_module: Option<String>, blueprint: Box<dyn ObjectBlueprint>) -> Option<String> {
+        // add the module of the struct in the imported_module vec
+        if let Some(m) = &struct_module {
+            if !self.imported_modules.contains(&m) {self.imported_modules.push(m.clone())}
+        }
+        
         let signature = StructSignature::new(struct_module, struct_name.clone());
         match self.structures.insert(signature.clone(), blueprint) {
             Some(_) => {
@@ -238,49 +325,18 @@ impl SlothProgram {
     }
 
 
-    /// Find the 'main' function, check its validity, execute it with the given arguments and return what the main function returned
+    /// Run the program throught the Expression::MainCall
     pub unsafe fn run(&mut self, s_args: Vec<String>) -> Result<Value, Error> {
-        let main_func_id = FunctionSignature::new(None, "main".to_string(), None, None, Some(Type::Number));
-
-        // Check if the main function exists and is well defined
-        let main_func = match self.get_function(&main_func_id) {
-            Ok(v) => v,
-            Err(_) => {return Err(Error::new(ErrMsg::NoEntryPoint("Your program needs a 'main' function, returning a Number (the return code of your program), as an entry point.".to_string()), None))}
-        };
-
-        let main_inputs = main_func.get_signature().input_types.unwrap();
-
-        // Convert given arguments to Values, push them to the Expression Stack and store its Expression ids
-        let mut args: Vec<Rc<Expression>> = Vec::new();
-
-        let dummy_pos = Position {filename: "".to_string(), line: 0, first_column: 0, last_column: Some(0)};
-
-        if s_args.len() != main_inputs.len() {
-            // Create a string representing the required arguments types, like "num, bool, string"
-            let input_types_list = formatted_vec_string(&main_inputs.iter().map(|(t, _)| t).collect(), ',');
-            let err_msg = format!("Given {} command-line argument(s), but the main function requires {} argument(s): {}", s_args.len(), main_inputs.len(), input_types_list);
-            return Err(Error::new(ErrMsg::InvalidArguments(err_msg), None))
-        }
-
-        for (arg, (t, _)) in zip(s_args, main_inputs) {
-            let value = match Value::string_to_value(arg, t) {
-                Ok(v) => v,
-                Err(e) => {
-                    let err_msg = format!("Error while parsing command-line arguments: {}", e);
-                    return Err(Error::new(ErrMsg::InvalidArguments(err_msg), None))
-                }
-            };
-
-            args.push(Rc::new(Expression::Literal(value, dummy_pos.clone())));
-        }
-
-        // Call the main function
-        let f_call = Expression::FunctionCall(None, main_func_id, args, dummy_pos.clone());
+        let main_call = Expression::MainCall(s_args);
 
         let scope = Rc::new(RefCell::new(Scope::new()));
-        match f_call.evaluate(scope, self, false) {
-            Ok(reference) => Ok(reference.borrow().to_owned()),
-            Err(e) => Err(e)
+        match main_call.evaluate(scope, self, false) {
+            Ok(reference) => {
+                Ok(reference.borrow().to_owned())
+            },
+            Err(e) => {
+                Err(e)
+            }
         }
     }
 
@@ -290,21 +346,26 @@ impl SlothProgram {
 
     /// Print to console the list of functions defined in the program
     pub fn print_functions(self) {
-        println!("{:25}{:15}{:15}{:25}{:15}", "FUNCTION NAME", "OWNER TYPE", "MODULE", "INPUT TYPES", "OUTPUT TYPE");
-        for (signature, _) in self.functions {
-            let type_txt = match signature.owner_type {
+
+        // sort the functions
+        let mut signatures = self.functions.keys().collect::<Vec<&FunctionSignature>>();
+        signatures.sort_unstable_by_key(|s| (&s.module, &s.name, &s.input_types, &s.output_type));
+
+        println!("{:25}{:15}{:15}{:25}{:15}", "FUNCTION NAME", "MODULE", "OWNER TYPE", "INPUT TYPES", "OUTPUT TYPE");
+        for signature in signatures {
+            let module_txt = match &signature.module {
                 Some(v) => format!("{}", v),
                 None => "-".to_string(),
             };
-            let module_txt = match signature.module {
+            let type_txt = match &signature.owner_type {
                 Some(v) => format!("{}", v),
                 None => "-".to_string(),
             };
-            let input_types_txt = match signature.input_types {
+            let input_types_txt = match &signature.input_types {
                 Some(v) => {
                     let mut res = "".to_string();
                     for (t, b) in v {
-                        if b {
+                        if *b {
                             if res.is_empty() {res = format!("~{t}")}
                             else {res = format!("{}, ~{}", res, t);}
                         }
@@ -317,12 +378,12 @@ impl SlothProgram {
                 },
                 None => "-".to_string()
             };
-            let output_type_str = match signature.output_type {
+            let output_type_str = match &signature.output_type {
                 Some(v) => format!("{v}"),
                 None => "-".to_string()
             };
-
-            println!("{:25}{:15}{:15}{:25}{:15}", signature.name, type_txt, module_txt, input_types_txt, output_type_str);
+ 
+            println!("{:25}{:15}{:15}{:25}{:15}", signature.name, module_txt, type_txt, input_types_txt, output_type_str);
         }
     }
 }

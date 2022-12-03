@@ -39,50 +39,44 @@ pub fn get_type(builtin: &String) -> Result<BuiltinTypes, String> {
 
 /// Return a reference to a new SlothFunction. Panics if the function does not exists
 pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
-    match f_name.as_str() {
-        "to_string" => Box::new(
-            BuiltInFunction::new(
-                "to_string",
-                Some("numbers"),
-                Some(Type::Number),
-                Type::String,
-                to_string
-            )
+    let res = match f_name.as_str() {
+        "to_string" => BuiltInFunction::new(
+            "to_string",
+            Some("numbers"),
+            Some(Type::Number),
+            Type::String,
+            to_string
         ),
 
-        "floor" => Box::new(
-            BuiltInFunction::new(
-                "floor",
-                Some("numbers"),
-                Some(Type::Number),
-                Type::Number,
-                floor
-            )
+        "floor" => BuiltInFunction::new(
+            "floor",
+            Some("numbers"),
+            Some(Type::Number),
+            Type::Number,
+            floor
         ),
 
-        "ceil" => Box::new(
-            BuiltInFunction::new(
-                "ceil",
-                Some("numbers"),
-                Some(Type::Number),
-                Type::Number,
-                ceil
-            )
+        "ceil" => BuiltInFunction::new(
+            "ceil",
+            Some("numbers"),
+            Some(Type::Number),
+            Type::Number,
+            ceil
         ),
 
-        "round" => Box::new(
-            BuiltInFunction::new(
-                "round",
-                Some("numbers"),
-                Some(Type::Number),
-                Type::Number,
-                round
-            )
+        "round" => BuiltInFunction::new(
+            "round",
+            Some("numbers"),
+            Some(Type::Number),
+            Type::Number,
+            round
         ),
 
 
         n => panic!("Requested unknown built-in '{}'", n)
-    }
+    };
+
+    Box::new(res)
 }
 
 

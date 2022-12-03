@@ -43,39 +43,35 @@ pub fn get_type(builtin: &String) -> Result<BuiltinTypes, String> {
 
 /// Return a reference to a new SlothFunction. Panics if the function does not exists
 pub fn get_function(f_name: String) -> Box<dyn SlothFunction> {
-    match f_name.as_str() {
-        "now" => Box::new(
-            BuiltInFunction::new(
-                "now",
-                Some("clock"),
-                None,
-                Type::Object("Instant".to_string()),
-                now
-            )
+    let res = match f_name.as_str() {
+        "now" => BuiltInFunction::new(
+            "now",
+            Some("clock"),
+            None,
+            Type::Object("Instant".to_string()),
+            now
         ),
 
-        "since" => Box::new(
-            BuiltInFunction::new(
-                "since",
-                Some("clock"),
-                Some(Type::Object("Instant".to_string())),
-                Type::Object("Duration".to_string()),
-                since
-            )
+        "since" => BuiltInFunction::new(
+            "since",
+            Some("clock"),
+            Some(Type::Object("Instant".to_string())),
+            Type::Object("Duration".to_string()),
+            since
         ),
 
-        "sleep" => Box::new(
-            BuiltInFunction::new(
-                "sleep",
-                Some("clock"),
-                None,
-                Type::Number,
-                sleep
-            )
+        "sleep" => BuiltInFunction::new(
+            "sleep",
+            Some("clock"),
+            None,
+            Type::Number,
+            sleep
         ),
 
         n => panic!("Requested unknown built-in '{}'", n)
-    }
+    };
+
+    Box::new(res)
 }
 
 
@@ -93,7 +89,7 @@ pub fn get_struct(s_name: String) -> (Box<dyn ObjectBlueprint>, Vec<String>) {
     match s_name.as_str() {
         "Instant" => (
             Box::new(InstantBlueprint {}),
-            Vec::new()
+            vec![]
         ),
         "Duration" => (
             Box::new(DurationBlueprint {}),

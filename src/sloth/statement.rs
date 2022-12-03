@@ -49,9 +49,14 @@ impl Statement {
                 Ok(())
             },
 
-            Statement::ExpressionCall(expr, _) => {
-                expr.evaluate(scope, program, false)?;
-                Ok(())
+            Statement::ExpressionCall(expr, p) => {
+                match expr.evaluate(scope, program, false) {
+                    Ok(_) => Ok(()),
+                    Err(mut e) => {
+                        e.clog_pos(p.clone());
+                        Err(e)
+                    }
+                }
             },
 
             Statement::If(cond, statements, p) => {
