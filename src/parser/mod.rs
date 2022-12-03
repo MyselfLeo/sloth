@@ -106,7 +106,14 @@ pub fn check_semicolon(stream: &mut TokenStream, warn: bool, statement_pos: &Pos
                 Some((Token::Separator(Separator::CloseBracket), _)) => (),
                 _ => {
                     if warn {
-                        let warning = Warning::new("Use of a semicolon here is highly recommended".to_string(), Some(statement_pos.clone()));
+                        let position = Position {
+                            filename: statement_pos.filename.clone(),
+                            line: statement_pos.line,
+                            first_column: statement_pos.last_column.unwrap() + 1,
+                            last_column: None,
+                        };
+
+                        let warning = Warning::new("Use of a semicolon here is highly recommended".to_string(), Some(position));
                         warning.warn();
                     };
                 }

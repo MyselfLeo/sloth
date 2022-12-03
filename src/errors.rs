@@ -85,9 +85,7 @@ impl Error {
     /// print the trace from the deeper to the shallower, then exit the program
     pub fn abort(&self) {
         // find the highest line error n° to determine the space required at the left of the backtrace line to fit line numbers
-        let max_n = self.position_trace.iter()
-                                                      .map(|p| p.line + 1)
-                                                      .max();
+        let max_n = self.position_trace.iter().map(|p| p.line + 1).max();
 
         let mut max_n = match max_n {
             None => 0,
@@ -195,18 +193,18 @@ impl Warning {
                 for _ in 0..nb_space_before_line_n {spaces.push(' ')}
 
                 println!("\x1b[93mWarning: {}\x1b[0m", self.text);
-                println!("\x1b[90m{}:{}\x1b[0m", p.filename, p.line + 1);
-
                 
                 println!("\x1b[33m{raw_space}|\x1b[0m");
                 println!("\x1b[33m{}{} | \x1b[0m {}", spaces, p.line + 1, lines[p.line]);
                 print!("\x1b[33m{raw_space}| \x1b[93m");
-                for _ in 0..p.first_column{print!(" ")}
+                for _ in 0..p.first_column + 1 {print!(" ")}
                 
                 match p.last_column {
                     Some(n) => for _ in 0..(n - p.first_column + 1) {print!("^")},
-                    None => for _ in 0..(lines[p.line].len() - p.first_column + 2) {print!("^")}
+                    None => print!("^")
                 }
+
+                println!("\x1b[90m         ({}:{})\x1b[0m", p.filename, p.line + 1);
                 
                 println!("\x1b[0m\n");
             }
