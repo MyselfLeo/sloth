@@ -10,6 +10,7 @@ use super::scope::Scope;
 use super::program::{SlothProgram, ENTRY_POINT_NAME};
 use crate::errors::{Error, ErrMsg};
 use crate::position::Position;
+use crate::propagate;
 
 
 #[derive(Clone, Debug)]
@@ -36,17 +37,17 @@ impl Expression {
             Expression::Literal(v, _) => Ok(Rc::new(RefCell::new(v.clone()))),
 
             // a list
-            Expression::ListInit(exprs, _) => {
+            Expression::ListInit(exprs, p) => {
                 let mut values = Vec::new();
                 let mut list_type = Type::Any;
 
                 if exprs.len() != 0 {
-                    values.push(exprs[0].evaluate(scope.clone(), program, false)?);
+                    values.push(propagate!(exprs[0].evaluate(scope.clone(), program, false), &self.get_pos()));
                     list_type = values[0].borrow().get_type();
 
                     // Add the other elements to the value list, but checking the type of the value first
                     for expr in exprs.iter().skip(1) {
-                        let value = expr.evaluate(scope.clone(), program, false)?;
+                        let value = propagate!(expr.evaluate(scope.clone(), program, false), p);
 
                         if value.borrow().get_type() == list_type {values.push(value);}
                         else {
@@ -70,7 +71,7 @@ impl Expression {
                     // Field of a value
                     Some(o) => {
                         // Get the reference to the owner
-                        let owner_ref = o.evaluate(scope.clone(), program, false)?;
+                        let owner_ref = propagate!(o.evaluate(scope.clone(), program, false), p);
                         let field = owner_ref.borrow().get_field(name);
                         match field {
                             Ok(v) => Ok(v),
@@ -112,10 +113,7 @@ impl Expression {
                         // Get the value directly from the scope
                         match scope.borrow().get_variable(name.clone(), program.as_mut().unwrap()) {
                             Ok(r) => Ok(r),
-                            Err(mut e) => {
-                                e.clog_pos(p.clone());
-                                Err(e)
-                            }
+                            Err(e) => {Err(e.with(p))}
                         }
                     }
                 }
@@ -175,7 +173,7 @@ impl Expression {
 
 
                 // The function is correct, proceed to run it
-                Expression::execute_function(main_function, None, values, program)
+                Expression::execute_function(main_function, None, values, program, None)
             },
 
 
@@ -186,11 +184,14 @@ impl Expression {
                 // Get the reference to each value. The inputs by value (without "~") are deep-cloned at a later step,
                 // and are added to the function scope even after
 
-                let inputs = arguments.iter().map(|e| e.evaluate(scope.clone(), program, false)).collect::<Result<Vec<Rc<RefCell<Value>>>, Error>>()?;
+                let inputs = arguments.iter().map(|e| e.evaluate(scope.clone(), program, false)).collect::<Result<Vec<Rc<RefCell<Value>>>, Error>>();
+                let inputs = propagate!(inputs, p);
 
                 // Get the reference to the owner value, if any
                 let owner_value = match owner {
-                    Some(s) => Some(s.evaluate(scope.clone(), program, false)?),
+                    Some(s) => {
+                        Some(propagate!(s.evaluate(scope.clone(), program, false), p))
+                    },
                     None => None
                 };
 
@@ -210,12 +211,9 @@ impl Expression {
                 };
 
                 
-                match Expression::execute_function(function, owner_value, inputs, program) {
+                match Expression::execute_function(function, owner_value, inputs, program, Some(p)) {
                     Ok(v) => Ok(v),
-                    Err(mut e) => {
-                        e.clog_pos(p.clone());
-                        Err(e)
-                    }
+                    Err(e) => {Err(e.with(p))}
                 }
             },
 
@@ -234,7 +232,7 @@ impl Expression {
                 let mut given_values = Vec::new();
 
                 for expr in given_fields {
-                    given_values.push(expr.evaluate(scope.clone(), program, false)?);
+                    given_values.push(propagate!(expr.evaluate(scope.clone(), program, false), p));
                 }
 
                 // Build the object
@@ -248,7 +246,7 @@ impl Expression {
 
             
             Expression::BracketAccess(owner, access, p) => {
-                let access_ref = access.evaluate(scope.clone(), program, false)?;
+                let access_ref = propagate!(access.evaluate(scope.clone(), program, false), p);
                 let access_str = access_ref.borrow().to_string();
 
 
@@ -261,13 +259,11 @@ impl Expression {
 
         match res {
             Ok(v) => Ok(v),
-            Err(mut e) => {
+            Err(e) => {
 
                 // don't clog if we're in the MainCall
-                if let Expression::MainCall(..) = self {}
-                else {e.clog_pos(self.get_pos());}
-                
-                Err(e)
+                if let Expression::MainCall(..) = self {Err(e)}
+                else {Err(e.with(&self.get_pos()))}
             }
         }
     }
@@ -277,7 +273,7 @@ impl Expression {
 
 
 
-    unsafe fn execute_function(function: &Box<dyn SlothFunction>, owner_value: Option<Rc<RefCell<Value>>>, arguments: Vec<Rc<RefCell<Value>>>, program: *mut SlothProgram) -> Result<Rc<RefCell<Value>>, Error> {
+    unsafe fn execute_function(function: &Box<dyn SlothFunction>, owner_value: Option<Rc<RefCell<Value>>>, arguments: Vec<Rc<RefCell<Value>>>, program: *mut SlothProgram, call_pos: Option<&Position>) -> Result<Rc<RefCell<Value>>, Error> {
 
         // Whether the arguments are passed by value or by reference
         let inputs_ref_or_cloned: Vec<bool> = match function.get_signature().input_types {
@@ -342,8 +338,12 @@ impl Expression {
 
         // run the method in the given scope.
         // If the method call returned an error without position, set its position to this function call's
-        function.call(func_scope.clone(), program.as_mut().unwrap())?;
-
+        if let Some(p) = call_pos {
+            propagate!(function.call(func_scope.clone(), program.as_mut().unwrap()), &p);
+        }
+        else {
+            function.call(func_scope.clone(), program.as_mut().unwrap())?
+        }
 
 
 

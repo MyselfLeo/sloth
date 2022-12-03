@@ -5,7 +5,7 @@ const CRATE_NAME: &str = env!("CARGO_PKG_NAME");
 const CRATE_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum ErrMsg {
     SyntaxError(String),
     NoEntryPoint(String),
@@ -45,64 +45,66 @@ impl std::fmt::Display for ErrMsg {
 
 
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Error {
     pub message: ErrMsg,
-    pub position: Option<Position>
+    pub position_trace: Vec<Position>
 }
 
 
 impl Error {
     pub fn new(message: ErrMsg, position: Option<Position>) -> Error {
-        
         // if dummy pos, consider no pos was given
         let pos = match position {
-            None => None,
+            None => vec![],
             Some(p) => {
-                if p.filename == "" {None}
-                else {Some(p)}
+                if p.filename == "" {vec![]}
+                else {vec![p]}
             }
         };
 
-        Error { message: message, position: pos }
+        Error {message: message, position_trace: pos}
     }
 
 
     pub fn abort(&self) {
-        match &self.position {
-            None => println!("\x1b[91m{}\x1b[0m", self.message),
-            Some(p) => {
-                let filepath = std::path::Path::new(&p.filename);
-                let file_string = std::fs::read_to_string(filepath).expect(format!("Unable to read file {:?}", filepath.as_os_str()).as_str());
-                let lines: Vec<&str> = file_string.split('\n').collect();
 
-                let line_index_str_len = (p.line + 1).to_string().len();
+        // print the trace from the deeper to the shallower
+        for p in &self.position_trace {
+            let filepath = std::path::Path::new(&p.filename);
+            let file_string = std::fs::read_to_string(filepath).expect(format!("Unable to read file {:?}", filepath.as_os_str()).as_str());
+            let lines: Vec<&str> = file_string.split('\n').collect();
 
-                println!("\x1b[91m{}\x1b[0m", self.message);
-                println!("\x1b[90m{}:{}  ({} v{})\x1b[0m", p.filename, p.line + 1, CRATE_NAME, CRATE_VERSION);
+            let line_index_str_len = (p.line + 1).to_string().len();
 
-                println!("\x1b[31m|\x1b[0m");
-                println!("\x1b[31m| {}\x1b[0m {}", p.line + 1, lines[p.line]);
-                print!("\x1b[31m| \x1b[91m");
-                for _ in 0..p.first_column + line_index_str_len + 1 {print!(" ")}
+            println!("\x1b[90m{}:{}  ({} v{})\x1b[0m", p.filename, p.line + 1, CRATE_NAME, CRATE_VERSION);
 
-                match p.last_column {
-                    Some(n) => for _ in 0..(n - p.first_column + 1) {print!("^")},
-                    None => for _ in 0..(lines[p.line].len() - p.first_column + 2) {print!("^")}
-                }
-                
-                println!("\x1b[0m");
+            println!("\x1b[31m|\x1b[0m");
+            println!("\x1b[31m| {}\x1b[0m {}", p.line + 1, lines[p.line]);
+            print!("\x1b[31m| \x1b[91m");
+            for _ in 0..p.first_column + line_index_str_len + 1 {print!(" ")}
+
+            match p.last_column {
+                Some(n) => for _ in 0..(n - p.first_column + 1) {print!("^")},
+                None => for _ in 0..(lines[p.line].len() - p.first_column + 2) {print!("^")}
             }
+            
+            println!("\x1b[0m");
         }
+
+        // Print the error
+        println!("\x1b[91m{}\x1b[0m", self.message);
+
         std::process::exit(1)
     }
 
 
-    /// Set the position of the error if none is already set
-    pub fn clog_pos(&mut self, pos: Position) {
-        if self.position.is_none() {
-            self.position = Some(pos)
-        }
+    /// Return a copy of the error with the given position added
+    pub fn with(self, pos: &Position) -> Error {
+        let mut new_err = self.clone();
+        new_err.position_trace.push(pos.clone());
+
+        new_err
     }
 }
 
@@ -149,4 +151,20 @@ impl Warning {
             }
         }
     }
+}
+
+
+
+
+
+/// Evaluate the expression if it returns Result<_, Error>.
+/// if it returns an Error, add the given position to it and propagate it
+#[macro_export]
+macro_rules! propagate {
+    ($expr:expr, $err:expr) => {
+        match $expr {
+            Ok(v) => v,
+            Err(e) => return Err(e.with($err))
+        }
+    };
 }
