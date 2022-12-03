@@ -111,10 +111,7 @@ impl Expression {
                         }
 
                         // Get the value directly from the scope
-                        match scope.borrow().get_variable(name.clone(), program.as_mut().unwrap()) {
-                            Ok(r) => Ok(r),
-                            Err(e) => {Err(e.with(p))}
-                        }
+                        scope.borrow().get_variable(name.clone(), program.as_mut().unwrap())
                     }
                 }
             },
@@ -173,7 +170,7 @@ impl Expression {
 
 
                 // The function is correct, proceed to run it
-                Expression::execute_function(main_function, None, values, program, None)
+                Expression::execute_function(main_function, None, values, program)
             },
 
 
@@ -209,12 +206,8 @@ impl Expression {
                         return Err(Error::new(ErrMsg::FunctionError(e), Some(p.clone())))
                     }
                 };
-
                 
-                match Expression::execute_function(function, owner_value, inputs, program, Some(p)) {
-                    Ok(v) => Ok(v),
-                    Err(e) => {Err(e.with(p))}
-                }
+                Expression::execute_function(function, owner_value, inputs, program)
             },
 
 
@@ -261,7 +254,7 @@ impl Expression {
             Ok(v) => Ok(v),
             Err(e) => {
 
-                // don't clog if we're in the MainCall
+                // don't add pos if we're in the main call
                 if let Expression::MainCall(..) = self {Err(e)}
                 else {Err(e.with(&self.get_pos()))}
             }
@@ -273,7 +266,7 @@ impl Expression {
 
 
 
-    unsafe fn execute_function(function: &Box<dyn SlothFunction>, owner_value: Option<Rc<RefCell<Value>>>, arguments: Vec<Rc<RefCell<Value>>>, program: *mut SlothProgram, call_pos: Option<&Position>) -> Result<Rc<RefCell<Value>>, Error> {
+    unsafe fn execute_function(function: &Box<dyn SlothFunction>, owner_value: Option<Rc<RefCell<Value>>>, arguments: Vec<Rc<RefCell<Value>>>, program: *mut SlothProgram) -> Result<Rc<RefCell<Value>>, Error> {
 
         // Whether the arguments are passed by value or by reference
         let inputs_ref_or_cloned: Vec<bool> = match function.get_signature().input_types {
@@ -336,14 +329,8 @@ impl Expression {
             };
         }
 
-        // run the method in the given scope.
-        // If the method call returned an error without position, set its position to this function call's
-        if let Some(p) = call_pos {
-            propagate!(function.call(func_scope.clone(), program.as_mut().unwrap()), &p);
-        }
-        else {
-            function.call(func_scope.clone(), program.as_mut().unwrap())?
-        }
+        // run the method in the given scope
+        function.call(func_scope.clone(), program.as_mut().unwrap())?;
 
 
 

@@ -3,7 +3,6 @@ use std::rc::Rc;
 
 use crate::errors::{Error, ErrMsg};
 use crate::position::Position;
-use crate::propagate;
 use super::expression::Expression;
 use super::scope::Scope;
 use super::program::SlothProgram;
@@ -50,9 +49,9 @@ impl Statement {
                 Ok(())
             },
 
-            Statement::ExpressionCall(expr, p) => {
-                propagate!(expr.evaluate(scope, program, false), p);
-                Ok(())
+            Statement::ExpressionCall(expr, _) => {
+               expr.evaluate(scope, program, false)?;
+               Ok(())
             },
 
             Statement::If(cond, statements, p) => {

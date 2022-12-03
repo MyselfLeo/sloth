@@ -68,42 +68,74 @@ impl Error {
 
 
     pub fn abort(&self) {
-
         // print the trace from the deeper to the shallower
-        for p in &self.position_trace {
+
+        // find the highest line error n° to determine the space required at the left of the backtrace line to fit line numbers
+        let max_n = self.position_trace.iter()
+                                                      .map(|p| p.line + 1)
+                                                      .max();
+
+        let max_n = match max_n {
+            None => 0,
+            Some(n) => n.to_string().len() + 2
+        };
+
+
+        let mut raw_space = String::new();
+        for _ in 0..max_n {raw_space.push(' ')}
+
+        for (i, p) in self.position_trace.iter().enumerate() {
             let filepath = std::path::Path::new(&p.filename);
             let file_string = std::fs::read_to_string(filepath).expect(format!("Unable to read file {:?}", filepath.as_os_str()).as_str());
             let lines: Vec<&str> = file_string.split('\n').collect();
 
-            let line_index_str_len = (p.line + 1).to_string().len();
+            if i == 0 {println!("\x1b[31m{raw_space}■ Error backtrace\x1b[90m {CRATE_NAME} v{CRATE_VERSION}\x1b[0m");}
+            else {println!("\x1b[31m{raw_space}v\x1b[0m");}
+            println!("\x1b[31m{raw_space}|\x1b[0m");
+            
+            let nb_space_before_line_n = max_n - ((p.line + 1).to_string().len() + 1);
+            let mut spaces = String::new();
+            for _ in 0..nb_space_before_line_n {spaces.push(' ')}
+            println!("\x1b[31m{}{} |\x1b[0m {}", spaces, p.line + 1, lines[p.line]);
 
-            println!("\x1b[90m{}:{}  ({} v{})\x1b[0m", p.filename, p.line + 1, CRATE_NAME, CRATE_VERSION);
-
-            println!("\x1b[31m|\x1b[0m");
-            println!("\x1b[31m| {}\x1b[0m {}", p.line + 1, lines[p.line]);
-            print!("\x1b[31m| \x1b[91m");
-            for _ in 0..p.first_column + line_index_str_len + 1 {print!(" ")}
+            print!("\x1b[31m{raw_space}| \x1b[91m");
+            for _ in 0..p.first_column {print!(" ")}
 
             match p.last_column {
                 Some(n) => for _ in 0..(n - p.first_column + 1) {print!("^")},
                 None => for _ in 0..(lines[p.line].len() - p.first_column + 2) {print!("^")}
             }
-            
-            println!("\x1b[0m");
+
+            println!("\x1b[90m         ({}:{})\x1b[0m", p.filename, p.line + 1);
+        }
+
+        if !self.position_trace.is_empty() {
+            println!("\x1b[31m{raw_space}|\x1b[0m");
+            print!("\x1b[31m{raw_space}=>");
         }
 
         // Print the error
-        println!("\x1b[91m{}\x1b[0m", self.message);
+        println!("\x1b[91m {}\x1b[0m", self.message);
+        
 
         std::process::exit(1)
     }
 
 
-    /// Return a copy of the error with the given position added
+    /// Return a copy of the error with the given position added.
+    /// If the last error is on the same line as the new one,
+    /// we keep the last one (the one more in-depth)
     pub fn with(self, pos: &Position) -> Error {
         let mut new_err = self.clone();
-        new_err.position_trace.push(pos.clone());
 
+        // don't add the new error if on the same line but more "general" than the last one
+        if new_err.position_trace.len() > 0 {
+            if new_err.position_trace[0].line == pos.line && new_err.position_trace[0].filename == pos.filename {
+                return self
+            }
+        }
+
+        new_err.position_trace.insert(0, pos.clone());
         new_err
     }
 }
@@ -164,7 +196,10 @@ macro_rules! propagate {
     ($expr:expr, $err:expr) => {
         match $expr {
             Ok(v) => v,
-            Err(e) => return Err(e.with($err))
+            Err(e) => {
+                println!("Propagating from {}", line!());
+                return Err(e.with($err))
+            }
         }
     };
 }
