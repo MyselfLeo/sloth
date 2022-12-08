@@ -4,3 +4,4 @@
 /unit_tests/release
 /unit_tests/.rustc_info.json
 snake.slo
+Cargo.lock

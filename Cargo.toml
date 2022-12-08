@@ -1,6 +1,6 @@
 [package]
 name = "slothlang"
-version = "1.2.0"
+version = "1.2.1"
 edition = "2021"
 authors = ["MyselfLeo"]
 readme = "README.md"
@@ -9,7 +9,7 @@ license = "Apache-2.0"
 keywords = ["programming-language", "interpreter", "language", "sloth"]
 categories = ["compilers"]
 description = "A weird, slow and a bit moldy interpreted programming language"
-exclude = ["examples/*", "overview/*"]
+exclude = ["examples/*", "test/*"]
 
 [dependencies]
 clap = { version = "3.2.3", features = ["derive"] }
