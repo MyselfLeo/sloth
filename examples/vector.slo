@@ -2,9 +2,9 @@ builtin maths;
 
 
 structure Vector3 {
-    x: num
-    y: num
-    z: num
+    x: num;
+    y: num;
+    z: num;
 }
 
 
