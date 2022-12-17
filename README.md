@@ -20,7 +20,20 @@ define @main: num -> num {
     print(factorial(@0) "\n");
 }
 ```
-The syntax, logic and specifications of Sloth are described in the documentation.
+
+Some fundamentals of the Sloth syntax:
+- Operations use the [Polish notation](https://en.wikipedia.org/wiki/Polish_notation)
+- Special symbols are prefixed with `@`: `@main`, `@self`, `@return`...
+- Functions return the content of the variable `@return`
+- Methods can modify the value referenced by `@self`
+- Functions/Methods arguments are named `@0`, `@1`, etc.
+
+## Features
+
+Sloth does not provide common features like `else` blocks, `for` loops, etc. There is no error management yet, no compiled module yet, etc.
+
+However, you can overload operators! 🎉
+
 
 ## Installation
 
