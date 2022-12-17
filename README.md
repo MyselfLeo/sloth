@@ -16,7 +16,7 @@ define factorial: num -> num {
     };
 }
 
-define main: num -> num {
+define @main: num -> num {
     print(factorial(@0) "\n");
 }
 ```
