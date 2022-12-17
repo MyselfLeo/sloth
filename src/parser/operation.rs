@@ -11,6 +11,11 @@ use super::expression::parse_expression;
 
 
 
+const ONE_OPERAND_OPERATORS: [Operator; 2] = [Operator::Inv, Operator::Len];
+
+
+
+
 /// Return the name of the function implementing this operator
 fn op_func_name(operator: &Operator) -> String {
     format!("@{}", operator.get_name())
@@ -45,7 +50,7 @@ pub fn parse_operation(stream: &mut TokenStream, program: &mut SlothProgram, war
 
     let func_call = {
         // use rhs if not the inverse operator (1 operand)
-        if operator != Operator::Inv {
+        if !ONE_OPERAND_OPERATORS.contains(&operator) {
             let rhs = Rc::new(parse_expression(stream, program, warning, None)?);
             let rhs_pos = rhs.get_pos();
             

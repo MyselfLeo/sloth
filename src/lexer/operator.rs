@@ -1,5 +1,5 @@
 // The '<=' and '>=' must be before '<' and '>' so the parsing works
-pub const OPERATORS: [&str; 13] = ["+", "-", "*", "/", "%", "<=", ">=", "==", "<", ">", "&", "?", "!"];
+pub const OPERATORS: [&str; 14] = ["+", "-", "*", "/", "%", "<=", ">=", "==", "<", ">", "&", "?", "!", "#"];
 
 
 #[derive(Clone, Debug, PartialEq)]
@@ -17,6 +17,7 @@ pub enum Operator {
     And,
     Or,
     Inv,    // Inverse of boolean
+    Len,    // length operator
 }
 
 
@@ -36,6 +37,7 @@ impl Operator {
             Operator::And => "&",
             Operator::Or => "?",
             Operator::Inv => "!",
+            Operator::Len => "#",
         }.to_string()
     }
 
@@ -55,6 +57,7 @@ impl Operator {
             Operator::And => "and",
             Operator::Or => "or",
             Operator::Inv => "inv",
+            Operator::Len => "len",
         }.to_string()
     }
 
@@ -74,6 +77,7 @@ impl Operator {
             "&" => Operator::And,
             "?" => Operator::Or,
             "!" => Operator::Inv,
+            "#" => Operator::Len,
             _ => return Err(format!("Unimplemented operator '{}'", str))
         };
         Ok(val)
