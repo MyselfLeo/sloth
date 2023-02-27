@@ -1,3 +1,5 @@
+//! Sloth: A weird, slow and a bit moldy programming language
+
 mod lexer;
 mod parser;
 mod sloth;

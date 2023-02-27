@@ -1,3 +1,4 @@
+//! This module contains the logic of builtin operations (+, -, etc.) in the form of functions ([OperatorFunction] implementing [SlothFunction]).
 use std::{rc::Rc, cell::RefCell};
 use crate::lexer::Operator;
 use crate::sloth::function::{FunctionSignature, SlothFunction};

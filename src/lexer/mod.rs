@@ -1,3 +1,5 @@
+//! The lexer is responsible of converting a text file (`.slo`) to a [TokenStream].
+
 use crate::errors::Error;
 
 pub mod token;
