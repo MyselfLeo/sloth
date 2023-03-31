@@ -48,7 +48,7 @@ pub fn parse_structure(stream: &mut TokenStream, program: &mut SlothProgram, mod
         fields_type.push(field_type);
 
         // A semicolon here is strongly recommended, but not necessary
-        super::check_semicolon(stream, warning, &first_pos.until(type_pos))?;
+        super::check_semicolon(stream, warning, &type_pos)?;
     }
     stream.next();
 

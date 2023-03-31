@@ -8,14 +8,14 @@ structure Vector3 {
 }
 
 
-# Return the norm (the length) of the vector
+// Return the norm (the length) of the vector
 define norm for Vector3: -> num {
     @return = + + @self.x.pow(2) @self.y.pow(2) @self.z.pow(2);
     @return = @return.sqrt();
 }
 
 
-# Normalize the vector (set its length to 1 without modifying its direction)
+// Normalize the vector (set its length to 1 without modifying its direction)
 define normalize for Vector3: -> num {
     l = @self.norm();
     @self.x = / @self.x l;
@@ -24,13 +24,13 @@ define normalize for Vector3: -> num {
 }
 
 
-# Return the dot product of @self with @0
+// Return the dot product of @self with @0
 define dot for Vector3: Vector3 -> num {
     @return = + + * @self.x @0.x * @self.y @0.y * @self.z @0.z;
 }
 
 
-# Return the cross product of @self with @0
+// Return the cross product of @self with @0
 define cross for Vector3: Vector3 -> Vector3 {
     @return = new Vector3(
         - * @self.y @0.z * @self.z @0.y
@@ -41,7 +41,7 @@ define cross for Vector3: Vector3 -> Vector3 {
 
 
 
-# Operator overload
+// Operator overload
 define @add: Vector3 Vector3 -> Vector3 {@return = new Vector3(+ @0.x @1.x + @0.y @1.y + @0.z @1.z);}
 define @sub: Vector3 Vector3 -> Vector3 {@return = new Vector3(- @0.x @1.x - @0.y @1.y - @0.z @1.z);}
 

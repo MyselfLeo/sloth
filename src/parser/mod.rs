@@ -1,3 +1,5 @@
+//! This module is responsible of parsing a [TokenStream] and converting it to the final execution tree.
+
 use std::path::PathBuf;
 
 use crate::position::Position;

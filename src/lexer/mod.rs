@@ -1,3 +1,5 @@
+//! The lexer is responsible of converting a text file (`.slo`) to a [TokenStream].
+
 use crate::errors::Error;
 
 pub mod token;
@@ -16,8 +18,9 @@ pub use operator::Operator;
 
 // Unlike SEPARATORS, those do not have a semantic meaning (only used for separating tokens)
 pub const DEFAULT_SEPARATORS: [char; 3] = [' ', '"', '\t'];
+
 // Comments starts with this str and ends at the end of the line
-pub const COMMENT_CHAR: char = '#';
+pub const COMMENT_STR: [char; 2] = ['/', '/'];
 
 
 

@@ -1,3 +1,5 @@
+//! The [Position] struct represent the position of a token, an expression, etc. in a file.
+
 #[derive(Clone, Debug)]
 /// Represents the position of an element (token, expression, etc.) in a file.
 /// An element can't be on 2 line at the same time
@@ -24,9 +26,7 @@ impl std::fmt::Display for Position {
 
 
 impl Position {
-    pub fn to_string(&self) -> String {
-        format!("{}", self)
-    }
+    pub fn to_string(&self) -> String {format!("{}", self)}
 
     /// Return a new Position starting from the start of self until the end of other.
     /// They both needs to be on the same line

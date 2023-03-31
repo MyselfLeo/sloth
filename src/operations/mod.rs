@@ -1,3 +1,4 @@
+//! This module contains the logic of builtin operations (+, -, etc.) in the form of functions ([OperatorFunction] implementing [SlothFunction]).
 use std::{rc::Rc, cell::RefCell};
 use crate::lexer::Operator;
 use crate::sloth::function::{FunctionSignature, SlothFunction};
@@ -14,8 +15,8 @@ pub mod div;
 pub mod modulo;
 pub mod mul;
 pub mod sub;
+pub mod len;
 pub mod inv;
-
 
 
 
@@ -114,7 +115,8 @@ pub fn get_all() -> Vec<OperatorFunction> {
         sub::get_all(),
         mul::get_all(),
         div::get_all(),
-        inv::get_all()
+        len::get_all(),
+        inv::get_all(),
     ];
     vecs.concat()
 }

@@ -1,6 +1,9 @@
+//! Errors and warnings returned by the interpreter.
+
 use crate::position::Position;
 
-
+/// Represents an error message returned by the interpreter, at build time or at run time.  
+/// This include its type and its message, as a string.
 #[derive(Debug, Clone)]
 pub enum ErrMsg {
     SyntaxError(String),
@@ -59,7 +62,9 @@ impl std::fmt::Display for ErrMsg {
 }
 
 
-
+/// Represents an error returned by the interpreter, at build time or at run time.  
+/// It is a combinaison of a message ([ErrMsg]) and a Vec of [Position],
+/// representing the backtrace of the error (= with tokens in a source file).
 #[derive(Debug, Clone)]
 pub struct Error {
     pub message: ErrMsg,
@@ -68,6 +73,7 @@ pub struct Error {
 
 
 impl Error {
+    /// Create a new Error with the given message and position
     pub fn new(message: ErrMsg, position: Option<Position>) -> Error {
         // if dummy pos, consider no pos was given
         let pos = match position {
@@ -155,13 +161,15 @@ impl Error {
 
 
 
-
+/// Represents a warning returned by the interpreter at build time.  
+/// It is a combinaison of a message and an optional position (= with tokens in a source file).
 pub struct Warning {
     pub text: String,
     pub position: Option<Position>
 }
 
 impl Warning {
+    /// Create a new Warning with the given message and position
     pub fn new(text: String, position: Option<Position>) -> Warning {
         Warning {
             text: text,
@@ -169,6 +177,7 @@ impl Warning {
         }
     }
 
+    /// Print the warning to the standard output
     pub fn warn(&self) {
         let mut max_n = match &self.position {
             None => 0,
@@ -216,7 +225,7 @@ impl Warning {
 
 
 
-/// Evaluate the expression if it returns Result<_, Error>.
+/// Evaluate the expression if it returns Result<_, Error>.  
 /// if it returns an Error, add the given position to it and propagate it
 #[macro_export]
 macro_rules! propagate {

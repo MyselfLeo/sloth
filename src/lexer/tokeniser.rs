@@ -75,29 +75,48 @@ pub fn from_file(filename: &str) -> Result<Vec<(Token, Position)>, Error> {
 
 
 
-            // If we are not in a string, and we find the COMMENT_START pattern, we can skip the rest of the line
-            if string_buffer.is_empty() && c == super::COMMENT_CHAR {
-                // Skip the rest of the line and push the current token to the vec
-                if !token_buffer.is_empty() {
-                    let position = Position {
-                        filename: filename.to_string(),
-                        line: token_start.0,
-                        first_column: token_start.1,
-                        last_column: Some(c_index - 1)
-                    };
-
-                    match Token::from_str(&token_buffer) {
-                        Ok(s) => tokens.push((s, position)),
-                        Err(e) => {
-                            return Err(Error::new(ErrMsg::SyntaxError(e), Some(position)));
+            // If we are not in a string, and we find the COMMENT_STR pattern, we can skip the rest of the line
+            if string_buffer.is_empty() && c == super::COMMENT_STR[0] {
+                // check if the next characters complete the str
+                let mut is_match = true;
+                for i in 1..super::COMMENT_STR.len() {
+                    match line.chars().nth(c_index + i) {
+                        Some(c) => {
+                            if c != super::COMMENT_STR[i] {
+                                is_match = false;
+                                break;
+                            }
+                        },
+                        None => {
+                            is_match = false;
+                            break;
                         },
                     }
-
-                    token_buffer.clear();
                 }
 
-                line_index += 1; // increment line_index here as "continue 'lines" won't call the last statement of the loop 'lines' 
-                continue 'lines;
+                if is_match {
+                    // Skip the rest of the line and push the current token to the vec
+                    if !token_buffer.is_empty() {
+                        let position = Position {
+                            filename: filename.to_string(),
+                            line: token_start.0,
+                            first_column: token_start.1,
+                            last_column: Some(c_index - 1)
+                        };
+
+                        match Token::from_str(&token_buffer) {
+                            Ok(s) => tokens.push((s, position)),
+                            Err(e) => {
+                                return Err(Error::new(ErrMsg::SyntaxError(e), Some(position)));
+                            },
+                        }
+
+                        token_buffer.clear();
+                    }
+
+                    line_index += 1; // increment line_index here as "continue 'lines" won't call the last statement of the loop 'lines' 
+                    continue 'lines;
+                }
             }
 
 

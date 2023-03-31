@@ -1,3 +1,5 @@
+//! The builtin functions of Sloth are defined in this module. They implement [SlothFunction].
+
 use std::cell::RefCell;
 use std::rc::Rc;
 
