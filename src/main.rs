@@ -52,6 +52,10 @@ struct Args {
     #[clap(long, value_parser)]
     nodefault: bool,
 
+    /// Disabled builtin modules
+    #[clap(short, value_parser)]
+    disabled_builtins: Vec<String>,
+
     /// Arguments for the Sloth program
     #[clap(value_parser)]
     arguments: Vec<String>,
@@ -80,7 +84,7 @@ fn main() {
 
     else {
         // build the program
-        let mut program: SlothProgram = match parser::build_program(filename.clone(), !args.nowarn, !args.nodefault) {
+        let mut program: SlothProgram = match parser::build_program(filename.clone(), !args.nowarn, !args.nodefault, args.disabled_builtins) {
             Err(e) => {e.abort(); return},
             Ok(p) => p,
         };

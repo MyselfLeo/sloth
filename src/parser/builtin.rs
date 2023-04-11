@@ -7,7 +7,7 @@ use crate::errors::{Error, ErrMsg};
 
 
 /// Parse a 'builtin' statement, return the resulting BuiltInImport
-pub fn parse_builtin(stream: &mut TokenStream, _: &mut SlothProgram, warning: bool) -> Result<BuiltInImport, Error> {
+pub fn parse_builtin(stream: &mut TokenStream, p: &mut SlothProgram, warning: bool) -> Result<BuiltInImport, Error> {
     // "builtin" keyword
     let (_, mut pos) = super::expect_token(stream, Token::Keyword(Keyword::Builtin))?;
 
@@ -40,7 +40,7 @@ pub fn parse_builtin(stream: &mut TokenStream, _: &mut SlothProgram, warning: bo
     // check import. TODO maybe don't do that here ?
     let import = BuiltInImport::new(module, builtin);
 
-    match import.is_valid() {
+    match import.is_valid(&p.disabled_builtins) {
         Ok(..) => Ok(import),
         Err(e) => Err(Error::new(ErrMsg::ImportError(e), Some(pos)))
     }

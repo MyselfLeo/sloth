@@ -65,9 +65,15 @@ impl BuiltInImport {
 
 
     /// Check if the import is valid (module and each builtins exists). If it isn't, return an error msg
-    pub fn is_valid(&self) -> Result<(), String> {
+    /// 
+    /// # Arguments
+    /// * `disabled` - list of builtin modules disabled (via a program argument, usually)
+    pub fn is_valid(&self, disabled: &Vec<String>) -> Result<(), String> {
         if !MODULES.contains(&self.module.as_str()) {
             return Err(format!("Built-in module '{}' does not exists", self.module))
+        }
+        if disabled.contains(&self.module) {
+            return Err(format!("Built-in module '{}' is disabled", self.module))
         }
 
         match &self.builtins {
