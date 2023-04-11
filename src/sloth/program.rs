@@ -39,10 +39,13 @@ pub struct SlothProgram {
 
     // list of every module name that can be called by module_name:function()
     imported_modules: Vec<String>,
+
+    // list of every builtin modules disabled
+    pub disabled_builtins: Vec<String>
 }
 
 impl SlothProgram {
-    pub fn new(filename: String, import_default_builtins: bool) -> SlothProgram {
+    pub fn new(filename: String, import_default_builtins: bool, disabled_builtins: Vec<String>) -> SlothProgram {
         let mut program = SlothProgram {
             _filename: filename,
             functions: HashMap::new(),
@@ -51,7 +54,8 @@ impl SlothProgram {
             statics: HashMap::new(),
 
             imported_modules: Vec::new(),
-            builtins: Vec::new()
+            builtins: Vec::new(),
+            disabled_builtins: disabled_builtins
         };
 
         // import default operator functions

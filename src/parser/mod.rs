@@ -234,8 +234,8 @@ pub fn parse_file(filename: String, program: &mut SlothProgram, warning: bool, i
 
 
 /// 
-pub fn build_program(filename: String, warning: bool, import_default_builtins: bool) -> Result<SlothProgram, Error> {
-    let mut program = SlothProgram::new(PathBuf::from(&filename).file_stem().unwrap().to_str().unwrap().to_string(), import_default_builtins);
+pub fn build_program(filename: String, warning: bool, import_default_builtins: bool, disabled_builtins: Vec<String>) -> Result<SlothProgram, Error> {
+    let mut program = SlothProgram::new(PathBuf::from(&filename).file_stem().unwrap().to_str().unwrap().to_string(), import_default_builtins, disabled_builtins);
     parse_file(filename, &mut program, warning, true)?;
 
     match program.import_builtins() {
