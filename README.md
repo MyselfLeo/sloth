@@ -44,6 +44,10 @@ $ cargo install slothlang
 
 I may provide executables in the future.
 
+## Extension
+
+You can install this syntax highlighting VSCode extension: [sloth-syntax](https://github.com/MyselfLeo/sloth-syntax).
+
 ## License
 
 Sloth is licensed under the [Apache-2.0 License](LICENSE.txt).
