@@ -219,7 +219,7 @@ fn push(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Err
 
 
     // get the list elements as owned, in order to build a new one
-    let (list_type, mut list_vec) = match list_self {
+    let (mut list_type, mut list_vec) = match list_self {
         Value::List(t, v) => (t, v.iter().map(|rc| rc.borrow().to_owned()).collect::<Vec<Value>>()),
         _ => panic!("Called 'push' on a value which is not a list")
     };
@@ -229,6 +229,11 @@ fn push(scope: Rc<RefCell<Scope>>, program: &mut SlothProgram) -> Result<(), Err
     if pushed_value.get_type() != list_type {
         let err_msg = format!("Tried to push a value of type '{}' to a list of type '{}'", pushed_value.get_type(), list_type);
         return Err(Error::new(ErrMsg::InvalidArguments(err_msg), None));
+    }
+
+    // Update list type if its Any
+    if list_type == Type::Any {
+        list_type = pushed_value.get_type();
     }
 
     list_vec.push(pushed_value);
